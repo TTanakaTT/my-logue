@@ -1,47 +1,55 @@
-name: Deploy GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-  build-deploy:
+  build_site:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup pnpm
+      - name: Install pnpm
         uses: pnpm/action-setup@v3
         with:
           version: 8
-
-      - name: Setup Node
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'pnpm'
+          node-version: 22
+          cache: pnpm
 
-      - name: Install deps
-        run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install
 
-      - name: Build
-        run: pnpm build
+      - name: build
+        env:
+          BASE_PATH: '/${{ github.event.repository.name }}'
+        run: |
+          pnpm run build
 
-      - name: Upload artifact
+      - name: Upload Artifacts
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          # this should match the `pages` option in your adapter-static options
+          path: 'dist/'
 
-      - name: Deploy to GitHub Pages
+  deploy:
+    needs: build_site
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy
+        id: deployment
         uses: actions/deploy-pages@v4
