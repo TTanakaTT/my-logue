@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+.vite/
+coverage/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor
+.idea/
+*.swp
+*.swo
+.DS_Store
+.vscode/
+
+# Local env
+.env.local
+.env.*.local
+
+# Svelte / Vite cache
+.svelte-kit/
+
+# Playwright
+playwright-report/
+blob-report/
+trace.zip
+.test-results/
+
+# Misc
+*.tgz
