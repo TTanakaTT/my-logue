@@ -13,7 +13,7 @@
       "**/src/**/*.css": "tailwindcss"
     },
     "[svelte]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "svelte.svelte-vscode"
     },
     "[javascript]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode"

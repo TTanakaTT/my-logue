@@ -9,8 +9,8 @@ export const events: EventDef[] = [
     apply: (state) => {
       state.player.hp -= 10;
       state.player.attack += 2;
-  pushLog(state, '儀式で攻撃力+2 しかしHP-10', 'event');
-  if (state.player.hp <= 0) pushLog(state, '儀式で倒れた...', 'event');
+      pushLog(state, '儀式で攻撃力+2 しかしHP-10', 'event');
+      if (state.player.hp <= 0) pushLog(state, '儀式で倒れた...', 'event');
     }
   },
   {
@@ -21,7 +21,7 @@ export const events: EventDef[] = [
       const heal = Math.max(1, Math.floor(state.player.maxHP * 0.3));
       const before = state.player.hp;
       state.player.hp = Math.min(state.player.maxHP, state.player.hp + heal);
-  pushLog(state, `泉で${state.player.hp - before}回復`, 'event');
+      pushLog(state, `泉で${state.player.hp - before}回復`, 'event');
     }
   },
   {
@@ -33,10 +33,10 @@ export const events: EventDef[] = [
       pushLog(state, '裂け目に飛び込みボスへ', 'event');
       state.stepIndex = 4; // ボスステップへジャンプ
       // 直接ボス戦開始状態に遷移
-  state.enemy = createEnemy('boss', state.floorIndex);
-  state.phase = 'combat';
-  rollActions(state);
-  pushLog(state, 'ボス戦開始!(裂け目)', 'combat');
+      state.enemy = createEnemy('boss', state.floorIndex);
+      state.phase = 'combat';
+      rollActions(state);
+      pushLog(state, 'ボス戦開始!(裂け目)', 'combat');
     }
   }
 ];

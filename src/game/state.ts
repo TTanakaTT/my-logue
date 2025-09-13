@@ -40,10 +40,10 @@ function initState(): GameState {
     stepIndex: 0,
     phase: 'progress',
     player: basePlayer(),
-  log: [{ message: 'ゲーム開始', kind: 'system' }],
+    log: [{ message: 'ゲーム開始', kind: 'system' }],
     highestFloor: highest,
     actionOffer: [],
-  actionUseCount: 0
+    actionUseCount: 0
   };
 }
 
@@ -55,7 +55,7 @@ export function restart() {
 
 // 直接オブジェクトをミューテートしているため、Svelteに変更を通知するためのcommitヘルパ
 function commit() {
-  gameState.update(s => s); // 参照は同じでもsubscriberに通知
+  gameState.update((s) => s); // 参照は同じでもsubscriberに通知
 }
 
 export function rollActions(state: GameState) {
@@ -67,11 +67,7 @@ export function rollActions(state: GameState) {
 }
 
 function logProgress(state: GameState) {
-  pushLog(
-    state,
-    `進行: 階層${state.floorIndex + 1}/10 ステップ${state.stepIndex + 1}/5`,
-    'system'
-  );
+  pushLog(state, `進行: 階層${state.floorIndex + 1}/10 ステップ${state.stepIndex + 1}/5`, 'system');
 }
 
 export function nextProgress(state: GameState) {
@@ -80,14 +76,14 @@ export function nextProgress(state: GameState) {
     // クリア済み floor → 次階層
     state.floorIndex += 1;
     if (state.floorIndex >= 10) {
-  state.phase = 'victory';
-  pushLog(state, '全階層を踏破! 勝利!', 'system');
+      state.phase = 'victory';
+      pushLog(state, '全階層を踏破! 勝利!', 'system');
       if (state.highestFloor < 10) {
         state.highestFloor = 10;
         localStorage.setItem(HIGH_KEY, String(state.highestFloor));
       }
-    commit();
-    return;
+      commit();
+      return;
     }
     state.stepIndex = 0;
     logProgress(state);
@@ -102,12 +98,12 @@ export function chooseNode(state: GameState, kind: 'combat' | 'event' | 'rest' |
     state.enemy = createEnemy(kind === 'boss' ? 'boss' : 'normal', state.floorIndex);
     state.phase = 'combat';
     rollActions(state);
-  pushLog(state, kind === 'boss' ? 'ボス戦開始!' : '戦闘開始', 'combat');
+    pushLog(state, kind === 'boss' ? 'ボス戦開始!' : '戦闘開始', 'combat');
   } else if (kind === 'event') {
     state.phase = 'event';
     const ev = randomEvent();
-  ev.apply(state);
-  pushLog(state, `イベント: ${ev.name}`, 'event');
+    ev.apply(state);
+    pushLog(state, `イベント: ${ev.name}`, 'event');
   } else if (kind === 'rest') {
     state.phase = 'rest';
   }
@@ -153,8 +149,8 @@ function enemyTurn(state: GameState) {
     if (Math.random() < 0.6) {
       enemyAttack(state, enemy);
     } else {
-  enemy.buffAttack = (enemy.buffAttack || 0) + 2;
-  pushLog(state, 'ボスが力を高めた (+2攻撃)', 'combat');
+      enemy.buffAttack = (enemy.buffAttack || 0) + 2;
+      pushLog(state, 'ボスが力を高めた (+2攻撃)', 'combat');
     }
   } else {
     enemyAttack(state, enemy);
@@ -166,18 +162,18 @@ function enemyAttack(state: GameState, enemy: Enemy) {
   if (state.player.guard) {
     dmg = Math.ceil(dmg / 2);
     state.player.guard = false;
-  pushLog(state, 'ガードで被ダメ半減', 'combat');
+    pushLog(state, 'ガードで被ダメ半減', 'combat');
   }
   state.player.hp -= dmg;
   pushLog(state, `敵の攻撃 ${dmg}ダメージ (HP:${state.player.hp}/${state.player.maxHP})`, 'combat');
   if (state.player.hp <= 0) {
     state.phase = 'gameover';
-  pushLog(state, '倒れた...', 'system');
+    pushLog(state, '倒れた...', 'system');
     if (state.highestFloor < state.floorIndex + 1) {
       state.highestFloor = state.floorIndex + 1;
       localStorage.setItem(HIGH_KEY, String(state.highestFloor));
     }
-  commit();
+    commit();
   }
 }
 
@@ -188,20 +184,20 @@ function endTurn(state: GameState) {
     const poison = state.player.dots.find((d) => d.id === 'poison');
     if (poison) {
       enemy.hp -= poison.damage;
-  pushLog(state, `毒で${poison.damage}ダメージ (敵HP:${enemy.hp})`, 'combat');
+      pushLog(state, `毒で${poison.damage}ダメージ (敵HP:${enemy.hp})`, 'combat');
       poison.turns -= 1;
       if (poison.turns <= 0) {
         state.player.dots = state.player.dots.filter((d) => d !== poison);
-  pushLog(state, '毒が消えた', 'combat');
+        pushLog(state, '毒が消えた', 'combat');
       }
       if (enemy.hp <= 0) {
-  pushLog(state, '敵を毒で倒した!', 'combat');
+        pushLog(state, '敵を毒で倒した!', 'combat');
         state.player.score += 1;
         state.phase = 'progress';
         state.stepIndex += 1;
         prepareReward(state, false, false);
-    commit();
-    return;
+        commit();
+        return;
       }
     }
     rollActions(state);
@@ -225,13 +221,20 @@ function buildNormalRewards(state: GameState) {
       id: 'hp5',
       label: '最大HP+5 (即回復+5)',
       kind: 'normal' as const,
-      apply: (s: GameState) => { s.player.maxHP += 5; s.player.hp += 5; pushLog(s, '最大HP+5', 'system'); }
+      apply: (s: GameState) => {
+        s.player.maxHP += 5;
+        s.player.hp += 5;
+        pushLog(s, '最大HP+5', 'system');
+      }
     },
     {
       id: 'atk1',
       label: '攻撃力+1',
       kind: 'normal' as const,
-      apply: (s: GameState) => { s.player.attack += 1; pushLog(s, '攻撃力+1', 'system'); }
+      apply: (s: GameState) => {
+        s.player.attack += 1;
+        pushLog(s, '攻撃力+1', 'system');
+      }
     },
     {
       id: 'powerup',
@@ -242,7 +245,8 @@ function buildNormalRewards(state: GameState) {
           s.player.actions.push('powerup');
           pushLog(s, '新アクション取得: パワーアップ', 'system');
         } else {
-          s.player.attack += 1; pushLog(s, '代替: 攻撃力+1', 'system');
+          s.player.attack += 1;
+          pushLog(s, '代替: 攻撃力+1', 'system');
         }
       }
     }
@@ -256,7 +260,10 @@ function buildBossRewards(state: GameState, finalBoss: boolean) {
         id: 'final-score',
         label: '最終勝利: 追加スコア+5',
         kind: 'boss' as const,
-        apply: (s: GameState) => { s.player.score += 5; pushLog(s, '最終ボーナス +5スコア', 'system'); }
+        apply: (s: GameState) => {
+          s.player.score += 5;
+          pushLog(s, '最終ボーナス +5スコア', 'system');
+        }
       }
     ];
   }
@@ -265,26 +272,37 @@ function buildBossRewards(state: GameState, finalBoss: boolean) {
       id: 'boss-maxhp',
       label: '最大HP+10 (即+10回復)',
       kind: 'boss' as const,
-      apply: (s: GameState) => { s.player.maxHP += 10; s.player.hp += 10; pushLog(s, '最大HP+10', 'system'); }
+      apply: (s: GameState) => {
+        s.player.maxHP += 10;
+        s.player.hp += 10;
+        pushLog(s, '最大HP+10', 'system');
+      }
     },
     {
       id: 'boss-atk2',
       label: '攻撃力+2',
       kind: 'boss' as const,
-      apply: (s: GameState) => { s.player.attack += 2; pushLog(s, '攻撃力+2', 'system'); }
+      apply: (s: GameState) => {
+        s.player.attack += 2;
+        pushLog(s, '攻撃力+2', 'system');
+      }
     },
     {
       id: 'boss-cleanse',
       label: 'HP全回復 & 状態異常解除',
       kind: 'boss' as const,
-      apply: (s: GameState) => { s.player.hp = s.player.maxHP; s.player.dots=[]; pushLog(s, '全回復', 'system'); }
+      apply: (s: GameState) => {
+        s.player.hp = s.player.maxHP;
+        s.player.dots = [];
+        pushLog(s, '全回復', 'system');
+      }
     }
   ];
 }
 
 export function pickReward(state: GameState, id: string) {
   if (state.phase !== 'reward' || !state.rewardOptions) return;
-  const opt = state.rewardOptions.find(o => o.id === id);
+  const opt = state.rewardOptions.find((o) => o.id === id);
   if (!opt) return;
   opt.apply(state);
   // 進行更新
@@ -320,10 +338,10 @@ export function restChoice(state: GameState, choice: 'heal' | 'maxhp') {
     const amount = Math.max(1, Math.floor(state.player.maxHP * 0.3));
     const before = state.player.hp;
     state.player.hp = Math.min(state.player.maxHP, state.player.hp + amount);
-  pushLog(state, `休憩で${state.player.hp - before}回復`, 'rest');
+    pushLog(state, `休憩で${state.player.hp - before}回復`, 'rest');
   } else {
     state.player.maxHP += 3;
-  pushLog(state, '最大HP+3', 'rest');
+    pushLog(state, '最大HP+3', 'rest');
   }
   state.stepIndex += 1;
   state.phase = 'progress';

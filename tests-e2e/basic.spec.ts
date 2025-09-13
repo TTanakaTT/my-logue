@@ -5,7 +5,10 @@ import { test, expect } from '@playwright/test';
 test('start combat and perform two actions', async ({ page }) => {
   await page.goto('/my-logue/');
   // 進行画面でcombatボタン
-  await page.getByRole('button', { name: /combat|戦闘/i }).first().click();
+  await page
+    .getByRole('button', { name: /combat|戦闘/i })
+    .first()
+    .click();
   await expect(page.getByText(/戦闘開始/)).toBeVisible();
   // 行動ボタン2つ押す
   const actionButtons = page.locator('section:has-text("戦闘") button');

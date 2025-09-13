@@ -7,7 +7,7 @@ function dealDamage(state: GameState, dmg: number) {
   enemy.hp -= dmg;
   pushLog(state, `敵に${dmg}ダメージ (残り${enemy.hp})`, 'combat');
   if (enemy.hp <= 0) {
-  pushLog(state, '敵を倒した!', 'combat');
+    pushLog(state, '敵を倒した!', 'combat');
     state.player.score += 1;
   }
 }
@@ -36,7 +36,7 @@ export const actions: ActionDef[] = [
     description: 'このターン受ける次のダメージ半減',
     execute: (state) => {
       state.player.guard = true;
-  pushLog(state, '防御態勢! 次の被ダメ半減', 'combat');
+      pushLog(state, '防御態勢! 次の被ダメ半減', 'combat');
     }
   },
   {
@@ -47,7 +47,7 @@ export const actions: ActionDef[] = [
       const p = state.player;
       const before = p.hp;
       p.hp = Math.min(p.maxHP, p.hp + 5);
-  pushLog(state, `HPを${p.hp - before}回復 (${p.hp}/${p.maxHP})`, 'combat');
+      pushLog(state, `HPを${p.hp - before}回復 (${p.hp}/${p.maxHP})`, 'combat');
     }
   },
   {
@@ -63,7 +63,7 @@ export const actions: ActionDef[] = [
       } else {
         state.player.dots.push({ id: 'poison', damage: 3, turns: 3 });
       }
-  pushLog(state, '毒を付与した', 'combat');
+      pushLog(state, '毒を付与した', 'combat');
     }
   },
   {
@@ -72,7 +72,7 @@ export const actions: ActionDef[] = [
     description: '攻撃力+1 永続 (成長報酬)',
     execute: (state) => {
       state.player.attack += 1;
-  pushLog(state, `攻撃力が${state.player.attack}になった`, 'combat');
+      pushLog(state, `攻撃力が${state.player.attack}になった`, 'combat');
     }
   }
 ];
