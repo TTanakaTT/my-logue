@@ -6,33 +6,10 @@ export function emitActionLog(
   state: GameState,
   actor: Actor,
   target: Actor | undefined,
-  def: ActionDef,
-  formula: { result: number; calc: string } | undefined,
-  extra?: string
+  def: ActionDef
 ) {
-  if (!def.logTemplate && !extra) return;
-  const actorName =
-    actor === state.player
-      ? 'プレイヤー'
-      : state.enemy?.kind === 'boss' && actor === state.enemy
-        ? 'ボス'
-        : '敵';
-  const targetName = target
-    ? target === state.player
-      ? 'プレイヤー'
-      : state.enemy?.kind === 'boss' && target === state.enemy
-        ? 'ボス'
-        : '敵'
-    : '';
-  let base = def.logTemplate || '';
-  if (base) {
-    base = base
-      .replace('{actor}', actorName)
-      .replace('{target}', targetName)
-      .replace('{calc}', formula?.calc ?? '')
-      .replace('{result}', formula ? String(formula.result) : '');
-  }
-  const message = [base, extra].filter(Boolean).join(' ');
+  const message = def.log ? def.log({ actor, target, state }) : undefined;
+  if (!message) return;
   const tag: 'player' | 'enemy' | 'boss' =
     actor === state.player
       ? 'player'

@@ -52,23 +52,10 @@ export interface ActionDef {
   allowInCombat?: boolean; // combat以外で使えるもの将来用
   cooldownTurns?: number; // heavy等
   /**
-   * 実行ログテンプレート。
-   * プレースホルダ:
-   * {actor} 実行者名, {target} 対象名, {calc} 計算式文字列, {result} 主結果値(ダメージ/回復量など)
-   * 任意の action で使わないプレースホルダは省略可。
+   * ログ生成関数。任意。返り値が undefined の場合ログは出さない。
+   * 文字列はそのまま combat ログに出力される。
    */
-  logTemplate?: string;
-  /**
-   * ダメージや回復などの主結果値および計算式文字列を返すファンクション。
-   * 戻り値: { result: number; calc: string }
-   * これが存在する場合 execute 内で計算せずこの関数を利用し、ログ生成に活用する。
-   */
-  computeFormula?: (ctx: { actor: Actor; target?: Actor; state: GameState }) =>
-    | {
-        result: number;
-        calc: string;
-      }
-    | undefined;
+  log?: (ctx: { actor: Actor; target?: Actor; state: GameState }) => string | undefined;
 }
 
 export interface EventDef {
