@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import type { GameState, Player, Enemy, ActionId, LogEntry, Actor } from './types';
 import { buildPlayerFromCsv, buildEnemyFromCsv } from './dataLoader';
-import { getAction } from './actions';
+import { getAction } from './dataLoader';
 import { randomEvent } from './events';
 import { calcMaxHP, addAttackBuff } from './stats';
 

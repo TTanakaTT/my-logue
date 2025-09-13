@@ -3,6 +3,7 @@
 
 import type { ActionId, Enemy, Player } from './types';
 import charactersCsvRaw from '../data/characters.csv?raw';
+import { actions } from '../data/actions';
 
 interface RowCommon {
   id: string;
@@ -130,4 +131,8 @@ export function buildEnemyFromCsv(kind: 'normal' | 'boss', floorIndex: number): 
     maxActionChoices: row.maxActionChoices
   };
   return enemy;
+}
+
+export function getAction(id: string) {
+  return actions.find((a) => a.id === id);
 }

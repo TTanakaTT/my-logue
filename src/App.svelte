@@ -7,7 +7,7 @@
     restChoice,
     nextProgress
   } from './game/state';
-  import { getAction } from './game/actions';
+  import { getAction } from './game/dataLoader';
   import CharacterPanel from './game/CharacterPanel.svelte';
   // Svelteの$store構文を使用し手動subscribeを撤廃
   $: state = $gameState;

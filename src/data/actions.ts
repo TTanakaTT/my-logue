@@ -1,58 +1,6 @@
-import type { ActionDef, GameState, Actor } from './types';
-import { pushCombatLog } from './state';
-import { calcMaxHP } from './stats';
-
-// 共通ログ生成ユーティリティ
-function emitActionLog(
-  state: GameState,
-  actor: Actor,
-  target: Actor | undefined,
-  def: ActionDef,
-  formula: { result: number; calc: string } | undefined,
-  extra?: string
-) {
-  if (!def.logTemplate && !extra) return;
-  const actorName =
-    actor === state.player
-      ? 'プレイヤー'
-      : state.enemy?.kind === 'boss' && actor === state.enemy
-        ? 'ボス'
-        : '敵';
-  const targetName = target
-    ? target === state.player
-      ? 'プレイヤー'
-      : state.enemy?.kind === 'boss' && target === state.enemy
-        ? 'ボス'
-        : '敵'
-    : '';
-  let base = def.logTemplate || '';
-  if (base) {
-    base = base
-      .replace('{actor}', actorName)
-      .replace('{target}', targetName)
-      .replace('{calc}', formula?.calc ?? '')
-      .replace('{result}', formula ? String(formula.result) : '');
-  }
-  const message = [base, extra].filter(Boolean).join(' ');
-  const tag: 'player' | 'enemy' | 'boss' =
-    actor === state.player
-      ? 'player'
-      : state.enemy && state.enemy.kind === 'boss' && actor === state.enemy
-        ? 'boss'
-        : 'enemy';
-  pushCombatLog(state, message, tag);
-}
-
-function applyDamage(state: GameState, source: Actor, target: Actor | undefined, amount: number) {
-  if (!target) return;
-  let final = amount;
-  if (target.guard) {
-    final = Math.ceil(final / 2);
-    target.guard = false; // 1回で解除
-  }
-  target.hp -= final;
-  return final;
-}
+import type { ActionDef } from '../game/types';
+import { calcMaxHP } from '../game/stats';
+import { emitActionLog, applyDamage } from '../game/actionUtils';
 
 export const actions: ActionDef[] = [
   {
@@ -65,16 +13,16 @@ export const actions: ActionDef[] = [
       return { result, calc: `6 + ${actor.STR} = ${result}` };
     },
     execute: (state, { actor, target }) => {
-      const def = actions.find((a) => a.id === 'strike')!; // 自参照
+      const def = actions.find((a) => a.id === 'strike')!;
       const baseFormula = def.computeFormula?.({ actor, target, state });
       let finalFormula = baseFormula;
       if (baseFormula && target) {
         const applied = applyDamage(state, actor, target, baseFormula.result);
-        if (applied !== baseFormula.result) {
+        if (applied !== undefined && applied !== baseFormula.result) {
           finalFormula = {
             ...baseFormula,
             calc: baseFormula.calc + ` (半減後:${applied})`,
-            result: applied as number
+            result: applied
           };
         }
       }
@@ -108,11 +56,11 @@ export const actions: ActionDef[] = [
       let finalFormula = baseFormula;
       if (baseFormula && target) {
         const applied = applyDamage(state, actor, target, baseFormula.result);
-        if (applied !== baseFormula.result) {
+        if (applied !== undefined && applied !== baseFormula.result) {
           finalFormula = {
             ...baseFormula,
             calc: baseFormula.calc + ` (半減後:${applied})`,
-            result: applied as number
+            result: applied
           };
         }
       }
@@ -152,7 +100,7 @@ export const actions: ActionDef[] = [
     execute: (state, { actor }) => {
       const def = actions.find((a) => a.id === 'recover')!;
       const formula = def.computeFormula?.({ actor, state });
-      if (formula) actor.hp = formula.result; // result は最終HP
+      if (formula) actor.hp = formula.result;
       emitActionLog(state, actor, undefined, def, formula);
     }
   },
@@ -184,12 +132,8 @@ export const actions: ActionDef[] = [
     execute: (state, { actor }) => {
       const def = actions.find((a) => a.id === 'powerup')!;
       const formula = def.computeFormula?.({ actor, state });
-      actor.STR += 1; // resultは後値
+      actor.STR += 1;
       emitActionLog(state, actor, undefined, def, formula);
     }
   }
 ];
-
-export function getAction(id: string) {
-  return actions.find((a) => a.id === id);
-}
