@@ -2,6 +2,7 @@ export type Phase = 'progress' | 'combat' | 'event' | 'rest' | 'reward' | 'victo
 
 // すべての戦闘参加キャラクター共通
 export interface Actor {
+  name: string; // 表示名 (CSV 定義)
   // 基礎能力値
   STR: number;
   CON: number;

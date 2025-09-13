@@ -1,0 +1,10 @@
+id,kind,name,floorMin,floorMax,STR,CON,POW,DEX,APP,INT,actions,maxActionsPerTurn,maxActionChoices,revealed
+player,player,冒険者,0,0,10,10,8,10,8,10,strike|heavy|guard|recover|poison,2,3,hp|STR|CON|POW|DEX|APP|INT
+normal_early,normal,スライム,0,2,5,8,4,6,5,4,strike,1,2,hp|STR
+normal_mid,normal,盗賊,3,5,8,10,6,10,7,8,strike|guard,1,2,hp|STR|DEX
+normal_late,normal,狂戦士,6,8,12,14,6,10,6,6,strike|heavy,1,2,hp|STR|CON
+normal_final,normal,深淵の影,9,9,14,16,8,12,4,10,strike|poison,1,2,hp|STR|POW
+boss_early,boss,古代守護者,0,2,12,20,10,10,5,8,strike|heavy|guard,2,3,hp|STR|CON
+boss_mid,boss,狂気の魔導師,3,5,14,22,14,12,6,14,strike|heavy|recover|poison,2,3,hp|STR|POW
+boss_late,boss,破滅の騎士,6,8,18,26,14,14,6,12,strike|heavy|guard|recover,2,3,hp|STR|CON|DEX
+boss_final,boss,虚無竜,9,9,22,32,18,16,8,18,strike|heavy|guard|recover|poison,2,3,hp|STR|CON|POW|DEX

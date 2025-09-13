@@ -1,5 +1,5 @@
 import type { ActionDef, GameState, Actor } from './types';
-import { pushLog, pushCombatLog } from './state';
+import { pushCombatLog } from './state';
 import { calcAttack, calcMaxHP } from './stats';
 
 function dealDamage(state: GameState, source: Actor, target?: Actor, dmg?: number) {

@@ -1,9 +1,9 @@
 import { writable } from 'svelte/store';
 import type { GameState, Player, Enemy, ActionId, LogEntry, Actor } from './types';
-import { scaling } from './scaling';
+import { buildPlayerFromCsv, buildEnemyFromCsv } from './dataLoader';
 import { getAction } from './actions';
 import { randomEvent } from './events';
-import { calcMaxHP, calcAttack, addAttackBuff } from './stats';
+import { calcMaxHP, addAttackBuff } from './stats';
 
 const HIGH_KEY = 'mylogue_highest_floor';
 
@@ -28,48 +28,15 @@ export function recalcPlayer(p: Player) {
 }
 
 function basePlayer(): Player {
-  const base: Player = {
-    STR: 10,
-    CON: 10,
-    POW: 8,
-    DEX: 10,
-    APP: 8,
-    INT: 10,
-    hp: 0,
-    guard: false,
-    dots: [],
-    actions: ['strike', 'heavy', 'guard', 'recover', 'poison'],
-    revealed: { hp: true, STR: true, CON: true, POW: true, DEX: true, APP: true, INT: true },
-    maxActionsPerTurn: 2,
-    maxActionChoices: 3,
-    score: 0
-  };
-  base.hp = calcMaxHP(base);
-  return base;
+  const p = buildPlayerFromCsv();
+  p.hp = calcMaxHP(p);
+  return p;
 }
 
 export function createEnemy(kind: 'normal' | 'boss', floorIndex: number): Enemy {
-  // 既存スケーリングから CON/STR を逆算 (丸め誤差は許容)
-  const targetHP = scaling.enemyHP(kind === 'normal' ? 20 : 60, floorIndex);
-  const CON = Math.max(1, Math.round((targetHP - 40) / 2));
-  const targetAtk = scaling.enemyAttack(kind === 'normal' ? 5 : 10, floorIndex);
-  const STR = Math.max(1, Math.round((targetAtk - 4) * 2));
-  return {
-    kind,
-    STR,
-    CON,
-    POW: kind === 'boss' ? 12 : 6,
-    DEX: kind === 'boss' ? 12 : 8,
-    APP: 5,
-    INT: kind === 'boss' ? 12 : 8,
-    hp: targetHP,
-    guard: false,
-    dots: [],
-    actions: kind === 'boss' ? ['strike', 'heavy', 'guard', 'recover'] : ['strike'], // 敵行動セット
-    revealed: { hp: true, STR: true }, // 現状HP/STRのみ判明
-    maxActionsPerTurn: kind === 'boss' ? 2 : 1,
-    maxActionChoices: kind === 'boss' ? 3 : 2
-  };
+  const e = buildEnemyFromCsv(kind, floorIndex);
+  e.hp = calcMaxHP(e); // CSV の CON から最大HP計算し初期値へ
+  return e;
 }
 
 function initState(): GameState {
@@ -165,8 +132,8 @@ export function combatAction(state: GameState, id: ActionId) {
   if (!def) return;
   def.execute(state, { actor: state.player, target: state.enemy });
   // 変更を確実に反映させるため即座に参照を再生成
-  state.player = { ...state.player } as any;
-  if (state.enemy) state.enemy = { ...state.enemy } as any;
+  state.player = { ...state.player };
+  if (state.enemy) state.enemy = { ...state.enemy };
   state.actionUseCount += 1;
   state.playerUsedActions?.push(id);
   // 敵を倒したら報酬処理へ
@@ -226,8 +193,8 @@ function enemyTurn(state: GameState) {
     if (state.player.hp <= 0) break;
   }
   // 参照再生成
-  state.enemy = { ...enemy } as any;
-  state.player = { ...state.player } as any;
+  state.enemy = { ...enemy };
+  state.player = { ...state.player };
   // プレイヤーが倒れたチェック
   if (state.player.hp <= 0) {
     state.phase = 'gameover';
@@ -254,7 +221,7 @@ function endTurn(state: GameState) {
         );
         dot.turns -= 1;
         if (dot.turns <= 0) {
-          actor.dots = actor.dots.filter((d: any) => d !== dot);
+          actor.dots = actor.dots.filter((d) => d !== dot);
           pushLog(state, '毒が消えた', 'combat');
         }
         if (actor.hp <= 0) {
@@ -281,8 +248,8 @@ function endTurn(state: GameState) {
   state.actionUseCount = 0;
   state.playerUsedActions = [];
   // 参照再生成
-  state.player = { ...state.player } as any;
-  if (state.enemy) state.enemy = { ...state.enemy } as any;
+  state.player = { ...state.player };
+  if (state.enemy) state.enemy = { ...state.enemy };
   commit();
 }
 function prepareReward(state: GameState, boss: boolean, finalBoss: boolean) {

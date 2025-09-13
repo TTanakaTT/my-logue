@@ -8,7 +8,6 @@
     nextProgress
   } from './game/state';
   import { getAction } from './game/actions';
-  import { calcMaxHP, calcAttack } from './game/stats';
   import CharacterPanel from './game/CharacterPanel.svelte';
   // Svelteの$store構文を使用し手動subscribeを撤廃
   $: state = $gameState;
@@ -52,13 +51,13 @@
       {#key state.player.hp + ':' + state.player.STR + ':' + state.player.CON + ':' + state.player.guard + ':' + state.player.dots
           .map((d) => d.id + ':' + d.turns)
           .join(',')}
-        <CharacterPanel actor={state.player} title="プレイヤー" side="player" />
+        <CharacterPanel actor={state.player} side="player" />
       {/key}
       {#if state.enemy}
         {#key state.enemy.hp + ':' + state.enemy.STR + ':' + state.enemy.CON + ':' + state.enemy.guard + ':' + state.enemy.dots
             .map((d) => d.id + ':' + d.turns)
             .join(',')}
-          <CharacterPanel actor={state.enemy} title={`敵: ${state.enemy.kind}`} side="enemy" />
+          <CharacterPanel actor={state.enemy} side="enemy" />
         {/key}
       {/if}
     </div>
@@ -74,10 +73,12 @@
       {#if debugMode}
         <button
           class="btn-base"
-          on:click={() => {
-            state.stepIndex += 1;
-            nextProgress(state);
-          }}>スキップ(デバッグ)</button
+          on:click={() =>
+            gameState.update((s) => {
+              s.stepIndex += 1;
+              nextProgress(s);
+              return { ...s };
+            })}>スキップ(デバッグ)</button
         >
       {/if}
     </section>
@@ -115,10 +116,12 @@
       <p class="mb-3 text-sm">イベント効果が適用されました。</p>
       <button
         class="btn-base"
-        on:click={() => {
-          state.stepIndex += 1;
-          nextProgress(state);
-        }}>進む</button
+        on:click={() =>
+          gameState.update((s) => {
+            s.stepIndex += 1;
+            nextProgress(s);
+            return { ...s };
+          })}>進む</button
       >
     </section>
   {/if}
@@ -146,7 +149,9 @@
   {#if state.phase === 'reward'}
     <section class="bg-panel rounded-lg mb-4 p-4">
       <h2 class="mt-0 text-lg font-semibold mb-2">
-        {state.rewardIsBoss ? (state.rewardIsFinalBoss ? '最終ボス報酬' : 'ボス報酬') : '成長報酬'}
+        {#if state.rewardIsBoss}
+          {#if state.rewardIsFinalBoss}最終ボス報酬{:else}ボス報酬{/if}
+        {:else}成長報酬{/if}
       </h2>
       <div class="flex flex-wrap gap-2">
         {#each state.rewardOptions || [] as r (r.id)}
@@ -164,7 +169,7 @@
     <h3 class="mt-0 font-semibold mb-2">ログ</h3>
     <div class="text-[0.85rem] leading-tight max-h-[200px] overflow-auto bg-logbg p-2 rounded-md">
       {#each state.log as entry, i (i)}
-        <div class={`mb-[2px] last:mb-0 flex items-start`}>
+        <div class="mb-[2px] last:mb-0 flex items-start">
           <span
             class={`inline-block min-w-[55px] text-center font-semibold text-[0.6rem] tracking-wide mr-1 px-1 py-[2px] rounded bg-gray-700 text-gray-300 log-kind-${entry.kind}`}
             >{entry.kind}</span

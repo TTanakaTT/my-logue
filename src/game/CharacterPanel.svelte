@@ -2,7 +2,6 @@
   import type { Actor } from './types';
   import { calcMaxHP } from './stats';
   export let actor: Actor;
-  export let title: string;
   export let side: 'player' | 'enemy' = 'player';
 
   const order: { key: 'hp' | 'CON' | 'STR' | 'POW' | 'DEX' | 'APP' | 'INT'; label: string }[] = [
@@ -27,11 +26,11 @@
     INT: actor.INT
   };
 
-  function valueFor(key: (typeof order)[number]['key']) {
+  function valueFor(key: (typeof order)[number]['key']): string | number {
     const rev = actor.revealed?.[key];
     if (!rev) return '???';
     if (key === 'hp') return displayed.hp;
-    return (displayed as any)[key];
+    return displayed[key];
   }
 </script>
 
@@ -39,7 +38,7 @@
   class={`rounded-lg p-3 text-xs space-y-1 bg-neutral-800/40 backdrop-blur ring-2 shadow-sm min-w-[150px] panel-side-${side}`}
 >
   <div class="font-semibold mb-1 flex items-center gap-2">
-    <span>{title}</span>
+    <span>{actor.name}</span>
   </div>
   <div class="flex flex-wrap gap-1 mb-1 min-h-[18px]">
     {#if guardActive}
@@ -58,7 +57,7 @@
       <span class="text-[10px] text-gray-500">&nbsp;</span>
     {/if}
   </div>
-  {#each order as o}
+  {#each order as o (o.key)}
     <div class="flex justify-between">
       <span class="text-gray-400">{o.label}</span>
       <span>{valueFor(o.key)}</span>
