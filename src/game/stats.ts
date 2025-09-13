@@ -2,11 +2,11 @@ import type { Actor } from './types';
 
 // 派生計算式（バランス調整しやすいよう一元管理）
 export function calcMaxHP(actor: Actor): number {
-  return 40 + actor.CON * 2;
+  return 10 + actor.CON * 5;
 }
 
 export function calcBaseAttack(actor: Actor): number {
-  return 4 + Math.floor(actor.STR / 2);
+  return actor.STR;
 }
 
 export function calcAttack(actor: Actor): number {
