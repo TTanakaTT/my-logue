@@ -1,7 +1,14 @@
 export type Phase = 'progress' | 'combat' | 'event' | 'rest' | 'reward' | 'victory' | 'gameover';
 
 // すべての戦闘参加キャラクター共通
+export type ActorKind = 'normal' | 'boss' | 'player';
+export const ACTOR_KINDS: ActorKind[] = ['normal', 'boss', 'player'];
+export type ActorSide = 'player' | 'enemy';
+export type RewardKind = 'normal' | 'boss';
+
 export interface Actor {
+  kind: ActorKind;
+  side: ActorSide;
   name: string; // 表示名 (CSV 定義)
   // 基礎能力値
   STR: number;
@@ -30,10 +37,6 @@ export interface BuffState {
 
 export interface Player extends Actor {
   score: number;
-}
-
-export interface Enemy extends Actor {
-  kind: 'normal' | 'boss';
 }
 
 export interface DotEffect {
@@ -68,13 +71,14 @@ export interface EventDef {
 export interface LogEntry {
   message: string;
   kind: 'system' | 'combat' | 'event' | 'rest';
-  actorTag?: 'player' | 'enemy' | 'boss'; // combat主体表示用
+  side?: ActorSide; // 行動主体のサイド
+  actorKind?: ActorKind; // ボス表示など差別化用
 }
 
 export interface RewardOption {
   id: string;
   label: string;
-  kind: 'normal' | 'boss';
+  kind: RewardKind;
   apply(state: GameState): void;
 }
 
@@ -83,7 +87,7 @@ export interface GameState {
   stepIndex: number; // 0-4
   phase: Phase;
   player: Player;
-  enemy?: Enemy;
+  enemy?: Actor;
   actionOffer: ActionId[]; // 今ターン提供中
   actionUseCount: number; // このターン使用した回数 (2でターン終了)
   playerUsedActions?: ActionId[]; // 今ターンプレイヤーが既に使ったアクション (重複防止/グレーアウト)

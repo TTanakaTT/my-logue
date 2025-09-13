@@ -50,7 +50,7 @@ MIT (予定)
   - `revealed` は公開するステータス key を `|` 区切り (hp / STR / CON / ...)
 - `src/data/enemy_stats.csv`
   - 複数行 (階層帯/種類ごと)。列: id,kind,floorMin,floorMax,name,STR,CON,POW,DEX,APP,INT,actions,maxActionsPerTurn,maxActionChoices,revealed
-  - `kind` は `normal` or `boss`
+  - `kind` は `enemy` or `boss`
   - `floorMin` / `floorMax` は 0-based floorIndex の inclusive 範囲
   - 最初にマッチした行を使用。範囲未定義 floor は最初の同 kind 行でフォールバック
 

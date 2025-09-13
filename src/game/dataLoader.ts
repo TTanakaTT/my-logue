@@ -1,13 +1,13 @@
 // CSV ロード & パース。Vite の ?raw import を利用する想定。
 // シンプルな手書きパーサ (依存追加を避ける)。
 
-import type { ActionId, Enemy, Player } from './types';
+import { type ActionId, type Player, type Actor, type ActorKind, ACTOR_KINDS } from './types';
 import charactersCsvRaw from '../data/characters.csv?raw';
 import { actions } from '../data/actions';
 
 interface RowCommon {
   id: string;
-  kind: string;
+  kind: ActorKind;
   name: string;
   floorMin: number;
   floorMax: number;
@@ -39,7 +39,7 @@ const allRows: RowCommon[] = parse(charactersCsvRaw)
   .map((cols) => {
     const [
       id,
-      kind,
+      rawKind,
       name,
       floorMin,
       floorMax,
@@ -54,6 +54,10 @@ const allRows: RowCommon[] = parse(charactersCsvRaw)
       maxActionChoices,
       revealed
     ] = cols;
+    if (!ACTOR_KINDS.includes(rawKind as ActorKind)) {
+      throw new Error(`Invalid kind value in characters.csv: ${rawKind}`);
+    }
+    const kind = rawKind as ActorKind;
     return {
       id,
       kind,
@@ -80,6 +84,8 @@ export function buildPlayerFromCsv(): Player {
   if (!playerRow) throw new Error('player row not found in characters.csv');
   const row = playerRow;
   const base: Player = {
+    side: 'player',
+    kind: row.kind,
     name: row.name,
     STR: row.STR,
     CON: row.CON,
@@ -108,10 +114,12 @@ export function pickEnemyRow(kind: 'normal' | 'boss', floorIndex: number) {
   );
 }
 
-export function buildEnemyFromCsv(kind: 'normal' | 'boss', floorIndex: number): Enemy {
-  const row = pickEnemyRow(kind, floorIndex) || enemyRows.find((r) => r.kind === kind)!; // フォールバック
-  const enemy: Enemy = {
-    kind,
+export function buildEnemyFromCsv(kind: 'normal' | 'boss', floorIndex: number): Actor {
+  const row = pickEnemyRow(kind, floorIndex) || enemyRows.find((r) => r.kind === kind)!;
+
+  const enemy: Actor = {
+    side: 'enemy',
+    kind: row.kind,
     name: row.name,
     STR: row.STR,
     CON: row.CON,

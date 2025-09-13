@@ -174,10 +174,10 @@
             class={`inline-block min-w-[55px] text-center font-semibold text-[0.6rem] tracking-wide mr-1 px-1 py-[2px] rounded bg-gray-700 text-gray-300 log-kind-${entry.kind}`}
             >{entry.kind}</span
           >
-          {#if entry.kind === 'combat' && entry.actorTag}
+          {#if entry.kind === 'combat' && entry.side}
             <span
-              class={`inline-block mr-1 px-1 py-[2px] rounded text-[0.55rem] font-semibold tracking-wide log-side-${entry.actorTag === 'player' ? 'player' : 'enemy'}`}
-              >{entry.actorTag}</span
+              class={`inline-block mr-1 px-1 py-[2px] rounded text-[0.55rem] font-semibold tracking-wide log-side-${entry.side}`}
+              >{entry.actorKind === 'boss' ? 'boss' : entry.side}</span
             >
           {/if}
           <span>{entry.message}</span>

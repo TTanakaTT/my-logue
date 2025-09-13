@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import type { GameState, Player, Enemy, ActionId, LogEntry, Actor } from './types';
+import type { GameState, Player, ActionId, LogEntry, Actor, ActorSide, ActorKind } from './types';
 import { buildPlayerFromCsv, buildEnemyFromCsv } from './dataLoader';
 import { getAction } from './dataLoader';
 import { randomEvent } from './events';
@@ -15,9 +15,10 @@ export function pushLog(state: GameState, message: string, kind: LogEntry['kind'
 export function pushCombatLog(
   state: GameState,
   message: string,
-  actorTag: 'player' | 'enemy' | 'boss'
+  side: ActorSide,
+  actorKind?: ActorKind
 ) {
-  state.log.unshift({ message, kind: 'combat', actorTag });
+  state.log.unshift({ message, kind: 'combat', side, actorKind });
   if (state.log.length > 20) state.log.pop();
 }
 
@@ -33,7 +34,7 @@ function basePlayer(): Player {
   return p;
 }
 
-export function createEnemy(kind: 'normal' | 'boss', floorIndex: number): Enemy {
+export function createEnemy(kind: 'normal' | 'boss', floorIndex: number): Actor {
   const e = buildEnemyFromCsv(kind, floorIndex);
   e.hp = calcMaxHP(e); // CSV の CON から最大HP計算し初期値へ
   return e;

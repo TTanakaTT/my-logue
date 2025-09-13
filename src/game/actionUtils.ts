@@ -10,13 +10,7 @@ export function emitActionLog(
 ) {
   const message = def.log ? def.log({ actor, target, state }) : undefined;
   if (!message) return;
-  const tag: 'player' | 'enemy' | 'boss' =
-    actor === state.player
-      ? 'player'
-      : state.enemy && state.enemy.kind === 'boss' && actor === state.enemy
-        ? 'boss'
-        : 'enemy';
-  pushCombatLog(state, message, tag);
+  pushCombatLog(state, message, actor.side, actor.kind);
 }
 
 // アクション共通: ダメージ適用 (ガード半減処理含む)
