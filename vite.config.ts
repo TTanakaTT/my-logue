@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-  plugins: [svelte()],
-  base: '/my-logue/' // GitHub Pages用 (リポジトリ名と一致させる)
+  plugins: [tailwindcss(), svelte()]
 });

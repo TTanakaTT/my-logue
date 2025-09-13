@@ -9,28 +9,31 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-  "test:e2e": "playwright test",
-  "test:e2e:ui": "playwright test --ui",
-    "lint": "eslint --ext .ts,.svelte src",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "lint": "prettier --check . && eslint .",
     "format": "prettier --write .",
     "deploy": "pnpm build && gh-pages -d dist -b gh-pages"
   },
   "dependencies": {
-    "svelte": "^4.2.0"
+    "svelte": "^5.34.4"
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^3.0.0",
-    "typescript": "^5.4.0",
-    "svelte-check": "^3.6.0",
-    "tslib": "^2.6.0",
-    "vite": "^5.0.0",
-    "vitest": "^1.5.0",
+    "@playwright/test": "^1.46.0",
+    "@sveltejs/vite-plugin-svelte": "^5.1.0",
     "@types/node": "^20.10.0",
-    "eslint": "^8.57.0",
-    "eslint-plugin-svelte": "^2.35.0",
-    "prettier": "^3.2.0",
-    "prettier-plugin-svelte": "^3.1.0",
-  "gh-pages": "^6.0.0",
-  "@playwright/test": "^1.46.0"
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.29.0",
+    "eslint-plugin-svelte": "^3.9.2",
+    "prettier": "^3.5.3",
+    "prettier-plugin-svelte": "^3.4.0",
+    "prettier-plugin-tailwindcss": "^0.6.12",
+    "@tailwindcss/vite": "^4.1.13",
+    "svelte-check": "^4.2.1",
+    "tailwindcss": "^4.1.13",
+    "tslib": "^2.6.0",
+    "typescript": "^5.4.0",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.3"
   }
 }

@@ -1,21 +1,40 @@
-body { font-family: system-ui, sans-serif; margin: 0; background:#111; color:#eee; }
-#app { max-width: 960px; margin: 0 auto; padding: 1rem; }
-header, footer { display:flex; gap:1rem; align-items: center; flex-wrap:wrap; }
-.panel { background:#1d1d1d; padding:1rem; border-radius:8px; margin-bottom:1rem; }
-.buttons { display:flex; flex-direction:column; gap:.5rem; }
-button { background:#333; color:#eee; border:1px solid #555; padding:.6rem 1rem; border-radius:6px; cursor:pointer; }
-button:hover { background:#444; }
-.bad { color:#ff6b6b; }
-.good { color:#5af78e; }
-.log { font-size:.85rem; line-height:1.2; max-height:200px; overflow:auto; background:#0e0e0e; padding:.5rem; border-radius:6px; }
-.log-line { margin-bottom:2px; }
-.log-line:last-child { margin-bottom:0; }
-.kind-tag { display:inline-block; min-width:55px; text-align:center; font-weight:600; font-size:.6rem; letter-spacing:.5px; margin-right:.4rem; padding:2px 4px; border-radius:3px; background:#333; color:#ccc; }
-.kind-system .kind-tag { background:#2d3b55; color:#aac6ff; }
-.kind-combat .kind-tag { background:#552d2d; color:#ff9d9d; }
-.kind-event .kind-tag { background:#4a3c1f; color:#ffd88a; }
-.kind-rest .kind-tag { background:#1f4a2d; color:#9dffbc; }
-.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
-.actions { display:flex; gap:.5rem; flex-wrap:wrap; }
-.panel h2 { margin-top:0; }
-.tag { font-size:.7rem; background:#444; padding:2px 6px; border-radius:4px; }
+@import 'tailwindcss';
+
+@theme {
+  --color-panel: #1d1d1d;
+  --color-logbg: oklch(0.1638 0 89.88);
+  --color-bad: oklch(0.7116 0.1812 22.84);
+  --color-good: oklch(0.869 0.1958 150.92);
+  --color-kind-system: oklch(0.3521 0.0493 262.34);
+  --color-kind-combat: oklch(0.349 0.059 20.51);
+  --color-kind-event: oklch(0.3638 0.0481 84.26);
+  --color-kind-rest: oklch(0.3696 0.0694 152.19);
+}
+
+@layer utilities {
+  .btn-base {
+    @apply px-3 py-2 rounded-md bg-gray-700 hover:bg-gray-600 border border-gray-500 text-sm disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .kind-system > .inline-block {
+    background: var(--color-kind-system) !important;
+    color: #aac6ff !important;
+  }
+  .kind-combat > .inline-block {
+    background: var(--color-kind-combat) !important;
+    color: #ff9d9d !important;
+  }
+  .kind-event > .inline-block {
+    background: var(--color-kind-event) !important;
+    color: #ffd88a !important;
+  }
+  .kind-rest > .inline-block {
+    background: var(--color-kind-rest) !important;
+    color: #9dffbc !important;
+  }
+  .text-bad {
+    color: var(--color-bad);
+  }
+  .text-good {
+    color: var(--color-good);
+  }
+}
