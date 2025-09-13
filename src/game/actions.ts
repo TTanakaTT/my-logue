@@ -1,6 +1,6 @@
 import type { ActionDef, GameState, Actor } from './types';
 import { pushCombatLog } from './state';
-import { calcAttack, calcMaxHP } from './stats';
+import { calcMaxHP } from './stats';
 
 // 共通ログ生成ユーティリティ
 function emitActionLog(
@@ -61,9 +61,8 @@ export const actions: ActionDef[] = [
     description: '基本攻撃: 6 + (攻撃=STR+バフ)',
     logTemplate: '{actor}が{target}に素早く攻撃！ 6 + 攻撃 = {calc} => {result}ダメージ!',
     computeFormula: ({ actor }) => {
-      const atk = calcAttack(actor);
-      const result = 6 + atk;
-      return { result, calc: `6 + ${atk} = ${result}` };
+      const result = 6 + actor.STR;
+      return { result, calc: `6 + ${actor.STR} = ${result}` };
     },
     execute: (state, { actor, target }) => {
       const def = actions.find((a) => a.id === 'strike')!; // 自参照
@@ -96,12 +95,11 @@ export const actions: ActionDef[] = [
     cooldownTurns: 1,
     logTemplate: '{actor}が渾身の一撃！ 12 + (攻撃*0.5) = {calc} => {result}ダメージ!',
     computeFormula: ({ actor }) => {
-      const atk = calcAttack(actor);
-      const add = Math.floor(atk * 0.5);
+      const add = Math.floor(actor.STR * 0.5);
       const result = 12 + add;
       return {
         result,
-        calc: `12 + floor(${atk}*0.5=${(atk * 0.5).toFixed(1)})(${add}) = ${result}`
+        calc: `12 + floor(${actor.STR}*0.5=${(actor.STR * 0.5).toFixed(1)})(${add}) = ${result}`
       };
     },
     execute: (state, { actor, target }) => {

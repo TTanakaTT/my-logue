@@ -5,16 +5,6 @@ export function calcMaxHP(actor: Actor): number {
   return 10 + actor.CON * 5;
 }
 
-export function calcBaseAttack(actor: Actor): number {
-  return actor.STR;
-}
-
-export function calcAttack(actor: Actor): number {
-  const base = calcBaseAttack(actor);
-  const bonus = actor.buffs?.attackBonus ?? 0;
-  return base + bonus;
-}
-
 export function heal(actor: Actor, amount: number) {
   const max = calcMaxHP(actor);
   actor.hp = Math.min(max, actor.hp + amount);

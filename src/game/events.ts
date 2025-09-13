@@ -1,6 +1,6 @@
 import type { EventDef } from './types';
 import { pushLog, createEnemy, rollActions } from './state';
-import { calcAttack, calcMaxHP } from './stats';
+import { calcMaxHP } from './stats';
 
 export const events: EventDef[] = [
   {
@@ -10,8 +10,7 @@ export const events: EventDef[] = [
     apply: (state) => {
       state.player.hp -= 10;
       state.player.STR += 2;
-      const atk = calcAttack(state.player);
-      pushLog(state, `儀式でSTR+2 (攻撃:${atk}) しかしHP-10`, 'event');
+      pushLog(state, `儀式でSTR+2 しかしHP-10`, 'event');
       if (state.player.hp <= 0) pushLog(state, '儀式で倒れた...', 'event');
     }
   },
