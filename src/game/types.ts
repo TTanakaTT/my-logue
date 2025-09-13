@@ -68,9 +68,12 @@ export interface EventDef {
   apply(state: GameState): void;
 }
 
+export const LOG_KINDS = ['system', 'combat', 'event', 'rest'] as const;
+
+export type LogKind = (typeof LOG_KINDS)[number];
 export interface LogEntry {
   message: string;
-  kind: 'system' | 'combat' | 'event' | 'rest';
+  kind: LogKind;
   side?: ActorSide; // 行動主体のサイド
   actorKind?: ActorKind; // ボス表示など差別化用
 }
