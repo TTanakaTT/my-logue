@@ -1,4 +1,4 @@
-import type { EventDef, GameState } from './types';
+import type { EventDef } from './types';
 import { pushLog, createEnemy, rollActions } from './state';
 
 export const events: EventDef[] = [

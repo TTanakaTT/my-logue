@@ -207,7 +207,7 @@ function endTurn(state: GameState) {
   commit();
 }
 function prepareReward(state: GameState, boss: boolean, finalBoss: boolean) {
-  const opts = boss ? buildBossRewards(state, finalBoss) : buildNormalRewards(state);
+  const opts = boss ? buildBossRewards(state, finalBoss) : buildNormalRewards();
   state.rewardOptions = opts;
   state.rewardIsBoss = boss;
   state.rewardIsFinalBoss = finalBoss;
@@ -215,7 +215,7 @@ function prepareReward(state: GameState, boss: boolean, finalBoss: boolean) {
   pushLog(state, boss ? 'ボス報酬を選択' : '成長報酬を選択', 'system');
 }
 
-function buildNormalRewards(state: GameState) {
+function buildNormalRewards() {
   return [
     {
       id: 'hp5',

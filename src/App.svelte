@@ -53,7 +53,7 @@
     <section class="bg-panel rounded-lg mb-4 p-4">
       <h2 class="mt-0 text-lg font-semibold mb-2">進行</h2>
       <div class="flex flex-wrap gap-2 mb-2">
-        {#each availableNodeKinds(state.stepIndex) as kind, i}
+        {#each availableNodeKinds(state.stepIndex) as kind, i (i)}
           <button class="btn-base" on:click={() => chooseNode(state, kind)}>{kind}</button>
         {/each}
       </div>
@@ -80,7 +80,7 @@
       {/if}
       <div class="mb-2 text-sm">行動 {state.actionUseCount}/2</div>
       <div class="flex flex-wrap gap-2">
-        {#each state.actionOffer as id}
+        {#each state.actionOffer as id (id)}
           {#if getAction(id)}
             <button
               class="btn-base"
@@ -135,7 +135,7 @@
         {state.rewardIsBoss ? (state.rewardIsFinalBoss ? '最終ボス報酬' : 'ボス報酬') : '成長報酬'}
       </h2>
       <div class="flex flex-wrap gap-2">
-        {#each state.rewardOptions || [] as r}
+        {#each state.rewardOptions || [] as r (r.id)}
           <button
             class="btn-base"
             on:click={() => import('./game/state').then(m => m.pickReward(state, r.id))}
@@ -149,7 +149,7 @@
   <section class="bg-panel rounded-lg mb-4 p-4">
     <h3 class="mt-0 font-semibold mb-2">ログ</h3>
     <div class="text-[0.85rem] leading-tight max-h-[200px] overflow-auto bg-logbg p-2 rounded-md">
-      {#each state.log as entry}
+      {#each state.log as entry, i (i)}
         <div class={`mb-[2px] last:mb-0 flex items-start kind-${entry.kind}`}>
           <span
             class="inline-block min-w-[55px] text-center font-semibold text-[0.6rem] tracking-wide mr-1 px-1 py-[2px] rounded bg-gray-700 text-gray-300"
