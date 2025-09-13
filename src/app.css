@@ -9,27 +9,41 @@
   --color-kind-combat: oklch(0.349 0.059 20.51);
   --color-kind-event: oklch(0.3638 0.0481 84.26);
   --color-kind-rest: oklch(0.3696 0.0694 152.19);
+  --color-side-player: var(--color-green-600);
+  --color-side-enemy: var(--color-red-600);
 }
 
 @layer utilities {
   .btn-base {
     @apply px-3 py-2 rounded-md bg-gray-700 hover:bg-gray-600 border border-gray-500 text-sm disabled:opacity-50 disabled:cursor-not-allowed;
   }
-  .kind-system > .inline-block {
-    background: var(--color-kind-system) !important;
-    color: #aac6ff !important;
+  .log-kind-system {
+    background: var(--color-kind-system);
+    color: #aac6ff;
   }
-  .kind-combat > .inline-block {
-    background: var(--color-kind-combat) !important;
-    color: #ff9d9d !important;
+  .log-kind-combat {
+    background: var(--color-kind-combat);
+    color: #ff9d9d;
   }
-  .kind-event > .inline-block {
-    background: var(--color-kind-event) !important;
-    color: #ffd88a !important;
+  .log-kind-event {
+    background: var(--color-kind-event);
+    color: #ffd88a;
   }
-  .kind-rest > .inline-block {
-    background: var(--color-kind-rest) !important;
-    color: #9dffbc !important;
+  .log-kind-rest {
+    background: var(--color-kind-rest);
+    color: #9dffbc;
+  }
+  .log-side-player {
+    background: var(--color-side-player);
+  }
+  .log-side-enemy {
+    background: var(--color-side-enemy);
+  }
+  .panel-side-player {
+    --tw-ring-color: var(--color-side-player);
+  }
+  .panel-side-enemy {
+    --tw-ring-color: var(--color-side-enemy);
   }
   .text-bad {
     color: var(--color-bad);

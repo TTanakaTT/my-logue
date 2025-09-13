@@ -8,11 +8,10 @@
     nextProgress
   } from './game/state';
   import { getAction } from './game/actions';
-  import type { GameState } from './game/types';
-  let state: GameState;
-  const unsubscribe = gameState.subscribe((s) => (state = s));
-  import { onDestroy } from 'svelte';
-  onDestroy(unsubscribe);
+  import { calcMaxHP, calcAttack } from './game/stats';
+  import CharacterPanel from './game/CharacterPanel.svelte';
+  // Svelteの$store構文を使用し手動subscribeを撤廃
+  $: state = $gameState;
 
   let debugMode = false;
 
@@ -39,8 +38,6 @@
 >
   <div>階層: {state.floorIndex + 1} / 10</div>
   <div>ステップ: {state.stepIndex + 1} / 5</div>
-  <div>HP: {state.player.hp} / {state.player.maxHP}</div>
-  <div>攻撃力: {state.player.attack}</div>
   <div>撃破数: {state.player.score}</div>
   <div>最高到達階層: {state.highestFloor}</div>
   {#if state.phase === 'gameover' || state.phase === 'victory'}
@@ -49,6 +46,23 @@
 </header>
 
 <main>
+  <!-- キャラクターパネル表示 -->
+  <section class="rounded-lg mb-4 p-0">
+    <div class="flex flex-row gap-4 flex-wrap">
+      {#key state.player.hp + ':' + state.player.STR + ':' + state.player.CON + ':' + state.player.guard + ':' + state.player.dots
+          .map((d) => d.id + ':' + d.turns)
+          .join(',')}
+        <CharacterPanel actor={state.player} title="プレイヤー" side="player" />
+      {/key}
+      {#if state.enemy}
+        {#key state.enemy.hp + ':' + state.enemy.STR + ':' + state.enemy.CON + ':' + state.enemy.guard + ':' + state.enemy.dots
+            .map((d) => d.id + ':' + d.turns)
+            .join(',')}
+          <CharacterPanel actor={state.enemy} title={`敵: ${state.enemy.kind}`} side="enemy" />
+        {/key}
+      {/if}
+    </div>
+  </section>
   {#if state.phase === 'progress'}
     <section class="bg-panel rounded-lg mb-4 p-4">
       <h2 class="mt-0 text-lg font-semibold mb-2">進行</h2>
@@ -72,23 +86,23 @@
   {#if state.phase === 'combat'}
     <section class="bg-panel rounded-lg mb-4 p-4">
       <h2 class="mt-0 text-lg font-semibold mb-2">戦闘</h2>
-      {#if state.enemy}
-        <p class="mb-2 text-sm">
-          敵: {state.enemy.kind} HP {state.enemy.hp}/{state.enemy.baseHP} 攻撃 {state.enemy.attack +
-            (state.enemy.buffAttack || 0)}
-        </p>
-      {/if}
-      <div class="mb-2 text-sm">行動 {state.actionUseCount}/2</div>
+      <div class="mb-2 text-sm">行動 {state.actionUseCount}/{state.player.maxActionsPerTurn}</div>
       <div class="flex flex-wrap gap-2">
         {#each state.actionOffer as id (id)}
           {#if getAction(id)}
-            <button
-              class="btn-base"
-              disabled={state.actionUseCount >= 2}
-              on:click={() => combatAction(state, id)}
-            >
-              {getAction(id)?.name}
-            </button>
+            {#if state.playerUsedActions && state.playerUsedActions.includes(id)}
+              <button class="btn-base opacity-40 cursor-not-allowed line-through" disabled
+                >{getAction(id)?.name}</button
+              >
+            {:else}
+              <button
+                class="btn-base"
+                disabled={state.actionUseCount >= state.player.maxActionsPerTurn}
+                on:click={() => combatAction(state, id)}
+              >
+                {getAction(id)?.name}
+              </button>
+            {/if}
           {/if}
         {/each}
       </div>
@@ -114,7 +128,7 @@
       <h2 class="mt-0 text-lg font-semibold mb-2">休憩</h2>
       <div class="flex flex-wrap gap-2">
         <button class="btn-base" on:click={() => restChoice(state, 'heal')}>HP30%回復</button>
-        <button class="btn-base" on:click={() => restChoice(state, 'maxhp')}>最大HP+3</button>
+        <button class="btn-base" on:click={() => restChoice(state, 'maxhp')}>CON+1</button>
       </div>
     </section>
   {/if}
@@ -150,12 +164,18 @@
     <h3 class="mt-0 font-semibold mb-2">ログ</h3>
     <div class="text-[0.85rem] leading-tight max-h-[200px] overflow-auto bg-logbg p-2 rounded-md">
       {#each state.log as entry, i (i)}
-        <div class={`mb-[2px] last:mb-0 flex items-start kind-${entry.kind}`}>
+        <div class={`mb-[2px] last:mb-0 flex items-start`}>
           <span
-            class="inline-block min-w-[55px] text-center font-semibold text-[0.6rem] tracking-wide mr-1 px-1 py-[2px] rounded bg-gray-700 text-gray-300"
+            class={`inline-block min-w-[55px] text-center font-semibold text-[0.6rem] tracking-wide mr-1 px-1 py-[2px] rounded bg-gray-700 text-gray-300 log-kind-${entry.kind}`}
             >{entry.kind}</span
           >
-          {entry.message}
+          {#if entry.kind === 'combat' && entry.actorTag}
+            <span
+              class={`inline-block mr-1 px-1 py-[2px] rounded text-[0.55rem] font-semibold tracking-wide log-side-${entry.actorTag === 'player' ? 'player' : 'enemy'}`}
+              >{entry.actorTag}</span
+            >
+          {/if}
+          <span>{entry.message}</span>
         </div>
       {/each}
     </div>
