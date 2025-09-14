@@ -37,8 +37,3 @@ export interface GameState {
   rewardIsBoss?: boolean;
   rewardIsFinalBoss?: boolean;
 }
-
-export interface Scaling {
-  enemyHP(base: number, floorIndex: number): number;
-  enemyAttack(base: number, floorIndex: number): number;
-}

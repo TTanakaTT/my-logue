@@ -8,7 +8,7 @@
     nextProgress,
     pickReward
   } from '$lib/domain/state/state';
-  import { getAction } from '$lib/data/repositories/characterRepository';
+  import { getAction } from '$lib/data/repositories/actionRepository';
   import CharacterPanel from '$lib/presentation/components/CharacterPanel.svelte';
   // Svelteの$store構文を使用し手動subscribeを撤廃
   $: state = $gameState;

@@ -1,5 +1,5 @@
 import type { ActionDef } from '$lib/domain/entities/action';
-import { calcMaxHP } from '$lib/domain/valueObjects/stats';
+import { calcMaxHP } from '$lib/domain/services/stats';
 import { emitActionLog } from '$lib/domain/services/actionLog';
 import { applyDamage } from '$lib/domain/services/damage';
 import { ActionId } from './actionIds';

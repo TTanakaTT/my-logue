@@ -1,5 +1,4 @@
 import charactersCsvRaw from '$lib/data/consts/characters.csv?raw';
-import { actions } from '$lib/data/consts/actions';
 import { ACTOR_KINDS } from '$lib/domain/entities/character';
 import type { ActorKind, Actor, Player } from '$lib/domain/entities/character';
 import type { ActionId } from '$lib/data/consts/actionIds';
@@ -134,8 +133,4 @@ export function buildEnemyFromCsv(kind: 'normal' | 'boss', floorIndex: number): 
     maxActionChoices: row.maxActionChoices
   };
   return enemy;
-}
-
-export function getAction(id: ActionId) {
-  return actions.find((a) => a.id === id);
 }

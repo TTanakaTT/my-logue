@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Actor } from '$lib/domain/entities/character';
-  import { calcMaxHP } from '$lib/domain/valueObjects/stats';
+  import { calcMaxHP } from '$lib/domain/services/stats';
   export let actor: Actor;
   export let side: 'player' | 'enemy' = 'player';
 

@@ -1,6 +1,6 @@
 import type { EventDef } from '../entities/events';
 import { pushLog, createEnemy, rollActions } from '../state/state';
-import { calcMaxHP } from '../valueObjects/stats';
+import { calcMaxHP } from '../services/stats';
 
 export const events: EventDef[] = [
   {

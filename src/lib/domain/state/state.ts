@@ -1,13 +1,10 @@
 import { writable } from 'svelte/store';
 import type { GameState, LogEntry } from '../entities/battleState';
 import type { Player, Actor, ActorSide, ActorKind } from '../entities/character';
-import type { ActionId } from '$lib/data/consts/actionIds';
-import { calcMaxHP, addAttackBuff } from '../valueObjects/stats';
-import {
-  buildPlayerFromCsv,
-  buildEnemyFromCsv,
-  getAction
-} from '$lib/data/repositories/characterRepository';
+import { ActionId } from '$lib/data/consts/actionIds';
+import { calcMaxHP, addAttackBuff } from '../services/stats';
+import { buildPlayerFromCsv, buildEnemyFromCsv } from '$lib/data/repositories/characterRepository';
+import { getAction } from '$lib/data/repositories/actionRepository';
 import { randomEvent } from '../events/events';
 
 const HIGH_KEY = 'mylogue_highest_floor';
@@ -284,8 +281,8 @@ function buildNormalRewards() {
       label: '新アクション: パワーアップ (なければ)',
       kind: 'normal' as const,
       apply: (s: GameState) => {
-        if (!s.player.actions.includes('powerup')) {
-          s.player.actions.push('powerup');
+        if (!s.player.actions.includes(ActionId.PowerUp)) {
+          s.player.actions.push(ActionId.PowerUp);
           pushLog(s, '新アクション取得: パワーアップ', 'system');
         } else {
           s.player.STR += 1;
