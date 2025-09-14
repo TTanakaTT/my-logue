@@ -14,5 +14,6 @@
     "types": ["svelte"]
   },
   "include": ["src"],
+  "exclude": ["src/game"],
   "references": []
 }

@@ -1,9 +1,8 @@
-// CSV ロード & パース。Vite の ?raw import を利用する想定。
-// シンプルな手書きパーサ (依存追加を避ける)。
-
-import { type ActionId, type Player, type Actor, type ActorKind, ACTOR_KINDS } from './types';
-import charactersCsvRaw from '../data/characters.csv?raw';
-import { actions } from '../data/actions';
+import charactersCsvRaw from '$lib/data/consts/characters.csv?raw';
+import { actions } from '$lib/data/consts/actions';
+import { ACTOR_KINDS } from '$lib/domain/entities/character';
+import type { ActorKind, Actor, Player } from '$lib/domain/entities/character';
+import type { ActionId } from '$lib/data/consts/actionIds';
 
 interface RowCommon {
   id: string;
@@ -25,17 +24,14 @@ interface RowCommon {
 
 function parse(csvRaw: string): string[][] {
   return csvRaw
-    .split(/\r?\n/) // 行
+    .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l && !l.startsWith('#'))
-    .map((line) => {
-      // CSV内にカンマを含むフィールドは今回想定しない
-      return line.split(',').map((s) => s.trim());
-    });
+    .map((line) => line.split(',').map((s) => s.trim()));
 }
 
 const allRows: RowCommon[] = parse(charactersCsvRaw)
-  .slice(1) // 先頭ヘッダ行除外
+  .slice(1)
   .map((cols) => {
     const [
       id,
@@ -49,7 +45,7 @@ const allRows: RowCommon[] = parse(charactersCsvRaw)
       DEX,
       APP,
       INT,
-      actions,
+      acts,
       maxActionsPerTurn,
       maxActionChoices,
       revealed
@@ -70,7 +66,7 @@ const allRows: RowCommon[] = parse(charactersCsvRaw)
       DEX: Number(DEX),
       APP: Number(APP),
       INT: Number(INT),
-      actions: actions.split('|') as ActionId[],
+      actions: acts.split('|') as ActionId[],
       maxActionsPerTurn: Number(maxActionsPerTurn),
       maxActionChoices: Number(maxActionChoices),
       revealed: revealed.split('|')
@@ -93,7 +89,7 @@ export function buildPlayerFromCsv(): Player {
     DEX: row.DEX,
     APP: row.APP,
     INT: row.INT,
-    hp: 0, // 後で計算
+    hp: 0,
     guard: false,
     dots: [],
     actions: row.actions,
@@ -116,7 +112,6 @@ export function pickEnemyRow(kind: 'normal' | 'boss', floorIndex: number) {
 
 export function buildEnemyFromCsv(kind: 'normal' | 'boss', floorIndex: number): Actor {
   const row = pickEnemyRow(kind, floorIndex) || enemyRows.find((r) => r.kind === kind)!;
-
   const enemy: Actor = {
     side: 'enemy',
     kind: row.kind,
@@ -141,6 +136,6 @@ export function buildEnemyFromCsv(kind: 'normal' | 'boss', floorIndex: number): 
   return enemy;
 }
 
-export function getAction(id: string) {
+export function getAction(id: ActionId) {
   return actions.find((a) => a.id === id);
 }

@@ -5,10 +5,11 @@
     chooseNode,
     combatAction,
     restChoice,
-    nextProgress
-  } from './game/state';
-  import { getAction } from './game/dataLoader';
-  import CharacterPanel from './game/CharacterPanel.svelte';
+    nextProgress,
+    pickReward
+  } from '$lib/domain/state/state';
+  import { getAction } from '$lib/data/repositories/characterRepository';
+  import CharacterPanel from '$lib/presentation/components/CharacterPanel.svelte';
   // Svelteの$store構文を使用し手動subscribeを撤廃
   $: state = $gameState;
 
@@ -155,11 +156,7 @@
       </h2>
       <div class="flex flex-wrap gap-2">
         {#each state.rewardOptions || [] as r (r.id)}
-          <button
-            class="btn-base"
-            on:click={() => import('./game/state').then(m => m.pickReward(state, r.id))}
-            >{r.label}</button
-          >
+          <button class="btn-base" on:click={() => pickReward(state, r.id)}>{r.label}</button>
         {/each}
       </div>
     </section>

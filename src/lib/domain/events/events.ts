@@ -1,6 +1,6 @@
-import type { EventDef } from './types';
-import { pushLog, createEnemy, rollActions } from './state';
-import { calcMaxHP } from './stats';
+import type { EventDef } from '../entities/events';
+import { pushLog, createEnemy, rollActions } from '../state/state';
+import { calcMaxHP } from '../valueObjects/stats';
 
 export const events: EventDef[] = [
   {
@@ -31,10 +31,8 @@ export const events: EventDef[] = [
     name: '歪んだ裂け目',
     description: '階層スキップして次階層ボスへ',
     apply: (state) => {
-      // 次階層ボス戦へ直行するが floorIndex は撃破時に進むためここでは進めない
       pushLog(state, '裂け目に飛び込みボスへ', 'event');
-      state.stepIndex = 4; // ボスステップへジャンプ
-      // 直接ボス戦開始状態に遷移
+      state.stepIndex = 4;
       state.enemy = createEnemy('boss', state.floorIndex);
       state.phase = 'combat';
       rollActions(state);

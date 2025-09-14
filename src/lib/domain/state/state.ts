@@ -1,9 +1,14 @@
 import { writable } from 'svelte/store';
-import type { GameState, Player, ActionId, LogEntry, Actor, ActorSide, ActorKind } from './types';
-import { buildPlayerFromCsv, buildEnemyFromCsv } from './dataLoader';
-import { getAction } from './dataLoader';
-import { randomEvent } from './events';
-import { calcMaxHP, addAttackBuff } from './stats';
+import type { GameState, LogEntry } from '../entities/battleState';
+import type { Player, Actor, ActorSide, ActorKind } from '../entities/character';
+import type { ActionId } from '$lib/data/consts/actionIds';
+import { calcMaxHP, addAttackBuff } from '../valueObjects/stats';
+import {
+  buildPlayerFromCsv,
+  buildEnemyFromCsv,
+  getAction
+} from '$lib/data/repositories/characterRepository';
+import { randomEvent } from '../events/events';
 
 const HIGH_KEY = 'mylogue_highest_floor';
 
@@ -11,7 +16,7 @@ export function pushLog(state: GameState, message: string, kind: LogEntry['kind'
   state.log.unshift({ message, kind });
   if (state.log.length > 20) state.log.pop();
 }
-// combat主体付き
+
 export function pushCombatLog(
   state: GameState,
   message: string,
@@ -22,7 +27,6 @@ export function pushCombatLog(
   if (state.log.length > 20) state.log.pop();
 }
 
-// プレイヤー再計算 (CON/STR変化時にHP上限超過を調整)
 export function recalcPlayer(p: Player) {
   const max = calcMaxHP(p);
   if (p.hp > max) p.hp = max;
@@ -36,7 +40,7 @@ function basePlayer(): Player {
 
 export function createEnemy(kind: 'normal' | 'boss', floorIndex: number): Actor {
   const e = buildEnemyFromCsv(kind, floorIndex);
-  e.hp = calcMaxHP(e); // CSV の CON から最大HP計算し初期値へ
+  e.hp = calcMaxHP(e);
   return e;
 }
 
@@ -61,9 +65,7 @@ export function restart() {
   gameState.set(initState());
 }
 
-// 直接オブジェクトをミューテートしているため、Svelteに変更を通知するためのcommitヘルパ
 function commit() {
-  // 浅いコピー + ネスト( player / enemy )も新参照にして再描画を確実化
   gameState.update((s) => ({
     ...s,
     player: { ...s.player },
@@ -86,9 +88,7 @@ function logProgress(state: GameState) {
 }
 
 export function nextProgress(state: GameState) {
-  // ステップ構造: 0:戦闘,1:戦闘|イベント,2:イベント|休憩,3:戦闘|戦闘,4:ボス
   if (state.stepIndex === 4) {
-    // クリア済み floor → 次階層
     state.floorIndex += 1;
     if (state.floorIndex >= 10) {
       state.phase = 'victory';
@@ -128,29 +128,24 @@ export function chooseNode(state: GameState, kind: 'combat' | 'event' | 'rest' |
 export function combatAction(state: GameState, id: ActionId) {
   if (state.phase !== 'combat') return;
   if (!state.actionOffer.includes(id)) return;
-  if (state.playerUsedActions && state.playerUsedActions.includes(id)) return; // 既に使用済み
+  if (state.playerUsedActions && state.playerUsedActions.includes(id)) return;
   const def = getAction(id);
   if (!def) return;
   def.execute(state, { actor: state.player, target: state.enemy });
-  // 変更を確実に反映させるため即座に参照を再生成
   state.player = { ...state.player };
   if (state.enemy) state.enemy = { ...state.enemy };
   state.actionUseCount += 1;
   state.playerUsedActions?.push(id);
-  // 敵を倒したら報酬処理へ
   if (state.enemy && state.enemy.hp <= 0) {
     const defeated = state.enemy;
     const wasBoss = defeated.kind === 'boss';
     state.phase = 'progress';
     if (wasBoss) {
-      // ボス撃破はフロア完了扱い。stepIndexを不正に+1せずフロアを進める。
       prepareReward(state, true, state.floorIndex === 9);
     } else {
-      // 通常敵
       state.stepIndex += 1;
       prepareReward(state, false, false);
     }
-    // 表示から消す
     state.enemy = undefined;
     commit();
     return;
@@ -181,22 +176,18 @@ function enemyTurn(state: GameState) {
   for (let i = 0; i < maxActs; i++) {
     const candidates = enemy.actions.filter((a) => !acted.includes(a));
     if (candidates.length === 0) break;
-    // ボス固有バフ判定（最初の行動前のみ発動チャンス）
     if (i === 0 && enemy.kind === 'boss' && Math.random() < 0.3) {
       addAttackBuff(enemy, 2);
       pushLog(state, 'ボスが力を高めた (+2攻撃相当)', 'combat');
-      continue; // バフは行動スロットを消費
+      continue;
     }
     const actionId = candidates[Math.floor(Math.random() * candidates.length)];
     acted.push(actionId);
     performActorAction(state, enemy, state.player, actionId);
-    // 戦闘終了条件（プレイヤー死亡）
     if (state.player.hp <= 0) break;
   }
-  // 参照再生成
   state.enemy = { ...enemy };
   state.player = { ...state.player };
-  // プレイヤーが倒れたチェック
   if (state.player.hp <= 0) {
     state.phase = 'gameover';
     pushLog(state, '倒れた...', 'system');
@@ -248,11 +239,11 @@ function endTurn(state: GameState) {
   if (enemy) enemy.guard = false;
   state.actionUseCount = 0;
   state.playerUsedActions = [];
-  // 参照再生成
   state.player = { ...state.player };
   if (state.enemy) state.enemy = { ...state.enemy };
   commit();
 }
+
 function prepareReward(state: GameState, boss: boolean, finalBoss: boolean) {
   const opts = boss ? buildBossRewards(state, finalBoss) : buildNormalRewards();
   state.rewardOptions = opts;
@@ -363,9 +354,7 @@ export function pickReward(state: GameState, id: string) {
   const opt = state.rewardOptions.find((o) => o.id === id);
   if (!opt) return;
   opt.apply(state);
-  // 進行更新
   if (state.rewardIsBoss) {
-    // ボス撃破後のフロア進行処理
     state.floorIndex += 1;
     if (state.floorIndex >= 10) {
       state.phase = 'victory';
@@ -399,9 +388,8 @@ export function restChoice(state: GameState, choice: 'heal' | 'maxhp') {
     state.player.hp = Math.min(max, state.player.hp + amount);
     pushLog(state, `休憩で${state.player.hp - before}回復`, 'rest');
   } else {
-    // CON+1 相当のミニ成長
     state.player.CON += 1;
-    const prevMax = calcMaxHP(state.player) - 2; // 追加前逆算できないので簡易処理(増加量2想定)
+    const prevMax = calcMaxHP(state.player) - 2;
     const ratio = prevMax > 0 ? state.player.hp / prevMax : 1;
     recalcPlayer(state.player);
     const newMax = calcMaxHP(state.player);

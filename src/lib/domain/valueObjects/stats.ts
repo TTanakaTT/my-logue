@@ -1,6 +1,5 @@
-import type { Actor } from './types';
+import type { Actor } from '../entities/character';
 
-// 派生計算式（バランス調整しやすいよう一元管理）
 export function calcMaxHP(actor: Actor): number {
   return 10 + actor.CON * 5;
 }
