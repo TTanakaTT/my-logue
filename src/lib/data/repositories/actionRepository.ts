@@ -1,6 +1,6 @@
-import { actions } from '$lib/data/consts/actions';
-import type { ActionId } from '$lib/data/consts/actionIds';
+import { action } from '$lib/data/consts/actions';
+import { type actionName } from '../../domain/entities/actionName';
 
-export function getAction(id: ActionId) {
-  return actions.find((a) => a.id === id);
+export function getAction(id: actionName) {
+  return action[id];
 }

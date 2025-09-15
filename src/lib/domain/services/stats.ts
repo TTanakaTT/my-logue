@@ -12,8 +12,3 @@ export function heal(actor: Actor, amount: number) {
 export function damage(actor: Actor, amount: number) {
   actor.hp -= amount;
 }
-
-export function addAttackBuff(actor: Actor, amount: number) {
-  if (!actor.buffs) actor.buffs = {};
-  actor.buffs.attackBonus = (actor.buffs.attackBonus ?? 0) + amount;
-}

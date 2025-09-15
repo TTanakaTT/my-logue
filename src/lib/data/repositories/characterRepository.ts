@@ -1,7 +1,7 @@
 import charactersCsvRaw from '$lib/data/consts/characters.csv?raw';
 import { ACTOR_KINDS } from '$lib/domain/entities/character';
 import type { ActorKind, Actor, Player } from '$lib/domain/entities/character';
-import type { ActionId } from '$lib/data/consts/actionIds';
+import type { actionName } from '../../domain/entities/actionName';
 
 interface RowCommon {
   id: string;
@@ -15,7 +15,7 @@ interface RowCommon {
   DEX: number;
   APP: number;
   INT: number;
-  actions: ActionId[];
+  actions: actionName[];
   maxActionsPerTurn: number;
   maxActionChoices: number;
   revealed: string[];
@@ -65,7 +65,7 @@ const allRows: RowCommon[] = parse(charactersCsvRaw)
       DEX: Number(DEX),
       APP: Number(APP),
       INT: Number(INT),
-      actions: acts.split('|') as ActionId[],
+      actions: acts.split('|') as actionName[],
       maxActionsPerTurn: Number(maxActionsPerTurn),
       maxActionChoices: Number(maxActionChoices),
       revealed: revealed.split('|')

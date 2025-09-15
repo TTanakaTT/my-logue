@@ -66,7 +66,7 @@ MIT (予定)
 
 ### よくある拡張例
 
-- 行動追加: actions 列に既存 ActionId を追加 (未実装の ActionId を書くと実行時エラーになるので注意)
+- 行動追加: actions 列に既存 actionName を追加 (未実装の actionName を書くと実行時エラーになるので注意)
 - 複数プレイヤープリセット: player_stats.csv に新行追加 → `buildPlayerFromCsv` を拡張し id 指定ロードへ変更
 - 階層細分化: enemy_stats.csv に floor 範囲を細かく分けた行を追加
 

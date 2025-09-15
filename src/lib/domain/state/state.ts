@@ -1,11 +1,12 @@
 import { writable } from 'svelte/store';
 import type { GameState, LogEntry } from '../entities/battleState';
 import type { Player, Actor, ActorSide, ActorKind } from '../entities/character';
-import { ActionId } from '$lib/data/consts/actionIds';
-import { calcMaxHP, addAttackBuff } from '../services/stats';
+import type { actionName } from '$lib/domain/entities/actionName';
+import { calcMaxHP } from '../services/stats';
 import { buildPlayerFromCsv, buildEnemyFromCsv } from '$lib/data/repositories/characterRepository';
 import { getAction } from '$lib/data/repositories/actionRepository';
 import { randomEvent } from '../events/events';
+import { emitActionLog } from '$lib/domain/services/actionLog';
 
 const HIGH_KEY = 'mylogue_highest_floor';
 
@@ -122,13 +123,14 @@ export function chooseNode(state: GameState, kind: 'combat' | 'event' | 'rest' |
   commit();
 }
 
-export function combatAction(state: GameState, id: ActionId) {
+export function combatAction(state: GameState, id: actionName) {
   if (state.phase !== 'combat') return;
   if (!state.actionOffer.includes(id)) return;
   if (state.playerUsedActions && state.playerUsedActions.includes(id)) return;
   const def = getAction(id);
   if (!def) return;
   def.execute(state, { actor: state.player, target: state.enemy });
+  emitActionLog(state, state.player, state.enemy, def);
   state.player = { ...state.player };
   if (state.enemy) state.enemy = { ...state.enemy };
   state.actionUseCount += 1;
@@ -158,29 +160,25 @@ function performActorAction(
   state: GameState,
   actor: Actor,
   target: Actor | undefined,
-  id: ActionId
+  id: actionName
 ) {
   const def = getAction(id);
   if (!def) return;
   def.execute(state, { actor, target });
+  emitActionLog(state, state.player, state.enemy, def);
 }
 
 function enemyTurn(state: GameState) {
   const enemy = state.enemy;
   if (!enemy) return;
-  const acted: ActionId[] = [];
+  const acted: actionName[] = [];
   const maxActs = enemy.maxActionsPerTurn;
   for (let i = 0; i < maxActs; i++) {
     const candidates = enemy.actions.filter((a) => !acted.includes(a));
     if (candidates.length === 0) break;
-    if (i === 0 && enemy.kind === 'boss' && Math.random() < 0.3) {
-      addAttackBuff(enemy, 2);
-      pushLog(state, 'ボスが力を高めた (+2攻撃相当)', 'combat');
-      continue;
-    }
-    const actionId = candidates[Math.floor(Math.random() * candidates.length)];
-    acted.push(actionId);
-    performActorAction(state, enemy, state.player, actionId);
+    const actionName = candidates[Math.floor(Math.random() * candidates.length)];
+    acted.push(actionName);
+    performActorAction(state, enemy, state.player, actionName);
     if (state.player.hp <= 0) break;
   }
   state.enemy = { ...enemy };
@@ -281,8 +279,8 @@ function buildNormalRewards() {
       label: '新アクション: パワーアップ (なければ)',
       kind: 'normal' as const,
       apply: (s: GameState) => {
-        if (!s.player.actions.includes(ActionId.PowerUp)) {
-          s.player.actions.push(ActionId.PowerUp);
+        if (!s.player.actions.includes('PowerUp')) {
+          s.player.actions.push('PowerUp');
           pushLog(s, '新アクション取得: パワーアップ', 'system');
         } else {
           s.player.STR += 1;

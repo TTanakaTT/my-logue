@@ -1,5 +1,5 @@
 import type { Player, Actor, ActorSide, ActorKind } from './character';
-import type { ActionId } from '$lib/data/consts/actionIds';
+import type { actionName } from '$lib/domain/entities/actionName';
 
 export type Phase = 'progress' | 'combat' | 'event' | 'rest' | 'reward' | 'victory' | 'gameover';
 export type RewardKind = 'normal' | 'boss';
@@ -27,9 +27,9 @@ export interface GameState {
   phase: Phase;
   player: Player;
   enemy?: Actor;
-  actionOffer: ActionId[];
+  actionOffer: actionName[];
   actionUseCount: number;
-  playerUsedActions?: ActionId[];
+  playerUsedActions?: actionName[];
   log: LogEntry[];
   highestFloor: number;
   rngSeed?: number;

@@ -1,4 +1,4 @@
-import { ActionId } from '$lib/data/consts/actionIds';
+import type { actionName } from '$lib/domain/entities/actionName';
 
 export type ActorKind = 'normal' | 'boss' | 'player';
 export const ACTOR_KINDS: ActorKind[] = ['normal', 'boss', 'player'];
@@ -28,7 +28,7 @@ export interface Actor {
   guard: boolean;
   dots: DotEffect[];
   buffs?: BuffState;
-  actions: ActionId[];
+  actions: actionName[];
   revealed?: Partial<Record<StatKey, boolean>>;
   maxActionsPerTurn: number;
   maxActionChoices: number;
