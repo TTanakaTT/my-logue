@@ -8,11 +8,10 @@ export function applyDamage(
   amount: number
 ) {
   if (!target) return undefined;
-  let final = amount;
+  let damage = amount;
   if (target.guard) {
-    final = Math.ceil(final / 2);
+    damage = Math.ceil(damage / 2);
     target.guard = false;
   }
-  target.hp -= final;
-  return final;
+  target.hp -= damage;
 }

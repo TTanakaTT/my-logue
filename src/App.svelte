@@ -63,8 +63,8 @@
       {/if}
     </div>
   </section>
-  {#if state.phase === 'progress'}
-    <section class="bg-panel rounded-lg mb-4 py-2 px-4">
+  <section class="bg-panel rounded-lg mb-4 py-2 px-4">
+    {#if state.phase === 'progress'}
       <h2 class="mt-0 text-lg font-semibold mb-2">進行</h2>
       <div class="flex flex-wrap gap-2 mb-2">
         {#each availableNodeKinds(state.stepIndex) as kind, i (i)}
@@ -82,9 +82,7 @@
             })}>スキップ(デバッグ)</button
         >
       {/if}
-    </section>
-  {/if}
-  <section class="bg-panel rounded-lg mb-4 py-2 px-4">
+    {/if}
     {#if state.phase === 'combat'}
       <h2 class="mt-0 text-lg font-semibold mb-2">戦闘</h2>
       <div class="mb-2 text-sm">行動 {state.actionUseCount}/{state.player.maxActionsPerTurn}</div>
@@ -139,9 +137,7 @@
     {/if}
     {#if state.phase === 'reward'}
       <h2 class="mt-0 text-lg font-semibold mb-2">
-        {#if state.rewardIsBoss}
-          {#if state.rewardIsFinalBoss}最終ボス報酬{:else}ボス報酬{/if}
-        {:else}成長報酬{/if}
+        {#if state.rewardIsBoss}ボス報酬{:else}成長報酬{/if}
       </h2>
       <div class="flex flex-wrap gap-2">
         {#each state.rewardOptions || [] as r (r.id)}

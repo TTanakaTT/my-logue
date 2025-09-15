@@ -35,5 +35,4 @@ export interface GameState {
   rngSeed?: number;
   rewardOptions?: RewardOption[];
   rewardIsBoss?: boolean;
-  rewardIsFinalBoss?: boolean;
 }

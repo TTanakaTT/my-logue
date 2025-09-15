@@ -1,0 +1,7 @@
+id,kind,label
+con_1,normal,CON+1
+str_2,normal,STR+1
+action_powerup,normal,新アクション: パワーアップ
+con_2,boss,CON+2
+str_2,boss,STR+2
+hp_full,boss,HP999回復 & 状態異常解除

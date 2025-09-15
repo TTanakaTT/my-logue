@@ -7,6 +7,7 @@ import { buildPlayerFromCsv, buildEnemyFromCsv } from '$lib/data/repositories/ch
 import { getAction } from '$lib/data/repositories/actionRepository';
 import { randomEvent } from '../events/events';
 import { emitActionLog } from '$lib/domain/services/actionLog';
+import { getRewards } from '$lib/data/repositories/rewardRepository';
 
 const HIGH_KEY = 'mylogue_highest_floor';
 
@@ -141,10 +142,10 @@ export function combatAction(state: GameState, id: actionName) {
     const wasBoss = defeated.kind === 'boss';
     state.phase = 'progress';
     if (wasBoss) {
-      prepareReward(state, true, state.floorIndex === 9);
+      prepareReward(state, true);
     } else {
       state.stepIndex += 1;
-      prepareReward(state, false, false);
+      prepareReward(state, false);
     }
     state.enemy = undefined;
     commit();
@@ -225,7 +226,7 @@ function endTurn(state: GameState) {
             state.player.score += 1;
             state.phase = 'progress';
             state.stepIndex += 1;
-            prepareReward(state, false, false);
+            prepareReward(state, false);
             state.enemy = undefined;
           }
           commit();
@@ -244,109 +245,12 @@ function endTurn(state: GameState) {
   commit();
 }
 
-function prepareReward(state: GameState, boss: boolean, finalBoss: boolean) {
-  const opts = boss ? buildBossRewards(state, finalBoss) : buildNormalRewards();
+function prepareReward(state: GameState, boss: boolean) {
+  const opts = getRewards(boss ? 'boss' : 'normal');
   state.rewardOptions = opts;
   state.rewardIsBoss = boss;
-  state.rewardIsFinalBoss = finalBoss;
   state.phase = 'reward';
   pushLog(state, boss ? 'ボス報酬を選択' : '成長報酬を選択', 'system');
-}
-
-function buildNormalRewards() {
-  return [
-    {
-      id: 'hp5',
-      label: 'CON+1 (最大HP再計算&割合維持)',
-      kind: 'normal' as const,
-      apply: (s: GameState) => {
-        s.player.CON += 1;
-        const prevMax = calcMaxHP(s.player);
-        const ratio = prevMax > 0 ? s.player.hp / prevMax : 1;
-        recalcPlayer(s.player);
-        const newMax = calcMaxHP(s.player);
-        s.player.hp = Math.min(newMax, Math.max(1, Math.round(newMax * ratio)));
-        pushLog(s, 'CON+1 (最大HP上昇)', 'system');
-      }
-    },
-    {
-      id: 'atk1',
-      label: 'STR+1',
-      kind: 'normal' as const,
-      apply: (s: GameState) => {
-        s.player.STR += 1;
-        recalcPlayer(s.player);
-        pushLog(s, 'STR+1', 'system');
-      }
-    },
-    {
-      id: 'powerup',
-      label: '新アクション: パワーアップ (なければ)',
-      kind: 'normal' as const,
-      apply: (s: GameState) => {
-        if (!s.player.actions.includes('PowerUp')) {
-          s.player.actions.push('PowerUp');
-          pushLog(s, '新アクション取得: パワーアップ', 'system');
-        } else {
-          s.player.STR += 1;
-          recalcPlayer(s.player);
-          pushLog(s, '代替: STR+1', 'system');
-        }
-      }
-    }
-  ];
-}
-
-function buildBossRewards(state: GameState, finalBoss: boolean) {
-  if (finalBoss) {
-    return [
-      {
-        id: 'final-score',
-        label: '最終勝利: 追加スコア+5',
-        kind: 'boss' as const,
-        apply: (s: GameState) => {
-          s.player.score += 5;
-          pushLog(s, '最終ボーナス +5スコア', 'system');
-        }
-      }
-    ];
-  }
-  return [
-    {
-      id: 'boss-maxhp',
-      label: 'CON+2 (最大HP再計算&割合維持)',
-      kind: 'boss' as const,
-      apply: (s: GameState) => {
-        s.player.CON += 2;
-        const prevMax = calcMaxHP(s.player);
-        const ratio = prevMax > 0 ? s.player.hp / prevMax : 1;
-        recalcPlayer(s.player);
-        const newMax = calcMaxHP(s.player);
-        s.player.hp = Math.min(newMax, Math.max(1, Math.round(newMax * ratio)));
-        pushLog(s, 'CON+2', 'system');
-      }
-    },
-    {
-      id: 'boss-atk2',
-      label: 'STR+2',
-      kind: 'boss' as const,
-      apply: (s: GameState) => {
-        s.player.STR += 2;
-        recalcPlayer(s.player);
-        pushLog(s, 'STR+2', 'system');
-      }
-    },
-    {
-      id: 'boss-cleanse',
-      label: 'HP全回復 & 状態異常解除',
-      kind: 'boss' as const,
-      apply: (s: GameState) => {
-        s.player.hp = calcMaxHP(s.player);
-        s.player.dots = [];
-        pushLog(s, '全回復', 'system');
-      }
-    }
-  ];
 }
 
 export function pickReward(state: GameState, id: string) {
@@ -374,7 +278,6 @@ export function pickReward(state: GameState, id: string) {
   }
   state.rewardOptions = undefined;
   state.rewardIsBoss = false;
-  state.rewardIsFinalBoss = false;
   logProgress(state);
   commit();
 }
