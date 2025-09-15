@@ -40,7 +40,7 @@
       id,
       revealed,
       name: revealed ? def?.name || id : '???',
-      description: revealed ? def?.description : '未使用のため不明'
+      description: revealed ? def?.description : '???'
     };
   });
 </script>
@@ -51,18 +51,18 @@
   <div class="font-semibold mb-1 flex items-center gap-2">
     <span>{actor.name}</span>
   </div>
-  <div class="flex flex-wrap gap-1 mb-1">
+  <div class="flex flex-wrap gap-1 mb-1 min-h-4">
     {#if guardActive}
-      <span class="px-1 rounded text-xs font-semibold bg-green-700 text-green-100">G</span>
+      <span
+        class="px-1 rounded text-xs font-semibold bg-green-700 text-green-100"
+        title="ガード: 次に受けるダメージを半減">G</span
+      >
     {/if}
     {#if poisonTurns}
       <span
         class="px-1 rounded text-xs font-semibold bg-purple-700 text-purple-100"
-        title="毒継続ターン">毒{poisonTurns}</span
+        title={`毒: ターン終了時に3ダメージ / 残り${poisonTurns}ターン`}>毒{poisonTurns}</span
       >
-    {/if}
-    {#if !guardActive && !poisonTurns}
-      <span class="text-xs text-gray-500">&nbsp;</span>
     {/if}
   </div>
   <div class="flex flex-row flex-wrap gap-2">
