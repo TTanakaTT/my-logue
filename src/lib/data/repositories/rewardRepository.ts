@@ -4,6 +4,7 @@ import type { GameState, RewardOption } from '$lib/domain/entities/battleState';
 import type { actionName } from '$lib/domain/entities/actionName';
 import { calcMaxHP } from '$lib/domain/services/stats';
 import { recalcPlayer, pushLog } from '$lib/domain/state/state';
+import type { Player } from '$lib/domain/entities/character';
 
 // reward.csv: id,kind,label
 // reward_detail.csv: rewardId,type,target,value,extra
@@ -62,11 +63,35 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
         s.player.hp = Math.min(max, s.player.hp + amount);
         pushLog(s, `HP+${Math.min(amount, max)} (<=最大HP)`, 'system');
       } else {
-        if (d.target in s.player) {
-          // @ts-expect-error indexing
-          s.player[d.target] += amount;
+        type NumericPlayerStat = Exclude<
+          keyof Player,
+          | 'name'
+          | 'side'
+          | 'kind'
+          | 'hp'
+          | 'guard'
+          | 'dots'
+          | 'buffs'
+          | 'actions'
+          | 'revealed'
+          | 'revealedActions'
+          | 'maxActionsPerTurn'
+          | 'maxActionChoices'
+          | 'score'
+        >;
+        const numericKeys: Record<string, NumericPlayerStat> = {
+          STR: 'STR',
+          CON: 'CON',
+          POW: 'POW',
+          DEX: 'DEX',
+          APP: 'APP',
+          INT: 'INT'
+        };
+        const key = numericKeys[d.target];
+        if (key) {
+          s.player[key] += amount;
           recalcPlayer(s.player);
-          pushLog(s, `${d.target}+${amount}`, 'system');
+          pushLog(s, `${key}+${amount}`, 'system');
         }
       }
       break;
