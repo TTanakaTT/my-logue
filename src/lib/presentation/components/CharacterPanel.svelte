@@ -33,6 +33,7 @@
     return displayed[key];
   }
   import { getAction } from '$lib/data/repositories/actionRepository';
+  import TooltipBadge from './TooltipBadge.svelte';
   $: actionInfos = actor.actions.map((id) => {
     const def = getAction(id);
     const revealed = actor.side === 'enemy' ? actor.revealedActions?.includes(id) : true;
@@ -46,23 +47,25 @@
 </script>
 
 <div
-  class={`rounded-lg p-3 text-xs space-y-1 bg-neutral-800/40 backdrop-blur border-2 shadow-sm w-3xs panel-side-${side}`}
+  class={`rounded-lg p-3 text-xs space-y-1 bg-neutral-800/40 border-2 shadow-sm w-3xs panel-side-${side}`}
 >
   <div class="font-semibold mb-1 flex items-center gap-2">
     <span>{actor.name}</span>
   </div>
   <div class="flex flex-wrap gap-1 mb-1 min-h-4">
     {#if guardActive}
-      <span
-        class="px-1 rounded text-xs font-semibold bg-green-700 text-green-100"
-        title="ガード: 次に受けるダメージを半減">G</span
-      >
+      <TooltipBadge
+        badgeClass="bg-green-700"
+        label="G"
+        description="ガード: 次に受けるダメージを半減"
+      />
     {/if}
     {#if poisonTurns}
-      <span
-        class="px-1 rounded text-xs font-semibold bg-purple-700 text-purple-100"
-        title={`毒: ターン終了時に3ダメージ / 残り${poisonTurns}ターン`}>毒{poisonTurns}</span
-      >
+      <TooltipBadge
+        badgeClass="bg-purple-700"
+        label={`毒${poisonTurns}`}
+        description={`毒: ターン終了時に3ダメージ / 残り${poisonTurns}ターン`}
+      />
     {/if}
   </div>
   <div class="flex flex-row flex-wrap gap-2">
@@ -77,13 +80,12 @@
     <div class="text-gray-400">アクション</div>
     <div class="flex flex-wrap gap-1 mt-1">
       {#each actionInfos as a (a.id)}
-        <span
-          class="px-1 py-0.5 rounded bg-gray-700/60 text-xs whitespace-nowrap"
-          title={a.description}
-          data-revealed={a.revealed}
-        >
-          {a.name}
-        </span>
+        <TooltipBadge
+          badgeClass="bg-gray-700/60"
+          label={a.name}
+          description={a.description}
+          revealed={a.revealed}
+        />
       {/each}
     </div>
   </div>
