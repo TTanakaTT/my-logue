@@ -10,7 +10,8 @@ import type { Player } from '$lib/domain/entities/character';
 // reward_detail.csv: rewardId,type,target,value,extra
 //   type: stat|action|dots
 
-type RawKind = 'enemy_normal' | 'enemy_boss';
+// enemy_{actorKind} 形式を許容し、将来のkind追加にコード変更不要にする
+type RawKind = `enemy_${string}`;
 interface RewardRow {
   id: string;
   kind: RawKind;
@@ -37,8 +38,8 @@ const rewardRows: RewardRow[] = parse(rewardCsvRaw)
   .slice(1)
   .map((cols) => {
     const [id, kindRaw, label] = cols;
-    if (kindRaw !== 'enemy_normal' && kindRaw !== 'enemy_boss') {
-      throw new Error(`Invalid kind in reward.csv: ${kindRaw}`);
+    if (!kindRaw.startsWith('enemy_')) {
+      throw new Error(`Invalid kind in reward.csv (must start with enemy_): ${kindRaw}`);
     }
     return { id, kind: kindRaw as RawKind, label };
   });
@@ -139,12 +140,8 @@ function shuffle<T>(arr: T[]) {
   return arr;
 }
 
-function mapEnemyKind(enemyKind: 'normal' | 'boss'): RawKind {
-  return enemyKind === 'normal' ? 'enemy_normal' : 'enemy_boss';
-}
-
-export function getRewardsForEnemy(state: GameState, enemyKind: 'normal' | 'boss'): RewardOption[] {
-  const rawKind = mapEnemyKind(enemyKind);
+export function getRewardsForEnemy(state: GameState, enemyKind: string): RewardOption[] {
+  const rawKind = `enemy_${enemyKind}` as RawKind;
   const candidates = rewardRows.filter((r) => r.kind === rawKind);
 
   // アクション報酬のうち既所持のものは除外
@@ -163,7 +160,10 @@ export function getRewardsForEnemy(state: GameState, enemyKind: 'normal' | 'boss
   return picked.map<RewardOption>((row) => ({
     id: row.id,
     label: row.label,
-    kind: enemyKind === 'normal' ? 'normal' : 'boss',
+    // UI表示用途: normal/boss 既存型は維持。未知(kind!==normal/boss)はnormal扱い。
+    kind: (enemyKind === 'normal' || enemyKind === 'boss'
+      ? enemyKind
+      : 'normal') as RewardOption['kind'],
     apply: (s) => {
       const details = detailRows.filter((d) => d.rewardId === row.id);
       for (const d of details) applyDetail(s, d);

@@ -73,7 +73,9 @@ const allRows: RowCommon[] = parse(charactersCsvRaw)
   });
 
 const playerRow = allRows.find((r) => r.kind === 'player');
-const enemyRows = allRows.filter((r) => r.kind === 'normal' || r.kind === 'boss');
+const enemyRows = allRows.filter(
+  (r) => r.kind === 'normal' || r.kind === 'elite' || r.kind === 'boss'
+);
 
 export function buildPlayerFromCsv(): Player {
   if (!playerRow) throw new Error('player row not found in characters.csv');
@@ -103,13 +105,13 @@ export function buildPlayerFromCsv(): Player {
   return base;
 }
 
-export function pickEnemyRow(kind: 'normal' | 'boss', floorIndex: number) {
+export function pickEnemyRow(kind: 'normal' | 'elite' | 'boss', floorIndex: number) {
   return enemyRows.find(
     (r) => r.kind === kind && floorIndex >= r.floorMin && floorIndex <= r.floorMax
   );
 }
 
-export function buildEnemyFromCsv(kind: 'normal' | 'boss', floorIndex: number): Actor {
+export function buildEnemyFromCsv(kind: 'normal' | 'elite' | 'boss', floorIndex: number): Actor {
   const row = pickEnemyRow(kind, floorIndex) || enemyRows.find((r) => r.kind === kind)!;
   const enemy: Actor = {
     side: 'enemy',

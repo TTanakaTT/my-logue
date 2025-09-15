@@ -37,7 +37,7 @@ function basePlayer(): Player {
   return p;
 }
 
-export function createEnemy(kind: 'normal' | 'boss', floorIndex: number): Actor {
+export function createEnemy(kind: 'normal' | 'elite' | 'boss', floorIndex: number): Actor {
   const e = buildEnemyFromCsv(kind, floorIndex);
   e.hp = calcMaxHP(e);
   e.revealedActions = [];
@@ -110,10 +110,17 @@ export function nextProgress(state: GameState) {
 
 export function chooseNode(state: GameState, kind: 'combat' | 'event' | 'rest' | 'boss') {
   if (kind === 'combat' || kind === 'boss') {
-    state.enemy = createEnemy(kind === 'boss' ? 'boss' : 'normal', state.floorIndex);
+    // 4ステップ目(= index 3) の戦闘は elite とする (ボス除く)
+    const enemyKind: 'normal' | 'elite' | 'boss' =
+      kind === 'boss' ? 'boss' : state.stepIndex === 3 ? 'elite' : 'normal';
+    state.enemy = createEnemy(enemyKind, state.floorIndex);
     state.phase = 'combat';
     rollActions(state);
-    pushLog(state, kind === 'boss' ? 'ボス戦開始!' : '戦闘開始', 'combat');
+    pushLog(
+      state,
+      kind === 'boss' ? 'ボス戦開始!' : enemyKind === 'elite' ? '精鋭戦開始!' : '戦闘開始',
+      'combat'
+    );
   } else if (kind === 'event') {
     state.phase = 'event';
     const ev = randomEvent();
@@ -142,10 +149,11 @@ export function combatAction(state: GameState, id: actionName) {
     const wasBoss = defeated.kind === 'boss';
     state.phase = 'progress';
     if (wasBoss) {
-      prepareReward(state, true);
+      prepareReward(state, 'boss');
     } else {
+      const defeatedKind = defeated.kind as 'normal' | 'elite';
       state.stepIndex += 1;
-      prepareReward(state, false);
+      prepareReward(state, defeatedKind);
     }
     state.enemy = undefined;
     commit();
@@ -225,8 +233,9 @@ function endTurn(state: GameState) {
             pushLog(state, '敵を毒で倒した!', 'combat');
             state.player.score += 1;
             state.phase = 'progress';
+            const kind = actor.kind as 'normal' | 'elite';
             state.stepIndex += 1;
-            prepareReward(state, false);
+            prepareReward(state, kind);
             state.enemy = undefined;
           }
           commit();
@@ -245,12 +254,12 @@ function endTurn(state: GameState) {
   commit();
 }
 
-function prepareReward(state: GameState, boss: boolean) {
-  const opts = getRewardsForEnemy(state, boss ? 'boss' : 'normal');
+function prepareReward(state: GameState, defeatedKind: 'normal' | 'elite' | 'boss') {
+  const opts = getRewardsForEnemy(state, defeatedKind);
   state.rewardOptions = opts;
-  state.rewardIsBoss = boss;
+  state.rewardIsBoss = defeatedKind === 'boss';
   state.phase = 'reward';
-  pushLog(state, boss ? 'ボス報酬を選択' : '成長報酬を選択', 'system');
+  pushLog(state, '報酬を選択', 'system');
 }
 
 export function pickReward(state: GameState, id: string) {

@@ -6,3 +6,4 @@ action_powerup,enemy_normal,新アクション: パワーアップ
 con_2,enemy_boss,CON+2
 str_2,enemy_boss,STR+2
 hp_full,enemy_boss,HP999回復 & 状態異常解除
+all_stats_1,enemy_elite,全ステ+1

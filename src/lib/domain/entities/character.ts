@@ -1,7 +1,7 @@
 import type { actionName } from '$lib/domain/entities/actionName';
 
-export type ActorKind = 'normal' | 'boss' | 'player';
-export const ACTOR_KINDS: ActorKind[] = ['normal', 'boss', 'player'];
+export type ActorKind = 'normal' | 'elite' | 'boss' | 'player';
+export const ACTOR_KINDS: ActorKind[] = ['normal', 'elite', 'boss', 'player'];
 export type ActorSide = 'player' | 'enemy';
 
 export interface BuffState {

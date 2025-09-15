@@ -15,21 +15,32 @@
 
   let debugMode = false;
 
-  function availableNodeKinds(stepIndex: number): ('combat' | 'event' | 'rest' | 'boss')[] {
+  // ノード種別: 表示上 normal / elite / boss / event / rest
+  type NodeKindDisplay = 'normal' | 'elite' | 'boss' | 'event' | 'rest';
+  function availableNodeKinds(stepIndex: number): NodeKindDisplay[] {
     switch (stepIndex) {
       case 0:
-        return ['combat'];
+        return ['normal'];
       case 1:
-        return ['combat', 'event'];
+        return ['normal', 'event'];
       case 2:
         return ['event', 'rest'];
       case 3:
-        return ['combat', 'combat'];
+        return ['elite'];
       case 4:
         return ['boss'];
       default:
-        return ['combat'];
+        return ['normal'];
     }
+  }
+
+  function handleChoose(kind: NodeKindDisplay) {
+    if (kind === 'normal') chooseNode(state, 'combat');
+    else if (kind === 'elite')
+      chooseNode(state, 'combat'); // createEnemy内の分岐とstate.stepIndexでelite化済
+    else if (kind === 'boss') chooseNode(state, 'boss');
+    else if (kind === 'event') chooseNode(state, 'event');
+    else if (kind === 'rest') chooseNode(state, 'rest');
   }
 </script>
 
@@ -69,7 +80,7 @@
       <h2 class="mt-0 text-lg font-semibold mb-2">進行</h2>
       <div class="flex flex-wrap gap-2 mb-2">
         {#each availableNodeKinds(state.stepIndex) as kind, i (i)}
-          <button class="btn-base" on:click={() => chooseNode(state, kind)}>{kind}</button>
+          <button class="btn-base" on:click={() => handleChoose(kind)}>{kind}</button>
         {/each}
       </div>
       {#if debugMode}
