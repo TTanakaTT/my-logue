@@ -33,11 +33,20 @@
     return displayed[key];
   }
   import { getAction } from '$lib/data/repositories/actionRepository';
-  $: actionLabels = actor.actions.map((a) => getAction(a)?.name || a);
+  $: actionInfos = actor.actions.map((id) => {
+    const def = getAction(id);
+    const revealed = actor.side === 'enemy' ? actor.revealedActions?.includes(id) : true;
+    return {
+      id,
+      revealed,
+      name: revealed ? def?.name || id : '???',
+      description: revealed ? def?.description : '未使用のため不明'
+    };
+  });
 </script>
 
 <div
-  class={`rounded-lg p-3 text-xs space-y-1 bg-neutral-800/40 backdrop-blur ring-2 shadow-sm w-3xs panel-side-${side}`}
+  class={`rounded-lg p-3 text-xs space-y-1 bg-neutral-800/40 backdrop-blur border-2 shadow-sm w-3xs panel-side-${side}`}
 >
   <div class="font-semibold mb-1 flex items-center gap-2">
     <span>{actor.name}</span>
@@ -67,9 +76,13 @@
   <div class="mt-2">
     <div class="text-gray-400">アクション</div>
     <div class="flex flex-wrap gap-1 mt-1">
-      {#each actionLabels as label (label)}
-        <span class="px-1 py-0.5 rounded bg-gray-700/60 text-xs">
-          {label}
+      {#each actionInfos as a (a.id)}
+        <span
+          class="px-1 py-0.5 rounded bg-gray-700/60 text-xs whitespace-nowrap"
+          title={a.description}
+          data-revealed={a.revealed}
+        >
+          {a.name}
         </span>
       {/each}
     </div>

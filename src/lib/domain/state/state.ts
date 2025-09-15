@@ -39,6 +39,7 @@ function basePlayer(): Player {
 export function createEnemy(kind: 'normal' | 'boss', floorIndex: number): Actor {
   const e = buildEnemyFromCsv(kind, floorIndex);
   e.hp = calcMaxHP(e);
+  e.revealedActions = [];
   return e;
 }
 
@@ -166,6 +167,10 @@ function performActorAction(
   if (!def) return;
   def.execute(state, { actor, target });
   emitActionLog(state, state.player, state.enemy, def);
+  if (actor.side === 'enemy') {
+    if (!actor.revealedActions) actor.revealedActions = [];
+    if (!actor.revealedActions.includes(id)) actor.revealedActions.push(id);
+  }
 }
 
 function enemyTurn(state: GameState) {

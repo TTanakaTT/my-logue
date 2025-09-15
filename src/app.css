@@ -40,10 +40,10 @@
     background: var(--color-side-enemy);
   }
   .panel-side-player {
-    --tw-ring-color: var(--color-side-player);
+    border-color: var(--color-side-player);
   }
   .panel-side-enemy {
-    --tw-ring-color: var(--color-side-enemy);
+    border-color: var(--color-side-enemy);
   }
   .text-bad {
     color: var(--color-bad);

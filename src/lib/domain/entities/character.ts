@@ -30,6 +30,11 @@ export interface Actor {
   buffs?: BuffState;
   actions: actionName[];
   revealed?: Partial<Record<StatKey, boolean>>;
+  /**
+   * 敵専用: 戦闘中にプレイヤーへ公開済み（=使用済み）アクションID一覧。
+   * プレイヤー側は不要なので省略可。
+   */
+  revealedActions?: actionName[];
   maxActionsPerTurn: number;
   maxActionChoices: number;
 }
