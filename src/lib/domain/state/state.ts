@@ -7,7 +7,7 @@ import { buildPlayerFromCsv, buildEnemyFromCsv } from '$lib/data/repositories/ch
 import { getAction } from '$lib/data/repositories/actionRepository';
 import { randomEvent } from '../events/events';
 import { emitActionLog } from '$lib/domain/services/actionLog';
-import { getRewards } from '$lib/data/repositories/rewardRepository';
+import { getRewardsForEnemy } from '$lib/data/repositories/rewardRepository';
 
 const HIGH_KEY = 'mylogue_highest_floor';
 
@@ -246,7 +246,7 @@ function endTurn(state: GameState) {
 }
 
 function prepareReward(state: GameState, boss: boolean) {
-  const opts = getRewards(boss ? 'boss' : 'normal');
+  const opts = getRewardsForEnemy(state, boss ? 'boss' : 'normal');
   state.rewardOptions = opts;
   state.rewardIsBoss = boss;
   state.phase = 'reward';

@@ -9,9 +9,10 @@ import { recalcPlayer, pushLog } from '$lib/domain/state/state';
 // reward_detail.csv: rewardId,type,target,value,extra
 //   type: stat|action|dots
 
+type RawKind = 'enemy_normal' | 'enemy_boss';
 interface RewardRow {
   id: string;
-  kind: 'normal' | 'boss';
+  kind: RawKind;
   label: string;
 }
 
@@ -35,10 +36,10 @@ const rewardRows: RewardRow[] = parse(rewardCsvRaw)
   .slice(1)
   .map((cols) => {
     const [id, kindRaw, label] = cols;
-    if (kindRaw !== 'normal' && kindRaw !== 'boss') {
+    if (kindRaw !== 'enemy_normal' && kindRaw !== 'enemy_boss') {
       throw new Error(`Invalid kind in reward.csv: ${kindRaw}`);
     }
-    return { id, kind: kindRaw as 'normal' | 'boss', label };
+    return { id, kind: kindRaw as RawKind, label };
   });
 
 const detailRows: RewardDetailRow[] = parse(rewardDetailCsvRaw)
@@ -105,18 +106,42 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
   }
 }
 
-export function getRewards(kind: 'normal' | 'boss'): RewardOption[] {
-  return rewardRows
-    .filter((r) => r.kind === kind)
-    .map<RewardOption>((row) => ({
-      id: row.id,
-      label: row.label,
-      kind: row.kind,
-      apply: (s) => {
-        const details = detailRows.filter((d) => d.rewardId === row.id);
-        for (const d of details) {
-          applyDetail(s, d);
-        }
-      }
-    }));
+function shuffle<T>(arr: T[]) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function mapEnemyKind(enemyKind: 'normal' | 'boss'): RawKind {
+  return enemyKind === 'normal' ? 'enemy_normal' : 'enemy_boss';
+}
+
+export function getRewardsForEnemy(state: GameState, enemyKind: 'normal' | 'boss'): RewardOption[] {
+  const rawKind = mapEnemyKind(enemyKind);
+  const candidates = rewardRows.filter((r) => r.kind === rawKind);
+
+  // アクション報酬のうち既所持のものは除外
+  const filtered = candidates.filter((row) => {
+    const details = detailRows.filter((d) => d.rewardId === row.id);
+    const actionDetail = details.find((d) => d.type === 'action');
+    if (actionDetail) {
+      const act = actionDetail.target as actionName;
+      if (state.player.actions.includes(act)) return false; // 既に所持
+    }
+    return true;
+  });
+
+  const picked = shuffle(filtered.slice()).slice(0, 3);
+
+  return picked.map<RewardOption>((row) => ({
+    id: row.id,
+    label: row.label,
+    kind: enemyKind === 'normal' ? 'normal' : 'boss',
+    apply: (s) => {
+      const details = detailRows.filter((d) => d.rewardId === row.id);
+      for (const d of details) applyDetail(s, d);
+    }
+  }));
 }

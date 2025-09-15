@@ -1,7 +1,8 @@
 id,kind,label
-con_1,normal,CON+1
-str_2,normal,STR+1
-action_powerup,normal,新アクション: パワーアップ
-con_2,boss,CON+2
-str_2,boss,STR+2
-hp_full,boss,HP999回復 & 状態異常解除
+con_1,enemy_normal,CON+1
+str_1,enemy_normal,STR+1
+pow_1,enemy_normal,POW+1
+action_powerup,enemy_normal,新アクション: パワーアップ
+con_2,enemy_boss,CON+2
+str_2,enemy_boss,STR+2
+hp_full,enemy_boss,HP999回復 & 状態異常解除
