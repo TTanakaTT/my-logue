@@ -2,8 +2,8 @@ import rewardCsvRaw from '$lib/data/consts/rewards.csv?raw';
 import rewardDetailCsvRaw from '$lib/data/consts/reward_detail.csv?raw';
 import type { GameState, RewardOption } from '$lib/domain/entities/battleState';
 import type { actionName } from '$lib/domain/entities/actionName';
-import { calcMaxHP } from '$lib/domain/services/stats';
-import { recalcPlayer } from '$lib/domain/state/state';
+import { calcMaxHP } from '$lib/domain/services/statsService';
+import { recalcPlayer } from '$lib/domain/services/stateService';
 import { pushLog } from '$lib/presentation/utils/logUtil';
 import type { Player } from '$lib/domain/entities/character';
 

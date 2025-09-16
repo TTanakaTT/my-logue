@@ -1,5 +1,5 @@
 import type { GameState, RewardOption } from '$lib/domain/entities/battleState';
-import { calcMaxHP } from '$lib/domain/services/stats';
+import { calcMaxHP } from '$lib/domain/services/statsService';
 
 // 敵撃破時/ボス撃破時の報酬定義集約ファイル。
 // actions.ts と同様にビルダー関数で配列を返す形にし、

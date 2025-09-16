@@ -2,7 +2,7 @@ import { writable } from 'svelte/store';
 import type { GameState } from '../entities/battleState';
 import type { Player, Actor } from '../entities/character';
 import type { actionName } from '$lib/domain/entities/actionName';
-import { calcMaxHP } from '../services/stats';
+import { calcMaxHP } from './statsService';
 import { buildPlayerFromCsv, buildEnemyFromCsv } from '$lib/data/repositories/characterRepository';
 import { getAction } from '$lib/data/repositories/actionRepository';
 import { randomEvent } from '$lib/domain/services/eventService';

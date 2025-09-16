@@ -1,7 +1,7 @@
 import type { EventDef } from '$lib/domain/entities/events';
-import { createEnemy, rollActions } from '$lib/domain/state/state';
+import { createEnemy, rollActions } from '$lib/domain/services/stateService';
 import { pushLog } from '$lib/presentation/utils/logUtil';
-import { calcMaxHP } from '$lib/domain/services/stats';
+import { calcMaxHP } from '$lib/domain/services/statsService';
 
 // PascalCase キー & id 削除
 export const events = {

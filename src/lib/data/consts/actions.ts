@@ -1,6 +1,6 @@
 import type { ActionDef } from '$lib/domain/entities/action';
-import { calcMaxHP } from '$lib/domain/services/stats';
-import { applyPhysicalDamage, applyPsychicDamage } from '$lib/domain/services/damage';
+import { calcMaxHP } from '$lib/domain/services/statsService';
+import { applyPhysicalDamage, applyPsychicDamage } from '$lib/domain/services/damageService';
 
 export const action = {
   Strike: {
