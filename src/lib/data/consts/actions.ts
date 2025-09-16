@@ -5,12 +5,18 @@ import { applyDamage } from '$lib/domain/services/damage';
 export const action = {
   Strike: {
     name: 'ストライク',
-    description: '基本攻撃: 6 + STR',
-    log: ({ actor, target }) => (target ? `ストライク ${6 + actor.STR}ダメージ` : 'ストライク'),
-    execute: (state, { actor, target }) => {
-      const damage = 6 + actor.STR;
+    description: 'STRで攻撃',
+    log: ({ actor, target }) => {
+      let log = `${actor.STR}の力で攻撃！`;
       if (target) {
-        applyDamage(state, actor, target, damage);
+        if (target.guard) log += `${target.name}は守りの体制を取って、ダメージを半減させた！`;
+        log += `${target.name}に${applyDamage(actor, target, actor.STR)}のダメージ！`;
+      }
+      return log;
+    },
+    execute: ({ actor, target }) => {
+      if (target) {
+        applyDamage(actor, target, actor.STR);
       }
     }
   },
@@ -19,11 +25,11 @@ export const action = {
     description: '強攻撃: 12 + floor(STR*0.5) (次ターン出現しない)',
     cooldownTurns: 1,
     log: () => '渾身の一撃！',
-    execute: (state, { actor, target }) => {
+    execute: ({ actor, target }) => {
       const add = Math.floor(actor.STR * 0.5);
       const damage = 12 + add;
       if (target) {
-        applyDamage(state, actor, target, damage);
+        applyDamage(actor, target, damage);
       }
     }
   },
@@ -31,7 +37,7 @@ export const action = {
     name: 'ガード',
     description: 'このターン受ける次のダメージ半減',
     log: () => '防御態勢を取った',
-    execute: (state, { actor }) => {
+    execute: ({ actor }) => {
       actor.guard = true;
     }
   },
@@ -39,7 +45,7 @@ export const action = {
     name: '回復',
     description: 'HP5回復',
     log: ({ actor }) => `回復 (${actor.hp}/${calcMaxHP(actor)})`,
-    execute: (state, { actor }) => {
+    execute: ({ actor }) => {
       const max = calcMaxHP(actor);
       const before = actor.hp;
       const heal = Math.min(5, max - before);
@@ -50,7 +56,7 @@ export const action = {
     name: 'ポイズンダート',
     description: '敵に3ダメ/ターン (3ターン)',
     log: () => '毒を投げた',
-    execute: (state, { target }) => {
+    execute: ({ target }) => {
       if (!target) return;
       const list = target.dots;
       const existing = list.find((d) => d.id === 'poison');
@@ -62,7 +68,7 @@ export const action = {
     name: 'パワーアップ',
     description: 'STR+1 永続 (派生攻撃上昇)',
     log: ({ actor }) => `筋力上昇 STR:${actor.STR}`,
-    execute: (state, { actor }) => {
+    execute: ({ actor }) => {
       actor.STR += 1;
     }
   }

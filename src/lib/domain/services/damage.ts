@@ -1,17 +1,11 @@
 import type { Actor } from '../entities/character';
-import type { GameState } from '../entities/battleState';
 
-export function applyDamage(
-  _state: GameState,
-  _source: Actor,
-  target: Actor | undefined,
-  amount: number
-) {
+export function applyDamage(_source: Actor, target: Actor | undefined, amount: number) {
   if (!target) return undefined;
   let damage = amount;
   if (target.guard) {
     damage = Math.ceil(damage / 2);
-    target.guard = false;
   }
   target.hp -= damage;
+  return damage;
 }

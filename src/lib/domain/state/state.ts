@@ -138,7 +138,11 @@ export function combatAction(state: GameState, id: actionName) {
   if (state.playerUsedActions && state.playerUsedActions.includes(id)) return;
   const def = getAction(id);
   if (!def) return;
-  def.execute(state, { actor: state.player, target: state.enemy });
+  // 行動開始時に自身のガードを解除
+  if (state.player.guard) {
+    state.player.guard = false;
+  }
+  def.execute({ actor: state.player, target: state.enemy });
   emitActionLog(state, state.player, state.enemy, def);
   state.player = { ...state.player };
   if (state.enemy) state.enemy = { ...state.enemy };
@@ -174,8 +178,12 @@ function performActorAction(
 ) {
   const def = getAction(id);
   if (!def) return;
-  def.execute(state, { actor, target });
-  emitActionLog(state, state.player, state.enemy, def);
+  // 行動開始時に自身のガードを解除
+  if (actor.guard) {
+    actor.guard = false;
+  }
+  def.execute({ actor, target });
+  emitActionLog(state, actor, target, def);
   if (actor.side === 'enemy') {
     if (!actor.revealedActions) actor.revealedActions = [];
     if (!actor.revealedActions.includes(id)) actor.revealedActions.push(id);
@@ -245,8 +253,6 @@ function endTurn(state: GameState) {
     }
   }
   if (enemy) rollActions(state);
-  state.player.guard = false;
-  if (enemy) enemy.guard = false;
   state.actionUseCount = 0;
   state.playerUsedActions = [];
   state.player = { ...state.player };
