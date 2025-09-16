@@ -1,4 +1,4 @@
-rewardId,type,target,value,extra
+rewardName,type,target,value,extra
 con_1,stat,CON,1,
 str_1,stat,STR,1,
 pow_1,stat,POW,1,

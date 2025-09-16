@@ -6,20 +6,21 @@ import { calcMaxHP } from '$lib/domain/services/stats';
 import { recalcPlayer, pushLog } from '$lib/domain/state/state';
 import type { Player } from '$lib/domain/entities/character';
 
-// reward.csv: id,kind,label
-// reward_detail.csv: rewardId,type,target,value,extra
+// reward.csv: id(number),kind,name,label
+// reward_detail.csv: rewardName,type,target,value,extra
 //   type: stat|action|dots
 
 // enemy_{actorKind} 形式を許容し、将来のkind追加にコード変更不要にする
 type RawKind = `enemy_${string}`;
 interface RewardRow {
-  id: string;
+  id: number; // 数値連番
+  name: string; // 論理名
   kind: RawKind;
   label: string;
 }
 
 interface RewardDetailRow {
-  rewardId: string;
+  rewardName: string;
   type: 'stat' | 'action' | 'dots';
   target: string;
   value: string; // number or encoded
@@ -37,22 +38,24 @@ function parse(csvRaw: string): string[][] {
 const rewardRows: RewardRow[] = parse(rewardCsvRaw)
   .slice(1)
   .map((cols) => {
-    const [id, kindRaw, label] = cols;
+    const [idStr, kindRaw, name, label] = cols;
+    const id = Number(idStr);
+    if (Number.isNaN(id)) throw new Error(`reward.csv invalid numeric id: ${idStr}`);
     if (!kindRaw.startsWith('enemy_')) {
       throw new Error(`Invalid kind in reward.csv (must start with enemy_): ${kindRaw}`);
     }
-    return { id, kind: kindRaw as RawKind, label };
+    return { id, name, kind: kindRaw as RawKind, label };
   });
 
 const detailRows: RewardDetailRow[] = parse(rewardDetailCsvRaw)
   .slice(1)
   .map((cols) => {
-    const [rewardId, type, target, value, extra = ''] = cols;
-    if (!rewardId) throw new Error('reward_detail.csv: rewardId empty');
+    const [rewardName, type, target, value, extra = ''] = cols;
+    if (!rewardName) throw new Error('reward_detail.csv: rewardName empty');
     if (!['stat', 'action', 'dots'].includes(type)) {
       throw new Error(`reward_detail.csv invalid type: ${type}`);
     }
-    return { rewardId, type: type as RewardDetailRow['type'], target, value, extra };
+    return { rewardName, type: type as RewardDetailRow['type'], target, value, extra };
   });
 
 function applyDetail(s: GameState, d: RewardDetailRow) {
@@ -146,7 +149,7 @@ export function getRewardsForEnemy(state: GameState, enemyKind: string): RewardO
 
   // アクション報酬のうち既所持のものは除外
   const filtered = candidates.filter((row) => {
-    const details = detailRows.filter((d) => d.rewardId === row.id);
+    const details = detailRows.filter((d) => d.rewardName === row.name);
     const actionDetail = details.find((d) => d.type === 'action');
     if (actionDetail) {
       const act = actionDetail.target as actionName;
@@ -155,17 +158,19 @@ export function getRewardsForEnemy(state: GameState, enemyKind: string): RewardO
     return true;
   });
 
-  const picked = shuffle(filtered.slice()).slice(0, 3);
+  const picked = shuffle(filtered.slice())
+    .slice(0, 3)
+    .sort((a, b) => a.id - b.id);
 
   return picked.map<RewardOption>((row) => ({
-    id: row.id,
+    id: String(row.id),
     label: row.label,
     // UI表示用途: normal/boss 既存型は維持。未知(kind!==normal/boss)はnormal扱い。
     kind: (enemyKind === 'normal' || enemyKind === 'boss'
       ? enemyKind
       : 'normal') as RewardOption['kind'],
     apply: (s) => {
-      const details = detailRows.filter((d) => d.rewardId === row.id);
+      const details = detailRows.filter((d) => d.rewardName === row.name);
       for (const d of details) applyDetail(s, d);
     }
   }));
