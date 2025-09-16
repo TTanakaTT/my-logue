@@ -75,6 +75,8 @@ function commit() {
 }
 
 export function rollActions(state: GameState) {
+  // プレイヤーターン開始時にガード解除
+  if (state.player.guard) state.player.guard = false;
   const pool = state.player.actions;
   const limit = state.player.maxActionChoices;
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
@@ -136,9 +138,6 @@ export function combatAction(state: GameState, id: actionName) {
   if (state.phase !== 'combat') return;
   if (!state.actionOffer.includes(id)) return;
   if (state.playerUsedActions && state.playerUsedActions.includes(id)) return;
-  if (state.actionUseCount === 0 && state.player.guard) {
-    state.player.guard = false;
-  }
   const def = getAction(id);
   if (!def) return;
   def.execute({ actor: state.player, target: state.enemy });
