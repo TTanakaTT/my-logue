@@ -51,9 +51,6 @@
   <div>ステップ: {state.stepIndex + 1} / 5</div>
   <div>撃破数: {state.player.score}</div>
   <div>最高到達階層: {state.highestFloor}</div>
-  {#if state.phase === 'gameover' || state.phase === 'victory'}
-    <button class="btn-base" on:click={restart}>リスタート</button>
-  {/if}
 </header>
 
 <main>
@@ -142,10 +139,12 @@
     {/if}
 
     {#if state.phase === 'victory'}
-      <h2 class="mt-0 text-lg font-semibold">勝利!</h2>
+      <h2 class="mt-0 text-lg font-semibold mb-2">勝利!</h2>
+      <button class="btn-base" on:click={restart}>リスタート</button>
     {/if}
     {#if state.phase === 'gameover'}
-      <h2 class="mt-0 text-lg font-semibold text-bad">ゲームオーバー</h2>
+      <h2 class="mt-0 text-lg font-semibold text-bad mb-2">ゲームオーバー</h2>
+      <button class="btn-base" on:click={restart}>リスタート</button>
     {/if}
     {#if state.phase === 'reward'}
       <h2 class="mt-0 text-lg font-semibold mb-2">
