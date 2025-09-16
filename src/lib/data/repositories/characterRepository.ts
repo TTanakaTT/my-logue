@@ -93,7 +93,8 @@ export function buildPlayerFromCsv(): Player {
     hp: 0,
     guard: false,
     dots: [],
-    actions: row.actions,
+    // row.actions は再起動間で共有されるためコピーして破壊的変更の伝播を防ぐ
+    actions: [...row.actions],
     revealed: Object.fromEntries(row.revealed.map((k) => [k as string, true])) as Record<
       string,
       boolean
@@ -126,7 +127,7 @@ export function buildEnemyFromCsv(kind: 'normal' | 'elite' | 'boss', floorIndex:
     hp: 0,
     guard: false,
     dots: [],
-    actions: row.actions,
+    actions: [...row.actions],
     revealed: Object.fromEntries(row.revealed.map((k) => [k as string, true])) as Record<
       string,
       boolean
