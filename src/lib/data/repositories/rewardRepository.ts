@@ -1,4 +1,4 @@
-import rewardCsvRaw from '$lib/data/consts/reward.csv?raw';
+import rewardCsvRaw from '$lib/data/consts/rewards.csv?raw';
 import rewardDetailCsvRaw from '$lib/data/consts/reward_detail.csv?raw';
 import type { GameState, RewardOption } from '$lib/domain/entities/battleState';
 import type { actionName } from '$lib/domain/entities/actionName';
@@ -6,7 +6,7 @@ import { calcMaxHP } from '$lib/domain/services/stats';
 import { recalcPlayer, pushLog } from '$lib/domain/state/state';
 import type { Player } from '$lib/domain/entities/character';
 
-// reward.csv: id(number),kind,name,label
+// rewards.csv: id(number),kind,name,label
 // reward_detail.csv: rewardName,type,target,value,extra
 //   type: stat|action|dots
 
@@ -40,9 +40,9 @@ const rewardRows: RewardRow[] = parse(rewardCsvRaw)
   .map((cols) => {
     const [idStr, kindRaw, name, label] = cols;
     const id = Number(idStr);
-    if (Number.isNaN(id)) throw new Error(`reward.csv invalid numeric id: ${idStr}`);
+    if (Number.isNaN(id)) throw new Error(`rewards.csv invalid numeric id: ${idStr}`);
     if (!kindRaw.startsWith('enemy_')) {
-      throw new Error(`Invalid kind in reward.csv (must start with enemy_): ${kindRaw}`);
+      throw new Error(`Invalid kind in rewards.csv (must start with enemy_): ${kindRaw}`);
     }
     return { id, name, kind: kindRaw as RawKind, label };
   });

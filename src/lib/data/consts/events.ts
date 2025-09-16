@@ -1,10 +1,10 @@
-import type { EventDef } from '../entities/events';
-import { pushLog, createEnemy, rollActions } from '../state/state';
-import { calcMaxHP } from '../services/stats';
+import type { EventDef } from '$lib/domain/entities/events';
+import { pushLog, createEnemy, rollActions } from '$lib/domain/state/state';
+import { calcMaxHP } from '$lib/domain/services/stats';
 
-export const events: EventDef[] = [
-  {
-    id: 'risk_reward',
+// PascalCase キー & id 削除
+export const events = {
+  RiskReward: {
     name: '血の儀式',
     description: 'HPを10失い STR+2',
     apply: (state) => {
@@ -14,8 +14,7 @@ export const events: EventDef[] = [
       if (state.player.hp <= 0) pushLog(state, '儀式で倒れた...', 'event');
     }
   },
-  {
-    id: 'safe_heal',
+  SafeHeal: {
     name: '静寂の泉',
     description: '最大HPの30%回復',
     apply: (state) => {
@@ -26,8 +25,7 @@ export const events: EventDef[] = [
       pushLog(state, `泉で${state.player.hp - before}回復 (${state.player.hp}/${max})`, 'event');
     }
   },
-  {
-    id: 'combat_elite',
+  CombatElite: {
     name: '戦慄の咆哮',
     description: '即座に精鋭と戦闘する',
     apply: (state) => {
@@ -39,8 +37,6 @@ export const events: EventDef[] = [
       pushLog(state, '精鋭戦開始!(イベント)', 'combat');
     }
   }
-];
+} satisfies Record<string, EventDef>;
 
-export function randomEvent(): EventDef {
-  return events[Math.floor(Math.random() * events.length)];
-}
+export type EventId = keyof typeof events;

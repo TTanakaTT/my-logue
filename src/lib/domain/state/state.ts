@@ -5,7 +5,7 @@ import type { actionName } from '$lib/domain/entities/actionName';
 import { calcMaxHP } from '../services/stats';
 import { buildPlayerFromCsv, buildEnemyFromCsv } from '$lib/data/repositories/characterRepository';
 import { getAction } from '$lib/data/repositories/actionRepository';
-import { randomEvent } from '../events/events';
+import { randomEvent } from '$lib/domain/services/eventService';
 import { emitActionLog } from '$lib/domain/services/actionLog';
 import { getRewardsForEnemy } from '$lib/data/repositories/rewardRepository';
 
