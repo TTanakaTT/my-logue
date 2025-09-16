@@ -10,6 +10,30 @@ import { emitActionLog, pushLog, setLogState } from '$lib/presentation/utils/log
 import { getRewardsForEnemy } from '$lib/data/repositories/rewardRepository';
 
 const HIGH_KEY = 'mylogue_highest_floor';
+const ENEMY_REVEAL_KEY_PREFIX = 'mylogue_enemy_revealed_';
+
+function loadRevealedActions(kind: string, floor: number): actionName[] | undefined {
+  const key = `${ENEMY_REVEAL_KEY_PREFIX}${kind}_${floor}`;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed as actionName[];
+  } catch (e) {
+    console.warn('Failed to parse revealedActions from localStorage', e);
+  }
+  return undefined;
+}
+
+function persistRevealedActions(kind: string, floor: number, actions: actionName[]) {
+  const key = `${ENEMY_REVEAL_KEY_PREFIX}${kind}_${floor}`;
+  try {
+    localStorage.setItem(key, JSON.stringify(actions.slice().sort()));
+  } catch (e) {
+    // 失敗してもゲーム継続可能なので握りつぶす
+    console.warn('Failed to persist revealedActions', e);
+  }
+}
 
 // ログ処理は logUtil に集約済み
 
@@ -27,7 +51,8 @@ function basePlayer(): Player {
 export function createEnemy(kind: 'normal' | 'elite' | 'boss', floorIndex: number): Actor {
   const e = buildEnemyFromCsv(kind, floorIndex);
   e.hp = calcMaxHP(e);
-  e.revealedActions = [];
+  const restored = loadRevealedActions(kind, floorIndex);
+  e.revealedActions = restored ? restored : [];
   return e;
 }
 
@@ -168,7 +193,13 @@ function performActorAction(
   def.execute({ actor, target });
   if (actor.side === 'enemy') {
     if (!actor.revealedActions) actor.revealedActions = [];
-    if (!actor.revealedActions.includes(id)) actor.revealedActions.push(id);
+    if (!actor.revealedActions.includes(id)) {
+      actor.revealedActions.push(id);
+      if (actor.kind !== 'player') {
+        // kind は normal/elite/boss のはず
+        persistRevealedActions(actor.kind, state.floorIndex, actor.revealedActions);
+      }
+    }
   }
 }
 
