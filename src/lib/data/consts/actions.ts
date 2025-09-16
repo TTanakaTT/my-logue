@@ -1,35 +1,39 @@
 import type { ActionDef } from '$lib/domain/entities/action';
 import { calcMaxHP } from '$lib/domain/services/stats';
-import { applyDamage } from '$lib/domain/services/damage';
+import { applyPhysicalDamage, applyPsychicDamage } from '$lib/domain/services/damage';
 
 export const action = {
   Strike: {
     name: 'ストライク',
     description: 'STRで攻撃',
     log: ({ actor, target }) => {
-      let log = `${actor.STR}の力で攻撃！`;
-      if (target) {
-        if (target.guard) log += `${target.name}は守りの体制を取って、ダメージを半減させた！`;
-        log += `${target.name}に${applyDamage(actor, target, actor.STR)}のダメージ！`;
+      if (!target) return '';
+
+      let log;
+      if (target.guard) {
+        log = `${actor.STR}の力で攻撃！${target.name}は守りの体制を取って、ダメージを半減させた！`;
+      } else {
+        log = `${target.name}に${actor.STR}の力で攻撃！`;
       }
       return log;
     },
     execute: ({ actor, target }) => {
       if (target) {
-        applyDamage(actor, target, actor.STR);
+        applyPhysicalDamage(actor, target, actor.STR);
       }
     }
   },
-  Heavy: {
-    name: 'ヘビーブロー',
-    description: '強攻撃: 12 + floor(STR*0.5) (次ターン出現しない)',
+  Curse: {
+    name: '呪う',
+    description: 'POWで攻撃',
     cooldownTurns: 1,
-    log: () => '渾身の一撃！',
+    log: ({ actor, target }) => {
+      if (!target) return '';
+      return `${actor.POW}の精神力で呪った！${target.name}は${target.POW}÷2の精神力で抵抗した！`;
+    },
     execute: ({ actor, target }) => {
-      const add = Math.floor(actor.STR * 0.5);
-      const damage = 12 + add;
       if (target) {
-        applyDamage(actor, target, damage);
+        applyPsychicDamage(actor, target, actor.POW);
       }
     }
   },

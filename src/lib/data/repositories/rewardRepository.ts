@@ -3,7 +3,8 @@ import rewardDetailCsvRaw from '$lib/data/consts/reward_detail.csv?raw';
 import type { GameState, RewardOption } from '$lib/domain/entities/battleState';
 import type { actionName } from '$lib/domain/entities/actionName';
 import { calcMaxHP } from '$lib/domain/services/stats';
-import { recalcPlayer, pushLog } from '$lib/domain/state/state';
+import { recalcPlayer } from '$lib/domain/state/state';
+import { pushLog } from '$lib/presentation/utils/logUtil';
 import type { Player } from '$lib/domain/entities/character';
 
 // rewards.csv: id(number),kind,name,label
@@ -65,7 +66,7 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
       if (d.target === 'hp') {
         const max = calcMaxHP(s.player);
         s.player.hp = Math.min(max, s.player.hp + amount);
-        pushLog(s, `HP+${Math.min(amount, max)} (<=最大HP)`, 'system');
+        pushLog(`HP+${Math.min(amount, max)} (<=最大HP)`, 'system');
       } else {
         type NumericPlayerStat = Exclude<
           keyof Player,
@@ -95,7 +96,7 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
         if (key) {
           s.player[key] += amount;
           recalcPlayer(s.player);
-          pushLog(s, `${key}+${amount}`, 'system');
+          pushLog(`${key}+${amount}`, 'system');
         }
       }
       break;
@@ -106,7 +107,7 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
       const act = d.target as actionName;
       if (!s.player.actions.includes(act)) {
         s.player.actions.push(act);
-        pushLog(s, `新アクション取得: ${act}`, 'system');
+        pushLog(`新アクション取得: ${act}`, 'system');
       } else if (mode === 'ensure') {
         // 既にある場合は何もしない
       }
@@ -117,7 +118,7 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
       if (d.value === '0') {
         const before = s.player.dots.length;
         s.player.dots = s.player.dots.filter((x) => x.id !== d.target);
-        if (before !== s.player.dots.length) pushLog(s, `${d.target} 解除`, 'system');
+        if (before !== s.player.dots.length) pushLog(`${d.target} 解除`, 'system');
         break;
       }
       const [damageStr, turnsStr] = (d.value || '').split(':');
@@ -129,7 +130,7 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
       } else {
         s.player.dots.push({ id: d.target, damage, turns });
       }
-      pushLog(s, `${d.target} 付与`, 'system');
+      pushLog(`${d.target} 付与`, 'system');
       break;
     }
   }

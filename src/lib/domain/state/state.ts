@@ -1,30 +1,17 @@
 import { writable } from 'svelte/store';
-import type { GameState, LogEntry } from '../entities/battleState';
-import type { Player, Actor, ActorSide, ActorKind } from '../entities/character';
+import type { GameState } from '../entities/battleState';
+import type { Player, Actor } from '../entities/character';
 import type { actionName } from '$lib/domain/entities/actionName';
 import { calcMaxHP } from '../services/stats';
 import { buildPlayerFromCsv, buildEnemyFromCsv } from '$lib/data/repositories/characterRepository';
 import { getAction } from '$lib/data/repositories/actionRepository';
 import { randomEvent } from '$lib/domain/services/eventService';
-import { emitActionLog } from '$lib/domain/services/actionLog';
+import { emitActionLog, pushLog, setLogState } from '$lib/presentation/utils/logUtil';
 import { getRewardsForEnemy } from '$lib/data/repositories/rewardRepository';
 
 const HIGH_KEY = 'mylogue_highest_floor';
 
-export function pushLog(state: GameState, message: string, kind: LogEntry['kind'] = 'system') {
-  state.log.unshift({ message, kind });
-  if (state.log.length > 20) state.log.pop();
-}
-
-export function pushCombatLog(
-  state: GameState,
-  message: string,
-  side: ActorSide,
-  actorKind?: ActorKind
-) {
-  state.log.unshift({ message, kind: 'combat', side, actorKind });
-  if (state.log.length > 20) state.log.pop();
-}
+// ログ処理は logUtil に集約済み
 
 export function recalcPlayer(p: Player) {
   const max = calcMaxHP(p);
@@ -60,6 +47,8 @@ function initState(): GameState {
 }
 
 export const gameState = writable<GameState>(initState());
+// 初期状態を logUtil に登録
+gameState.subscribe((s) => setLogState(s));
 
 export function restart() {
   gameState.set(initState());
@@ -86,7 +75,7 @@ export function rollActions(state: GameState) {
 }
 
 function logProgress(state: GameState) {
-  pushLog(state, `進行: 階層${state.floorIndex + 1}/10 ステップ${state.stepIndex + 1}/5`, 'system');
+  pushLog(`進行: 階層${state.floorIndex + 1}/10 ステップ${state.stepIndex + 1}/5`, 'system');
 }
 
 export function nextProgress(state: GameState) {
@@ -94,7 +83,7 @@ export function nextProgress(state: GameState) {
     state.floorIndex += 1;
     if (state.floorIndex >= 10) {
       state.phase = 'victory';
-      pushLog(state, '全階層を踏破! 勝利!', 'system');
+      pushLog('全階層を踏破! 勝利!', 'system');
       if (state.highestFloor < 10) {
         state.highestFloor = 10;
         localStorage.setItem(HIGH_KEY, String(state.highestFloor));
@@ -119,7 +108,6 @@ export function chooseNode(state: GameState, kind: 'combat' | 'event' | 'rest' |
     state.phase = 'combat';
     rollActions(state);
     pushLog(
-      state,
       kind === 'boss' ? 'ボス戦開始!' : enemyKind === 'elite' ? '精鋭戦開始!' : '戦闘開始',
       'combat'
     );
@@ -127,7 +115,7 @@ export function chooseNode(state: GameState, kind: 'combat' | 'event' | 'rest' |
     state.phase = 'event';
     const ev = randomEvent();
     ev.apply(state);
-    pushLog(state, `イベント: ${ev.name}`, 'event');
+    pushLog(`イベント: ${ev.name}`, 'event');
   } else if (kind === 'rest') {
     state.phase = 'rest';
   }
@@ -140,8 +128,8 @@ export function combatAction(state: GameState, id: actionName) {
   if (state.playerUsedActions && state.playerUsedActions.includes(id)) return;
   const def = getAction(id);
   if (!def) return;
+  emitActionLog(state.player, state.enemy, def);
   def.execute({ actor: state.player, target: state.enemy });
-  emitActionLog(state, state.player, state.enemy, def);
   state.player = { ...state.player };
   if (state.enemy) state.enemy = { ...state.enemy };
   state.actionUseCount += 1;
@@ -176,8 +164,8 @@ function performActorAction(
 ) {
   const def = getAction(id);
   if (!def) return;
+  emitActionLog(actor, target, def);
   def.execute({ actor, target });
-  emitActionLog(state, actor, target, def);
   if (actor.side === 'enemy') {
     if (!actor.revealedActions) actor.revealedActions = [];
     if (!actor.revealedActions.includes(id)) actor.revealedActions.push(id);
@@ -202,7 +190,7 @@ function enemyTurn(state: GameState) {
   state.player = { ...state.player };
   if (state.player.hp <= 0) {
     state.phase = 'gameover';
-    pushLog(state, '倒れた...', 'system');
+    pushLog('倒れた...', 'system');
     if (state.highestFloor < state.floorIndex + 1) {
       state.highestFloor = state.floorIndex + 1;
       localStorage.setItem(HIGH_KEY, String(state.highestFloor));
@@ -219,21 +207,20 @@ function endTurn(state: GameState) {
       if (dot.id === 'poison') {
         actor.hp -= dot.damage;
         pushLog(
-          state,
           `毒で${dot.damage}ダメージ (${actor === state.player ? 'プレイヤー' : '敵'}HP:${actor.hp}/${calcMaxHP(actor)})`,
           'combat'
         );
         dot.turns -= 1;
         if (dot.turns <= 0) {
           actor.dots = actor.dots.filter((d) => d !== dot);
-          pushLog(state, '毒が消えた', 'combat');
+          pushLog('毒が消えた', 'combat');
         }
         if (actor.hp <= 0) {
           if (actor === state.player) {
             state.phase = 'gameover';
-            pushLog(state, '毒で倒れた...', 'system');
+            pushLog('毒で倒れた...', 'system');
           } else {
-            pushLog(state, '敵を毒で倒した!', 'combat');
+            pushLog('敵を毒で倒した!', 'combat');
             state.player.score += 1;
             state.phase = 'progress';
             const kind = actor.kind as 'normal' | 'elite';
@@ -260,7 +247,7 @@ function prepareReward(state: GameState, defeatedKind: 'normal' | 'elite' | 'bos
   state.rewardOptions = opts;
   state.rewardIsBoss = defeatedKind === 'boss';
   state.phase = 'reward';
-  pushLog(state, '報酬を選択', 'system');
+  pushLog('報酬を選択', 'system');
 }
 
 export function pickReward(state: GameState, id: string) {
@@ -272,7 +259,7 @@ export function pickReward(state: GameState, id: string) {
     state.floorIndex += 1;
     if (state.floorIndex >= 10) {
       state.phase = 'victory';
-      pushLog(state, '全階層を踏破! 勝利!', 'system');
+      pushLog('全階層を踏破! 勝利!', 'system');
       if (state.highestFloor < 10) {
         state.highestFloor = 10;
         localStorage.setItem(HIGH_KEY, String(state.highestFloor));
@@ -299,7 +286,7 @@ export function restChoice(state: GameState, choice: 'heal' | 'maxhp') {
     const amount = Math.max(1, Math.floor(max * 0.3));
     const before = state.player.hp;
     state.player.hp = Math.min(max, state.player.hp + amount);
-    pushLog(state, `休憩で${state.player.hp - before}回復`, 'rest');
+    pushLog(`休憩で${state.player.hp - before}回復`, 'rest');
   } else {
     state.player.CON += 1;
     const prevMax = calcMaxHP(state.player) - 2;
@@ -307,7 +294,7 @@ export function restChoice(state: GameState, choice: 'heal' | 'maxhp') {
     recalcPlayer(state.player);
     const newMax = calcMaxHP(state.player);
     state.player.hp = Math.min(newMax, Math.round(newMax * ratio));
-    pushLog(state, '休憩でCON+1', 'rest');
+    pushLog('休憩でCON+1', 'rest');
   }
   state.stepIndex += 1;
   state.phase = 'progress';
