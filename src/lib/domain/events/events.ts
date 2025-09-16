@@ -27,16 +27,16 @@ export const events: EventDef[] = [
     }
   },
   {
-    id: 'early_boss',
-    name: '歪んだ裂け目',
-    description: '階層スキップして次階層ボスへ',
+    id: 'combat_elite',
+    name: '戦慄の咆哮',
+    description: '即座に精鋭と戦闘する',
     apply: (state) => {
-      pushLog(state, '裂け目に飛び込みボスへ', 'event');
-      state.stepIndex = 4;
-      state.enemy = createEnemy('boss', state.floorIndex);
+      pushLog(state, '精鋭が現れた!', 'event');
+      // 現在のステップを変えずそのまま elite 戦へ移行
+      state.enemy = createEnemy('elite', state.floorIndex);
       state.phase = 'combat';
       rollActions(state);
-      pushLog(state, 'ボス戦開始!(裂け目)', 'combat');
+      pushLog(state, '精鋭戦開始!(イベント)', 'combat');
     }
   }
 ];
