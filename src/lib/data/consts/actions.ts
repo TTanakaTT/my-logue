@@ -5,17 +5,12 @@ import { applyPhysicalDamage, applyPsychicDamage } from '$lib/domain/services/da
 export const action = {
   Strike: {
     name: 'ストライク',
-    description: 'STRで攻撃',
+    description: 'STRで相手に攻撃',
     log: ({ actor, target }) => {
-      if (!target) return '';
-
-      let log;
-      if (target.guard) {
-        log = `${actor.STR}の力で攻撃！${target.name}は防御体制を取って、ダメージを半減させた！`;
-      } else {
-        log = `${target.name}に${actor.STR}の力で攻撃！`;
-      }
-      return log;
+      if (!target) return '攻撃対象はもういない...';
+      return target.guard
+        ? `${actor.STR}の力で攻撃！${target.name}は防御体制を取って、ダメージを半減させた！`
+        : `${target.name}に${actor.STR}の力で攻撃！`;
     },
     execute: ({ actor, target }) => {
       if (target) {
@@ -25,10 +20,10 @@ export const action = {
   },
   Curse: {
     name: '呪う',
-    description: 'POWで攻撃',
+    description: 'POWで相手に攻撃',
     cooldownTurns: 1,
     log: ({ actor, target }) => {
-      if (!target) return '';
+      if (!target) return '攻撃対象はもういない...';
       return `${actor.POW}の精神力で呪った！${target.name}は${target.POW}÷2の精神力で抵抗した！`;
     },
     execute: ({ actor, target }) => {
@@ -47,7 +42,7 @@ export const action = {
   },
   FirstAid: {
     name: '応急処置',
-    description: 'DEXで応急処置',
+    description: 'DEXで自分に応急処置',
     log: ({ actor }) => `${actor.DEX}の器用さで応急処置を行なった。`,
     execute: ({ actor }) => {
       heal(actor, actor.DEX);
@@ -65,12 +60,31 @@ export const action = {
       else list.push({ id: 'poison', damage: 3, turns: 3 });
     }
   },
-  PowerUp: {
-    name: 'パワーアップ',
-    description: 'STR+1 永続 (派生攻撃上昇)',
-    log: ({ actor }) => `筋力上昇 STR:${actor.STR}`,
-    execute: ({ actor }) => {
-      actor.STR += 1;
+  Reveal: {
+    name: '洞察',
+    description: '相手を洞察する',
+    log: ({ target }) => {
+      if (!target) return '対象はもういない...';
+      return `${target.name}の情報を詳細に洞察した。`;
+    },
+    execute: ({ target }) => {
+      if (!target) return;
+      // ステータスを全て開示
+      const nextRevealed = {
+        ...(target.revealed || {}),
+        hp: true,
+        CON: true,
+        STR: true,
+        POW: true,
+        DEX: true,
+        APP: true,
+        INT: true
+      } as typeof target.revealed;
+      target.revealed = nextRevealed;
+      // アクションを全て開示
+      const current = target.revealedActions ? [...target.revealedActions] : [];
+      for (const id of target.actions) if (!current.includes(id)) current.push(id);
+      target.revealedActions = current;
     }
   }
 } satisfies Record<string, ActionDef>;

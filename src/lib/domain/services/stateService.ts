@@ -1,18 +1,25 @@
 import { writable } from 'svelte/store';
 import type { GameState } from '../entities/battleState';
-import type { Player, Actor } from '../entities/character';
+import type { Player, Actor, StatKey } from '../entities/character';
 import type { actionName } from '$lib/domain/entities/actionName';
 import { calcMaxHP } from './statsService';
 import { buildPlayerFromCsv, buildEnemyFromCsv } from '$lib/data/repositories/characterRepository';
-import { getAction } from '$lib/data/repositories/actionRepository';
+import { performAction } from './actionExecutor';
 import { randomEvent } from '$lib/domain/services/eventService';
-import { emitActionLog, pushLog, setLogState } from '$lib/presentation/utils/logUtil';
+import { pushLog, setLogState } from '$lib/presentation/utils/logUtil';
 import { getRewardsForEnemy } from '$lib/data/repositories/rewardRepository';
 
 const HIGH_KEY = 'mylogue_highest_floor';
-const ENEMY_REVEAL_KEY_PREFIX = 'mylogue_enemy_revealed_';
+const ENEMY_REVEAL_KEY_PREFIX = 'mylogue_enemy_revealed_'; // 旧: actions のみ
+const ENEMY_REVEALINFO_KEY_PREFIX = 'mylogue_enemy_revealinfo_'; // 新: stats + actions
+
+interface RevealInfoPersisted {
+  actions: actionName[];
+  revealedStats?: Record<string, boolean>; // hp, STR など true
+}
 
 function loadRevealedActions(kind: string, floor: number): actionName[] | undefined {
+  // 互換: 旧キー (actionsのみ)
   const key = `${ENEMY_REVEAL_KEY_PREFIX}${kind}_${floor}`;
   try {
     const raw = localStorage.getItem(key);
@@ -20,18 +27,46 @@ function loadRevealedActions(kind: string, floor: number): actionName[] | undefi
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed as actionName[];
   } catch (e) {
-    console.warn('Failed to parse revealedActions from localStorage', e);
+    console.warn('Failed to parse legacy revealedActions from localStorage', e);
   }
   return undefined;
 }
 
-function persistRevealedActions(kind: string, floor: number, actions: actionName[]) {
+function loadRevealInfo(kind: string, floor: number): RevealInfoPersisted | undefined {
+  const key = `${ENEMY_REVEALINFO_KEY_PREFIX}${kind}_${floor}`;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && Array.isArray(parsed.actions)) {
+      return parsed as RevealInfoPersisted;
+    }
+  } catch (e) {
+    console.warn('Failed to parse revealInfo from localStorage', e);
+  }
+  return undefined;
+}
+
+export function persistRevealedActions(kind: string, floor: number, actions: actionName[]) {
   const key = `${ENEMY_REVEAL_KEY_PREFIX}${kind}_${floor}`;
   try {
     localStorage.setItem(key, JSON.stringify(actions.slice().sort()));
   } catch (e) {
     // 失敗してもゲーム継続可能なので握りつぶす
     console.warn('Failed to persist revealedActions', e);
+  }
+}
+
+export function persistRevealInfo(kind: string, floor: number, enemy: Actor) {
+  try {
+    const key = `${ENEMY_REVEALINFO_KEY_PREFIX}${kind}_${floor}`;
+    const data: RevealInfoPersisted = {
+      actions: (enemy.revealedActions || []).slice().sort(),
+      revealedStats: enemy.revealed ? { ...enemy.revealed } : undefined
+    };
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {
+    console.warn('Failed to persist revealInfo', e);
   }
 }
 
@@ -51,8 +86,22 @@ function basePlayer(): Player {
 export function createEnemy(kind: 'normal' | 'elite' | 'boss', floorIndex: number): Actor {
   const e = buildEnemyFromCsv(kind, floorIndex);
   e.hp = calcMaxHP(e);
-  const restored = loadRevealedActions(kind, floorIndex);
-  e.revealedActions = restored ? restored : [];
+  // 新フォーマット優先、無ければ旧フォーマット(actionsのみ) を読む
+  const info = loadRevealInfo(kind, floorIndex);
+  if (info) {
+    e.revealedActions = info.actions.slice();
+    if (info.revealedStats) {
+      const allowed: StatKey[] = ['hp', 'CON', 'STR', 'POW', 'DEX', 'APP', 'INT'];
+      const obj: Partial<Record<StatKey, boolean>> = {};
+      for (const k of allowed) {
+        if (info.revealedStats[k]) obj[k] = true;
+      }
+      e.revealed = obj;
+    }
+  } else {
+    const legacy = loadRevealedActions(kind, floorIndex);
+    e.revealedActions = legacy ? legacy.slice() : [];
+  }
   return e;
 }
 
@@ -151,15 +200,18 @@ export function combatAction(state: GameState, id: actionName) {
   if (state.phase !== 'combat') return;
   if (!state.actionOffer.includes(id)) return;
   if (state.playerUsedActions && state.playerUsedActions.includes(id)) return;
-  const def = getAction(id);
-  if (!def) return;
-  emitActionLog(state.player, state.enemy, def);
-  def.execute({ actor: state.player, target: state.enemy });
+  const res = performAction(state, state.player, state.enemy, id);
   state.player = { ...state.player };
   if (state.enemy) state.enemy = { ...state.enemy };
   state.actionUseCount += 1;
   state.playerUsedActions?.push(id);
-  if (state.enemy && state.enemy.hp <= 0) {
+  // 洞察(Reveal) は即座に永続化 (stats + actions)
+  if (id === 'Reveal' && state.enemy) {
+    persistRevealInfo(state.enemy.kind, state.floorIndex, state.enemy);
+    // 即時反映: enemy も再ラップ済みなので commit 前に早期コミット
+    commit();
+  }
+  if (res?.enemyDefeated && state.enemy) {
     const defeated = state.enemy;
     const wasBoss = defeated.kind === 'boss';
     state.phase = 'progress';
@@ -181,27 +233,7 @@ export function combatAction(state: GameState, id: actionName) {
   commit();
 }
 
-function performActorAction(
-  state: GameState,
-  actor: Actor,
-  target: Actor | undefined,
-  id: actionName
-) {
-  const def = getAction(id);
-  if (!def) return;
-  emitActionLog(actor, target, def);
-  def.execute({ actor, target });
-  if (actor.side === 'enemy') {
-    if (!actor.revealedActions) actor.revealedActions = [];
-    if (!actor.revealedActions.includes(id)) {
-      actor.revealedActions.push(id);
-      if (actor.kind !== 'player') {
-        // kind は normal/elite/boss のはず
-        persistRevealedActions(actor.kind, state.floorIndex, actor.revealedActions);
-      }
-    }
-  }
-}
+// performActorAction は performAction に統合済み
 
 function enemyTurn(state: GameState) {
   const enemy = state.enemy;
@@ -214,7 +246,7 @@ function enemyTurn(state: GameState) {
     if (candidates.length === 0) break;
     const actionName = candidates[Math.floor(Math.random() * candidates.length)];
     acted.push(actionName);
-    performActorAction(state, enemy, state.player, actionName);
+    performAction(state, enemy, state.player, actionName);
     if (state.player.hp <= 0) break;
   }
   state.enemy = { ...enemy };

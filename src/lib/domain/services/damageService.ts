@@ -9,7 +9,7 @@ export function applyPhysicalDamage(_source: Actor, target: Actor, amount: numbe
   return applyDamage(_source, target, damage);
 }
 export function applyPsychicDamage(_source: Actor, target: Actor, amount: number) {
-  const damage = Math.max(1, amount - Math.floor(target.POW * 0.5));
+  const damage = Math.max(1, amount - Math.ceil(target.POW * 0.5));
   return applyDamage(_source, target, damage);
 }
 
