@@ -1,8 +1,9 @@
 import { writable } from 'svelte/store';
 import type { GameState } from '../entities/battleState';
 import type { Player, Actor, StatKey } from '../entities/character';
+import { tickStatusesEndTurn } from '$lib/data/consts/statuses';
 import type { actionName } from '$lib/domain/entities/actionName';
-import { calcMaxHP } from './statsService';
+import { calcMaxHP } from './attributeService';
 import { buildPlayerFromCsv, buildEnemyFromCsv } from '$lib/data/repositories/characterRepository';
 import { performAction } from './actionExecutor';
 import { randomEvent } from '$lib/domain/services/eventService';
@@ -11,11 +12,11 @@ import { getRewardsForEnemy } from '$lib/data/repositories/rewardRepository';
 
 const HIGH_KEY = 'mylogue_highest_floor';
 const ENEMY_REVEAL_KEY_PREFIX = 'mylogue_enemy_revealed_'; // 旧: actions のみ
-const ENEMY_REVEALINFO_KEY_PREFIX = 'mylogue_enemy_revealinfo_'; // 新: stats + actions
+const ENEMY_REVEALINFO_KEY_PREFIX = 'mylogue_enemy_revealinfo_'; // 新: attributes + actions
 
 interface RevealInfoPersisted {
   actions: actionName[];
-  revealedStats?: Record<string, boolean>; // hp, STR など true
+  revealedAttributes?: Record<string, boolean>; // hp, STR など true
 }
 
 function loadRevealedActions(kind: string, floor: number): actionName[] | undefined {
@@ -62,7 +63,7 @@ export function persistRevealInfo(kind: string, floor: number, enemy: Actor) {
     const key = `${ENEMY_REVEALINFO_KEY_PREFIX}${kind}_${floor}`;
     const data: RevealInfoPersisted = {
       actions: (enemy.revealedActions || []).slice().sort(),
-      revealedStats: enemy.revealed ? { ...enemy.revealed } : undefined
+      revealedAttributes: enemy.revealed ? { ...enemy.revealed } : undefined
     };
     localStorage.setItem(key, JSON.stringify(data));
   } catch (e) {
@@ -90,11 +91,11 @@ export function createEnemy(kind: 'normal' | 'elite' | 'boss', floorIndex: numbe
   const info = loadRevealInfo(kind, floorIndex);
   if (info) {
     e.revealedActions = info.actions.slice();
-    if (info.revealedStats) {
+    if (info.revealedAttributes) {
       const allowed: StatKey[] = ['hp', 'CON', 'STR', 'POW', 'DEX', 'APP', 'INT'];
       const obj: Partial<Record<StatKey, boolean>> = {};
       for (const k of allowed) {
-        if (info.revealedStats[k]) obj[k] = true;
+        if (info.revealedAttributes[k]) obj[k] = true;
       }
       e.revealed = obj;
     }
@@ -138,8 +139,7 @@ function commit() {
 }
 
 export function rollActions(state: GameState) {
-  // プレイヤーターン開始時にガード解除
-  if (state.player.guard) state.player.guard = false;
+  // ガードはターン終了処理で自然消滅するためここでの手動解除は不要
   const pool = state.player.actions;
   const limit = state.player.maxActionChoices;
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
@@ -205,7 +205,7 @@ export function combatAction(state: GameState, id: actionName) {
   if (state.enemy) state.enemy = { ...state.enemy };
   state.actionUseCount += 1;
   state.playerUsedActions?.push(id);
-  // 洞察(Reveal) は即座に永続化 (stats + actions)
+  // 洞察(Reveal) は即座に永続化 (attributes + actions)
   if (id === 'Reveal' && state.enemy) {
     persistRevealInfo(state.enemy.kind, state.floorIndex, state.enemy);
     // 即時反映: enemy も再ラップ済みなので commit 前に早期コミット
@@ -238,7 +238,7 @@ export function combatAction(state: GameState, id: actionName) {
 function enemyTurn(state: GameState) {
   const enemy = state.enemy;
   if (!enemy) return;
-  if (enemy.guard) enemy.guard = false;
+  // ガードはターン終了で expire するので開始時の明示解除不要
   const acted: actionName[] = [];
   const maxActs = enemy.maxActionsPerTurn;
   for (let i = 0; i < maxActs; i++) {
@@ -266,35 +266,22 @@ function endTurn(state: GameState) {
   const victims: Actor[] = [state.player];
   if (enemy) victims.push(enemy);
   for (const actor of victims) {
-    for (const dot of [...actor.dots]) {
-      if (dot.id === 'poison') {
-        actor.hp -= dot.damage;
-        pushLog(
-          `毒で${dot.damage}ダメージ (${actor === state.player ? 'プレイヤー' : '敵'}HP:${actor.hp}/${calcMaxHP(actor)})`,
-          'combat'
-        );
-        dot.turns -= 1;
-        if (dot.turns <= 0) {
-          actor.dots = actor.dots.filter((d) => d !== dot);
-          pushLog('毒が消えた', 'combat');
-        }
-        if (actor.hp <= 0) {
-          if (actor === state.player) {
-            state.phase = 'gameover';
-            pushLog('毒で倒れた...', 'system');
-          } else {
-            pushLog('敵を毒で倒した!', 'combat');
-            state.player.score += 1;
-            state.phase = 'progress';
-            const kind = actor.kind as 'normal' | 'elite';
-            state.stepIndex += 1;
-            prepareReward(state, kind);
-            state.enemy = undefined;
-          }
-          commit();
-          return;
-        }
+    tickStatusesEndTurn(actor);
+    if (actor.hp <= 0) {
+      if (actor === state.player) {
+        state.phase = 'gameover';
+        pushLog('毒で倒れた...', 'system'); // 現状継続ダメージは毒のみ
+      } else {
+        pushLog('敵を継続ダメージで倒した!', 'combat');
+        state.player.score += 1;
+        state.phase = 'progress';
+        const kind = actor.kind as 'normal' | 'elite';
+        state.stepIndex += 1;
+        prepareReward(state, kind);
+        state.enemy = undefined;
       }
+      commit();
+      return;
     }
   }
   if (enemy) rollActions(state);

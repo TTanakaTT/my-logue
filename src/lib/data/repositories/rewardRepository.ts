@@ -2,10 +2,11 @@ import rewardCsvRaw from '$lib/data/consts/rewards.csv?raw';
 import rewardDetailCsvRaw from '$lib/data/consts/reward_detail.csv?raw';
 import type { GameState, RewardOption } from '$lib/domain/entities/battleState';
 import type { actionName } from '$lib/domain/entities/actionName';
-import { calcMaxHP } from '$lib/domain/services/statsService';
+import { calcMaxHP } from '$lib/domain/services/attributeService';
 import { recalcPlayer } from '$lib/domain/services/stateService';
 import { pushLog } from '$lib/presentation/utils/logUtil';
 import type { Player } from '$lib/domain/entities/character';
+import { addStatus, findStatus, removeStatus } from '$lib/data/consts/statuses';
 
 // rewards.csv: id(number),kind,name,label
 // reward_detail.csv: rewardName,type,target,value,extra
@@ -74,9 +75,7 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
           | 'side'
           | 'kind'
           | 'hp'
-          | 'guard'
-          | 'dots'
-          | 'buffs'
+          | 'statuses'
           | 'actions'
           | 'revealed'
           | 'revealedActions'
@@ -114,23 +113,22 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
       break;
     }
     case 'dots': {
-      // value=0 -> 指定dot除去
-      if (d.value === '0') {
-        const before = s.player.dots.length;
-        s.player.dots = s.player.dots.filter((x) => x.id !== d.target);
-        if (before !== s.player.dots.length) pushLog(`${d.target} 解除`, 'system');
+      // 現在 poison のみ想定。value=0 で解除
+      if (d.target !== 'poison') {
+        pushLog(`未知の継続効果: ${d.target} (未対応)`, 'system');
         break;
       }
-      const [damageStr, turnsStr] = (d.value || '').split(':');
-      const damage = Number(damageStr || '0');
-      const turns = Number(turnsStr || '0');
-      const existing = s.player.dots.find((x) => x.id === d.target);
-      if (existing) {
-        existing.turns = Math.max(existing.turns, turns);
-      } else {
-        s.player.dots.push({ id: d.target, damage, turns });
+      if (d.value === '0') {
+        const ex = findStatus(s.player, 'poison');
+        if (ex) {
+          removeStatus(s.player, 'poison');
+          pushLog('poison 解除', 'system');
+        }
+        break;
       }
-      pushLog(`${d.target} 付与`, 'system');
+      // value のダメージ/ターン数は現状固定実装のため無視 (将来 poison 強化用に利用可)
+      addStatus(s.player, 'poison');
+      pushLog('poison 付与', 'system');
       break;
     }
   }

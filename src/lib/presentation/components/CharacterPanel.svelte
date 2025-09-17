@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Actor } from '$lib/domain/entities/character';
-  import { calcMaxHP } from '$lib/domain/services/statsService';
+  import { calcMaxHP } from '$lib/domain/services/attributeService';
   export let actor: Actor;
   export let side: 'player' | 'enemy' = 'player';
 
@@ -14,8 +14,6 @@
     { key: 'INT', label: 'INT' }
   ];
 
-  $: guardActive = actor.guard;
-  $: poisonTurns = actor.dots.find((d) => d.id === 'poison')?.turns;
   $: displayed = {
     hp: `${actor.hp}/${calcMaxHP(actor)}`,
     CON: actor.CON,
@@ -34,6 +32,7 @@
   }
   import { getAction } from '$lib/data/repositories/actionRepository';
   import TooltipBadge from './TooltipBadge.svelte';
+  import { STATUS_DEFS } from '$lib/data/consts/statuses';
   $: actionInfos = actor.actions.map((id) => {
     const def = getAction(id);
     const revealed = actor.side === 'enemy' ? actor.revealedActions?.includes(id) : true;
@@ -44,6 +43,29 @@
       description: revealed ? def?.description : '???'
     };
   });
+
+  // ステータス表示用グルーピング: id + 残ターン一致のみスタック数をまとめる
+  interface GroupedStatus {
+    status: import('$lib/data/consts/statuses').StatusInstance;
+    count: number;
+  }
+  $: groupedStatuses = (() => {
+    const map = new Map<string, GroupedStatus>();
+    for (const st of actor.statuses) {
+      const key = `${st.id}:${st.remainingTurns ?? 'inf'}`;
+      const ex = map.get(key);
+      if (ex) ex.count += 1;
+      else map.set(key, { status: st, count: 1 });
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.status.id === b.status.id) {
+        const ar = a.status.remainingTurns ?? 9999;
+        const br = b.status.remainingTurns ?? 9999;
+        return ar - br;
+      }
+      return a.status.id.localeCompare(b.status.id);
+    });
+  })();
 </script>
 
 <div
@@ -53,20 +75,29 @@
     <span>{actor.name}</span>
   </div>
   <div class="flex flex-wrap gap-1 mb-1 min-h-4">
-    {#if guardActive}
-      <TooltipBadge
-        badgeClass="bg-green-700"
-        label="G"
-        description="ガード: 次に受けるダメージを半減"
-      />
-    {/if}
-    {#if poisonTurns}
-      <TooltipBadge
-        badgeClass="bg-purple-700"
-        label={`毒${poisonTurns}`}
-        description={`毒: ターン終了時に3ダメージ / 残り${poisonTurns}ターン`}
-      />
-    {/if}
+    {#each groupedStatuses as g (g.status.id + ':' + (g.status.remainingTurns ?? 'inf'))}
+      {#if STATUS_DEFS[g.status.id]}
+        {#if STATUS_DEFS[g.status.id].badgeClass}
+          <TooltipBadge
+            badgeClass={`${STATUS_DEFS[g.status.id].badgeClass} border px-1`}
+            label={`${STATUS_DEFS[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
+            description={STATUS_DEFS[g.status.id].description}
+          />
+        {:else}
+          <TooltipBadge
+            badgeClass="bg-gray-600/60 border border-gray-300 px-1"
+            label={`${STATUS_DEFS[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
+            description={STATUS_DEFS[g.status.id].description}
+          />
+        {/if}
+      {:else}
+        <TooltipBadge
+          badgeClass="bg-gray-600/60 border border-red-400 px-1"
+          label={g.status.id}
+          description="未定義のステータス"
+        />
+      {/if}
+    {/each}
   </div>
   <div class="flex flex-row flex-wrap gap-2">
     {#each order as o (o.key)}

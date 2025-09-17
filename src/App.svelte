@@ -58,14 +58,14 @@
   <section class="rounded-lg mt-4 mb-4 mx-2 p-0">
     <div class="flex flex-row gap-4 flex-wrap">
       <!-- キーに全ステータスを含め POW/DEX/APP/INT 変化時も再描画されるようにする -->
-      {#key [state.player.hp, state.player.STR, state.player.CON, state.player.POW, state.player.DEX, state.player.APP, state.player.INT, state.player.guard, state.player.dots
-          .map((d) => d.id + ':' + d.turns)
+      {#key [state.player.hp, state.player.STR, state.player.CON, state.player.POW, state.player.DEX, state.player.APP, state.player.INT, state.player.statuses
+          .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
           .join(',')].join('|')}
         <CharacterPanel actor={state.player} side="player" />
       {/key}
       {#if state.enemy}
-        {#key [state.enemy.hp, state.enemy.STR, state.enemy.CON, state.enemy.POW, state.enemy.DEX, state.enemy.APP, state.enemy.INT, state.enemy.guard, state.enemy.dots
-            .map((d) => d.id + ':' + d.turns)
+        {#key [state.enemy.hp, state.enemy.STR, state.enemy.CON, state.enemy.POW, state.enemy.DEX, state.enemy.APP, state.enemy.INT, state.enemy.statuses
+            .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
             .join(',')].join('|')}
           <CharacterPanel actor={state.enemy} side="enemy" />
         {/key}

@@ -91,8 +91,11 @@ export function buildPlayerFromCsv(): Player {
     APP: row.APP,
     INT: row.INT,
     hp: 0,
-    guard: false,
-    dots: [],
+    statuses: [],
+    physDamageCutRate: 0,
+    psyDamageCutRate: 0,
+    physDamageUpRate: 0,
+    psyDamageUpRate: 0,
     // row.actions は再起動間で共有されるためコピーして破壊的変更の伝播を防ぐ
     actions: [...row.actions],
     revealed: Object.fromEntries(row.revealed.map((k) => [k as string, true])) as Record<
@@ -125,8 +128,11 @@ export function buildEnemyFromCsv(kind: 'normal' | 'elite' | 'boss', floorIndex:
     APP: row.APP,
     INT: row.INT,
     hp: 0,
-    guard: false,
-    dots: [],
+    statuses: [],
+    physDamageCutRate: 0,
+    psyDamageCutRate: 0,
+    physDamageUpRate: 0,
+    psyDamageUpRate: 0,
     actions: [...row.actions],
     revealed: Object.fromEntries(row.revealed.map((k) => [k as string, true])) as Record<
       string,

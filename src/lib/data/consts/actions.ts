@@ -1,6 +1,7 @@
 import type { ActionDef } from '$lib/domain/entities/action';
-import { heal } from '$lib/domain/services/statsService';
+import { heal } from '$lib/domain/services/attributeService';
 import { applyPhysicalDamage, applyPsychicDamage } from '$lib/domain/services/damageService';
+import { addStatus, findStatus } from '$lib/data/consts/statuses';
 
 export const action = {
   Strike: {
@@ -8,7 +9,8 @@ export const action = {
     description: 'STRで相手に攻撃',
     log: ({ actor, target }) => {
       if (!target) return '攻撃対象はもういない...';
-      return target.guard
+      const guarded = !!findStatus(target, 'guard');
+      return guarded
         ? `${actor.STR}の力で攻撃！${target.name}は防御体制を取って、ダメージを半減させた！`
         : `${target.name}に${actor.STR}の力で攻撃！`;
     },
@@ -37,7 +39,7 @@ export const action = {
     description: '次のターンまでダメージ半減',
     log: () => '防御態勢を取った！',
     execute: ({ actor }) => {
-      actor.guard = true;
+      addStatus(actor, 'guard');
     }
   },
   FirstAid: {
@@ -54,10 +56,7 @@ export const action = {
     log: () => '毒を投げた',
     execute: ({ target }) => {
       if (!target) return;
-      const list = target.dots;
-      const existing = list.find((d) => d.id === 'poison');
-      if (existing) existing.turns = 3;
-      else list.push({ id: 'poison', damage: 3, turns: 3 });
+      addStatus(target, 'poison');
     }
   },
   Reveal: {

@@ -1,18 +1,11 @@
 import type { actionName } from '$lib/domain/entities/actionName';
+import type { StatusInstance } from '$lib/data/consts/statuses';
 
 export type ActorKind = 'normal' | 'elite' | 'boss' | 'player';
 export const ACTOR_KINDS: ActorKind[] = ['normal', 'elite', 'boss', 'player'];
 export type ActorSide = 'player' | 'enemy';
 
-export interface BuffState {
-  attackBonus?: number;
-}
-
-export interface DotEffect {
-  id: string;
-  damage: number;
-  turns: number;
-}
+// guard / 毒 / バフ など全ての一時効果は statuses (StatusInstance[]) に統合。
 
 export interface Actor {
   kind: ActorKind;
@@ -25,9 +18,15 @@ export interface Actor {
   APP: number;
   INT: number;
   hp: number;
-  guard: boolean;
-  dots: DotEffect[];
-  buffs?: BuffState;
+  statuses: StatusInstance[]; // 統合ステータス
+  /** 物理ダメージカット率 (0~1)。0.2 なら最終的に 20% 軽減。複数ステは加算後 1 上限 */
+  physDamageCutRate?: number;
+  /** 精神ダメージカット率 (0~1) */
+  psyDamageCutRate?: number;
+  /** 物理ダメージアップ率 (0~n)。0.3 なら +30% (加算) */
+  physDamageUpRate?: number;
+  /** 精神ダメージアップ率 (0~n) */
+  psyDamageUpRate?: number;
   actions: actionName[];
   revealed?: Partial<Record<StatKey, boolean>>;
   /**
