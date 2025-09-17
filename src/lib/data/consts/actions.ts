@@ -1,5 +1,5 @@
 import type { ActionDef } from '$lib/domain/entities/action';
-import { calcMaxHP } from '$lib/domain/services/statsService';
+import { heal } from '$lib/domain/services/statsService';
 import { applyPhysicalDamage, applyPsychicDamage } from '$lib/domain/services/damageService';
 
 export const action = {
@@ -11,7 +11,7 @@ export const action = {
 
       let log;
       if (target.guard) {
-        log = `${actor.STR}の力で攻撃！${target.name}は守りの体制を取って、ダメージを半減させた！`;
+        log = `${actor.STR}の力で攻撃！${target.name}は防御体制を取って、ダメージを半減させた！`;
       } else {
         log = `${target.name}に${actor.STR}の力で攻撃！`;
       }
@@ -39,21 +39,18 @@ export const action = {
   },
   Guard: {
     name: 'ガード',
-    description: 'このターン受ける次のダメージ半減',
-    log: () => '防御態勢を取った',
+    description: '次のターンまでダメージ半減',
+    log: () => '防御態勢を取った！',
     execute: ({ actor }) => {
       actor.guard = true;
     }
   },
-  Recover: {
-    name: '回復',
-    description: 'HP5回復',
-    log: ({ actor }) => `回復 (${actor.hp}/${calcMaxHP(actor)})`,
+  FirstAid: {
+    name: '応急処置',
+    description: 'DEXで応急処置',
+    log: ({ actor }) => `${actor.DEX}の器用さで応急処置を行なった。`,
     execute: ({ actor }) => {
-      const max = calcMaxHP(actor);
-      const before = actor.hp;
-      const heal = Math.min(5, max - before);
-      actor.hp = before + heal;
+      heal(actor, actor.DEX);
     }
   },
   Poison: {

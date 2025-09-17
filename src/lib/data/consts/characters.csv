@@ -1,5 +1,5 @@
 id,kind,name,floorMin,floorMax,STR,CON,POW,DEX,APP,INT,actions,maxActionsPerTurn,maxActionChoices,revealed
-player,player,冒険者,0,0,10,10,8,10,8,10,Strike|Curse|Guard|Recover|Poison,2,3,hp|STR|CON|POW|DEX|APP|INT
+player,player,冒険者,0,0,10,10,8,10,8,10,Strike|Curse|Guard|FirstAid|Poison,2,3,hp|STR|CON|POW|DEX|APP|INT
 normal_early,normal,スライム,0,2,4,4,4,6,5,4,Strike,1,2,hp|STR
 normal_mid,normal,盗賊,3,5,8,5,5,10,7,8,Strike|Guard,1,2,hp|STR|DEX
 normal_late,normal,狂戦士,6,8,12,6,6,10,6,6,Strike|Curse,1,2,hp|STR|CON
@@ -15,6 +15,6 @@ elite_f8,elite,精鋭騎士,7,7,19,13,10,13,7,11,Strike|Curse|Guard,2,3,hp|STR|C
 elite_f9,elite,精鋭騎士,8,8,20,14,11,14,7,12,Strike|Curse|Guard,2,3,hp|STR|CON|DEX
 elite_f10,elite,精鋭騎士,9,9,21,15,12,14,7,12,Strike|Curse|Guard,2,3,hp|STR|CON|DEX
 boss_early,boss,古代守護者,0,2,12,10,8,10,5,8,Strike|Curse|Guard,2,3,hp|STR|CON
-boss_mid,boss,狂気の魔導師,3,5,14,12,10,12,6,14,Strike|Curse|Recover|Poison,2,3,hp|STR|POW
-boss_late,boss,破滅の騎士,6,8,18,14,12,14,6,12,Strike|Curse|Guard|Recover,2,3,hp|STR|CON|DEX
-boss_final,boss,虚無竜,9,9,22,20,20,16,8,18,Strike|Curse|Guard|Recover|Poison,2,3,hp|STR|CON|POW|DEX
+boss_mid,boss,狂気の魔導師,3,5,14,12,10,12,6,14,Strike|Curse|FirstAid|Poison,2,3,hp|STR|POW
+boss_late,boss,破滅の騎士,6,8,18,14,12,14,6,12,Strike|Curse|Guard|FirstAid,2,3,hp|STR|CON|DEX
+boss_final,boss,虚無竜,9,9,22,20,20,16,8,18,Strike|Curse|Guard|FirstAid|Poison,2,3,hp|STR|CON|POW|DEX
