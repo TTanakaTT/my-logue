@@ -41,5 +41,5 @@ jobs:
         if: failure()
         with:
           name: Screenshots
-          path: tests/e2e/home.spec.ts-snapshots
+          path: tests/e2e/*.spec.ts-snapshots
           retention-days: 30

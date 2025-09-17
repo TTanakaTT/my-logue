@@ -6,7 +6,7 @@ export default defineConfig({
     port: 4173
   },
   testDir: 'tests/e2e',
-  reporter: [['html', { outputFolder: 'playwright-report' }]],
+  reporter: process.env.CI ? 'github' : 'html',
   projects: [
     {
       name: 'chromium-hd',
