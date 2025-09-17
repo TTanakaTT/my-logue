@@ -3,6 +3,7 @@
   import { calcMaxHP } from '$lib/domain/services/attributeService';
   export let actor: Actor;
   export let side: 'player' | 'enemy' = 'player';
+  import { SvelteMap } from 'svelte/reactivity';
 
   const order: { key: 'hp' | 'CON' | 'STR' | 'POW' | 'DEX' | 'APP' | 'INT'; label: string }[] = [
     { key: 'hp', label: 'HP' },
@@ -50,7 +51,7 @@
     count: number;
   }
   $: groupedStatuses = (() => {
-    const map = new Map<string, GroupedStatus>();
+    const map = new SvelteMap<string, GroupedStatus>();
     for (const st of actor.statuses) {
       const key = `${st.id}:${st.remainingTurns ?? 'inf'}`;
       const ex = map.get(key);
