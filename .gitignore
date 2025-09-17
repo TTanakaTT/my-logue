@@ -28,10 +28,9 @@ pnpm-debug.log*
 .svelte-kit/
 
 # Playwright
+tests/e2e/screenshots/
+test-results/
 playwright-report/
-blob-report/
-trace.zip
-.test-results/
 
 # Misc
 *.tgz
