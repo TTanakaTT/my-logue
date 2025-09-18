@@ -183,8 +183,8 @@ export function chooseNode(state: GameState, kind: 'combat' | 'event' | 'rest' |
     const enemyKind: 'normal' | 'elite' | 'boss' =
       kind === 'boss' ? 'boss' : state.stepIndex === 3 ? 'elite' : 'normal';
     // 複数戦闘: ひとまず1体生成だが配列にする。将来的に複数生成に拡張可能。
-  state.enemies = [createEnemy(enemyKind, state.floorIndex)];
-  state.selectedEnemyIndex = 0;
+    state.enemies = [createEnemy(enemyKind, state.floorIndex)];
+    state.selectedEnemyIndex = 0;
     // 味方は開始時点では空。将来的に編成機能で埋まる想定。
     state.currentEncounterKind = enemyKind;
     state.phase = 'combat';
