@@ -1,6 +1,6 @@
 import { action } from '$lib/data/consts/actions';
-import { type actionName } from '../../domain/entities/actionName';
+import { type Action } from '../../domain/entities/Action';
 
-export function getAction(id: actionName) {
+export function getAction(id: Action) {
   return action[id];
 }

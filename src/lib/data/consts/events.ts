@@ -1,4 +1,4 @@
-import type { EventDef } from '$lib/domain/entities/events';
+import type { EventDef } from '$lib/domain/entities/Events';
 import { createEnemy, rollActions } from '$lib/domain/services/stateService';
 import { pushLog } from '$lib/presentation/utils/logUtil';
 import { calcMaxHP } from '$lib/domain/services/attributeService';

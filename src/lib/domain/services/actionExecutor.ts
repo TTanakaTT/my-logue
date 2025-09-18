@@ -1,8 +1,8 @@
 import { emitActionLog } from '$lib/presentation/utils/logUtil';
 import { getAction } from '$lib/data/repositories/actionRepository';
-import type { actionName } from '$lib/domain/entities/actionName';
-import type { Actor } from '$lib/domain/entities/character';
-import type { GameState } from '$lib/domain/entities/battleState';
+import type { Action } from '$lib/domain/entities/Action';
+import type { Actor } from '$lib/domain/entities/Character';
+import type { GameState } from '$lib/domain/entities/BattleState';
 import { persistRevealedActions } from './stateService';
 
 export interface PerformResult {
@@ -24,7 +24,7 @@ export function performAction(
   state: GameState,
   actor: Actor,
   target: Actor | undefined,
-  id: actionName
+  id: Action
 ): PerformResult | undefined {
   const def = getAction(id);
   if (!def) return;

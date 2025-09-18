@@ -1,6 +1,6 @@
-import type { GameState, LogEntry } from '$lib/domain/entities/battleState';
-import type { Actor, ActorKind, ActorSide } from '$lib/domain/entities/character';
-import type { ActionDef } from '$lib/domain/entities/action';
+import type { GameState, LogEntry } from '$lib/domain/entities/BattleState';
+import type { Actor, ActorKind, ActorSide } from '$lib/domain/entities/Character';
+import type { ActionDef } from '$lib/domain/entities/Action';
 
 // ログ関連のユーティリティを集約
 // 既存の pushLog / pushCombatLog / emitActionLog API は互換維持しつつ

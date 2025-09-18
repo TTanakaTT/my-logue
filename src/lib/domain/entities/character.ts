@@ -1,5 +1,5 @@
-import type { actionName } from '$lib/domain/entities/actionName';
-import type { StatusInstance } from '$lib/data/consts/statuses';
+import type { Action } from '$lib/domain/entities/Action';
+import type { StatusInstance } from './Status';
 
 export type ActorKind = 'normal' | 'elite' | 'boss' | 'player';
 export const ACTOR_KINDS: ActorKind[] = ['normal', 'elite', 'boss', 'player'];
@@ -18,22 +18,22 @@ export interface Actor {
   APP: number;
   INT: number;
   hp: number;
-  statuses: StatusInstance[]; // 統合ステータス
+  statuses: StatusInstance[];
   /** 物理ダメージカット率 (0~1)。0.2 なら最終的に 20% 軽減。複数ステは加算後 1 上限 */
-  physDamageCutRate?: number;
+  physDamageCutRate: number;
   /** 精神ダメージカット率 (0~1) */
-  psyDamageCutRate?: number;
+  psyDamageCutRate: number;
   /** 物理ダメージアップ率 (0~n)。0.3 なら +30% (加算) */
-  physDamageUpRate?: number;
+  physDamageUpRate: number;
   /** 精神ダメージアップ率 (0~n) */
-  psyDamageUpRate?: number;
-  actions: actionName[];
+  psyDamageUpRate: number;
+  actions: Action[];
   revealed?: Partial<Record<StatKey, boolean>>;
   /**
    * 敵専用: 戦闘中にプレイヤーへ公開済み（=使用済み）アクションID一覧。
    * プレイヤー側は不要なので省略可。
    */
-  revealedActions?: actionName[];
+  revealedActions?: Action[];
   maxActionsPerTurn: number;
   maxActionChoices: number;
 }

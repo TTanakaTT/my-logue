@@ -1,4 +1,4 @@
-import type { EventDef } from '$lib/domain/entities/events';
+import type { EventDef } from '$lib/domain/entities/Events';
 import { events } from '$lib/data/consts/events';
 
 // イベント関連のサービスロジック

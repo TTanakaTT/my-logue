@@ -1,8 +1,8 @@
 import { writable } from 'svelte/store';
-import type { GameState } from '../entities/battleState';
-import type { Player, Actor, StatKey } from '../entities/character';
-import { tickStatusesEndTurn } from '$lib/data/consts/statuses';
-import type { actionName } from '$lib/domain/entities/actionName';
+import type { GameState } from '../entities/BattleState';
+import type { Player, Actor, StatKey } from '../entities/Character';
+import { tickStatusesTurnStart } from '$lib/data/consts/statuses';
+import type { Action } from '$lib/domain/entities/Action';
 import { calcMaxHP } from './attributeService';
 import { buildPlayerFromCsv, buildEnemyFromCsv } from '$lib/data/repositories/characterRepository';
 import { performAction } from './actionExecutor';
@@ -15,18 +15,18 @@ const ENEMY_REVEAL_KEY_PREFIX = 'mylogue_enemy_revealed_'; // 旧: actions の�
 const ENEMY_REVEALINFO_KEY_PREFIX = 'mylogue_enemy_revealinfo_'; // 新: attributes + actions
 
 interface RevealInfoPersisted {
-  actions: actionName[];
+  actions: Action[];
   revealedAttributes?: Record<string, boolean>; // hp, STR など true
 }
 
-function loadRevealedActions(kind: string, floor: number): actionName[] | undefined {
+function loadRevealedActions(kind: string, floor: number): Action[] | undefined {
   // 互換: 旧キー (actionsのみ)
   const key = `${ENEMY_REVEAL_KEY_PREFIX}${kind}_${floor}`;
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return undefined;
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed as actionName[];
+    if (Array.isArray(parsed)) return parsed as Action[];
   } catch (e) {
     console.warn('Failed to parse legacy revealedActions from localStorage', e);
   }
@@ -48,7 +48,7 @@ function loadRevealInfo(kind: string, floor: number): RevealInfoPersisted | unde
   return undefined;
 }
 
-export function persistRevealedActions(kind: string, floor: number, actions: actionName[]) {
+export function persistRevealedActions(kind: string, floor: number, actions: Action[]) {
   const key = `${ENEMY_REVEAL_KEY_PREFIX}${kind}_${floor}`;
   try {
     localStorage.setItem(key, JSON.stringify(actions.slice().sort()));
@@ -180,7 +180,8 @@ export function chooseNode(state: GameState, kind: 'combat' | 'event' | 'rest' |
       kind === 'boss' ? 'boss' : state.stepIndex === 3 ? 'elite' : 'normal';
     state.enemy = createEnemy(enemyKind, state.floorIndex);
     state.phase = 'combat';
-    rollActions(state);
+    // 戦闘開始直後のターン開始効果を適用
+    startTurn(state);
     pushLog(
       kind === 'boss' ? 'ボス戦開始!' : enemyKind === 'elite' ? '精鋭戦開始!' : '戦闘開始',
       'combat'
@@ -196,7 +197,7 @@ export function chooseNode(state: GameState, kind: 'combat' | 'event' | 'rest' |
   commit();
 }
 
-export function combatAction(state: GameState, id: actionName) {
+export function combatAction(state: GameState, id: Action) {
   if (state.phase !== 'combat') return;
   if (!state.actionOffer.includes(id)) return;
   if (state.playerUsedActions && state.playerUsedActions.includes(id)) return;
@@ -228,7 +229,7 @@ export function combatAction(state: GameState, id: actionName) {
   }
   if (state.actionUseCount >= state.player.maxActionsPerTurn) {
     enemyTurn(state);
-    endTurn(state);
+    startTurn(state); // 敵ターン後の新ターン開始
   }
   commit();
 }
@@ -239,14 +240,14 @@ function enemyTurn(state: GameState) {
   const enemy = state.enemy;
   if (!enemy) return;
   // ガードはターン終了で expire するので開始時の明示解除不要
-  const acted: actionName[] = [];
+  const acted: Action[] = [];
   const maxActs = enemy.maxActionsPerTurn;
   for (let i = 0; i < maxActs; i++) {
     const candidates = enemy.actions.filter((a) => !acted.includes(a));
     if (candidates.length === 0) break;
-    const actionName = candidates[Math.floor(Math.random() * candidates.length)];
-    acted.push(actionName);
-    performAction(state, enemy, state.player, actionName);
+    const Action = candidates[Math.floor(Math.random() * candidates.length)];
+    acted.push(Action);
+    performAction(state, enemy, state.player, Action);
     if (state.player.hp <= 0) break;
   }
   state.enemy = { ...enemy };
@@ -261,16 +262,16 @@ function enemyTurn(state: GameState) {
   }
 }
 
-function endTurn(state: GameState) {
+function startTurn(state: GameState) {
   const enemy = state.enemy;
-  const victims: Actor[] = [state.player];
-  if (enemy) victims.push(enemy);
-  for (const actor of victims) {
-    tickStatusesEndTurn(actor);
+  const actors: Actor[] = [state.player];
+  if (enemy) actors.push(enemy);
+  for (const actor of actors) {
+    tickStatusesTurnStart(actor);
     if (actor.hp <= 0) {
       if (actor === state.player) {
         state.phase = 'gameover';
-        pushLog('毒で倒れた...', 'system'); // 現状継続ダメージは毒のみ
+        pushLog('毒で倒れた...', 'system');
       } else {
         pushLog('敵を継続ダメージで倒した!', 'combat');
         state.player.score += 1;
@@ -281,15 +282,16 @@ function endTurn(state: GameState) {
         state.enemy = undefined;
       }
       commit();
-      return;
+      return false;
     }
   }
-  if (enemy) rollActions(state);
+  if (state.phase === 'combat') rollActions(state);
   state.actionUseCount = 0;
   state.playerUsedActions = [];
   state.player = { ...state.player };
   if (state.enemy) state.enemy = { ...state.enemy };
   commit();
+  return true;
 }
 
 function prepareReward(state: GameState, defeatedKind: 'normal' | 'elite' | 'boss') {

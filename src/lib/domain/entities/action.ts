@@ -1,5 +1,6 @@
-import type { GameState } from './battleState';
-import type { Actor } from './character';
+import type { GameState } from './BattleState';
+import type { Actor } from './Character';
+import type { action } from '../../data/consts/actions';
 
 export interface ActionDef {
   name: string;
@@ -9,3 +10,5 @@ export interface ActionDef {
   cooldownTurns?: number;
   log?: (ctx: { actor: Actor; target?: Actor; state: GameState }) => string | undefined;
 }
+
+export type Action = keyof typeof action;

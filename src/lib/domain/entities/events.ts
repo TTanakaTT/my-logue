@@ -1,4 +1,4 @@
-import type { GameState } from './battleState';
+import type { GameState } from './BattleState';
 
 export interface EventDef {
   name: string;

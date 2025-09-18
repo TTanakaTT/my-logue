@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Actor } from '$lib/domain/entities/character';
+  import type { Actor } from '$lib/domain/entities/Character';
   import { calcMaxHP } from '$lib/domain/services/attributeService';
   export let actor: Actor;
   export let side: 'player' | 'enemy' = 'player';
@@ -33,7 +33,8 @@
   }
   import { getAction } from '$lib/data/repositories/actionRepository';
   import TooltipBadge from './TooltipBadge.svelte';
-  import { STATUS_DEFS } from '$lib/data/consts/statuses';
+  import { status } from '$lib/data/consts/statuses';
+  import type { StatusInstance } from '$lib/domain/entities/Status';
   $: actionInfos = actor.actions.map((id) => {
     const def = getAction(id);
     const revealed = actor.side === 'enemy' ? actor.revealedActions?.includes(id) : true;
@@ -47,7 +48,7 @@
 
   // ステータス表示用グルーピング: id + 残ターン一致のみスタック数をまとめる
   interface GroupedStatus {
-    status: import('$lib/data/consts/statuses').StatusInstance;
+    status: StatusInstance;
     count: number;
   }
   $: groupedStatuses = (() => {
@@ -77,18 +78,18 @@
   </div>
   <div class="flex flex-wrap gap-1 mb-1 min-h-4">
     {#each groupedStatuses as g (g.status.id + ':' + (g.status.remainingTurns ?? 'inf'))}
-      {#if STATUS_DEFS[g.status.id]}
-        {#if STATUS_DEFS[g.status.id].badgeClass}
+      {#if status[g.status.id]}
+        {#if status[g.status.id].badgeClass}
           <TooltipBadge
-            badgeClass={`${STATUS_DEFS[g.status.id].badgeClass} border px-1`}
-            label={`${STATUS_DEFS[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
-            description={STATUS_DEFS[g.status.id].description}
+            badgeClass={`${status[g.status.id].badgeClass} border px-1`}
+            label={`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
+            description={status[g.status.id].description}
           />
         {:else}
           <TooltipBadge
             badgeClass="bg-gray-600/60 border border-gray-300 px-1"
-            label={`${STATUS_DEFS[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
-            description={STATUS_DEFS[g.status.id].description}
+            label={`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
+            description={status[g.status.id].description}
           />
         {/if}
       {:else}

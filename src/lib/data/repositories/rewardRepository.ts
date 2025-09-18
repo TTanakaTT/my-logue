@@ -1,11 +1,11 @@
 import rewardCsvRaw from '$lib/data/consts/rewards.csv?raw';
 import rewardDetailCsvRaw from '$lib/data/consts/reward_detail.csv?raw';
-import type { GameState, RewardOption } from '$lib/domain/entities/battleState';
-import type { actionName } from '$lib/domain/entities/actionName';
+import type { GameState, RewardOption } from '$lib/domain/entities/BattleState';
+import type { Action } from '$lib/domain/entities/Action';
 import { calcMaxHP } from '$lib/domain/services/attributeService';
 import { recalcPlayer } from '$lib/domain/services/stateService';
 import { pushLog } from '$lib/presentation/utils/logUtil';
-import type { Player } from '$lib/domain/entities/character';
+import type { Player } from '$lib/domain/entities/Character';
 import { addStatus, findStatus, removeStatus } from '$lib/data/consts/statuses';
 
 // rewards.csv: id(number),kind,name,label
@@ -103,7 +103,7 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
     case 'action': {
       // 追加アクション (現在仕様未使用) value=add/ensure
       const mode = d.value || 'add';
-      const act = d.target as actionName;
+      const act = d.target as Action;
       if (!s.player.actions.includes(act)) {
         s.player.actions.push(act);
         pushLog(`新アクション取得: ${act}`, 'system');
@@ -119,15 +119,15 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
         break;
       }
       if (d.value === '0') {
-        const ex = findStatus(s.player, 'poison');
+        const ex = findStatus(s.player, 'Poison');
         if (ex) {
-          removeStatus(s.player, 'poison');
+          removeStatus(s.player, 'Poison');
           pushLog('poison 解除', 'system');
         }
         break;
       }
       // value のダメージ/ターン数は現状固定実装のため無視 (将来 poison 強化用に利用可)
-      addStatus(s.player, 'poison');
+      addStatus(s.player, 'Poison');
       pushLog('poison 付与', 'system');
       break;
     }
@@ -151,7 +151,7 @@ export function getRewardsForEnemy(state: GameState, enemyKind: string): RewardO
     const details = detailRows.filter((d) => d.rewardName === row.name);
     const actionDetail = details.find((d) => d.type === 'action');
     if (actionDetail) {
-      const act = actionDetail.target as actionName;
+      const act = actionDetail.target as Action;
       if (state.player.actions.includes(act)) return false; // 既に所持
     }
     return true;
