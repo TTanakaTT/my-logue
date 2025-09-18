@@ -5,8 +5,26 @@
   export let side: 'player' | 'enemy' = 'player';
   import { SvelteMap } from 'svelte/reactivity';
 
-  const order: { key: 'hp' | 'CON' | 'STR' | 'POW' | 'DEX' | 'APP' | 'INT'; label: string }[] = [
+  const order: {
+    key:
+      | 'hp'
+      | 'physUp'
+      | 'physCut'
+      | 'psyUp'
+      | 'psyCut'
+      | 'CON'
+      | 'STR'
+      | 'POW'
+      | 'DEX'
+      | 'APP'
+      | 'INT';
+    label: string;
+  }[] = [
     { key: 'hp', label: 'HP' },
+    { key: 'physUp', label: '物理ダメUP' },
+    { key: 'physCut', label: '物理ダメCUT' },
+    { key: 'psyUp', label: '精神ダメUP' },
+    { key: 'psyCut', label: '精神ダメCUT' },
     { key: 'CON', label: 'CON' },
     { key: 'STR', label: 'STR' },
     { key: 'POW', label: 'POW' },
@@ -17,6 +35,10 @@
 
   $: displayed = {
     hp: `${actor.hp}/${calcMaxHP(actor)}`,
+    physUp: actor.physDamageUpRate,
+    physCut: actor.physDamageCutRate,
+    psyUp: actor.psyDamageUpRate,
+    psyCut: actor.psyDamageCutRate,
     CON: actor.CON,
     STR: actor.STR,
     POW: actor.POW,
@@ -26,9 +48,15 @@
   };
 
   function valueFor(key: (typeof order)[number]['key']): string | number {
+    switch (key) {
+      case 'physUp':
+      case 'physCut':
+      case 'psyUp':
+      case 'psyCut':
+        return (displayed[key] * 100).toFixed(0) + '%';
+    }
     const rev = actor.revealed?.[key];
     if (!rev) return '???';
-    if (key === 'hp') return displayed.hp;
     return displayed[key];
   }
   import { getAction } from '$lib/data/repositories/actionRepository';

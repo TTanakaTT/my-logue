@@ -74,10 +74,11 @@ export function removeStatusInstance(actor: Actor, inst: StatusInstance) {
 }
 
 export function tickStatusesTurnStart(actor: Actor) {
+  resetStatusesEffects(actor);
   // 1. ターン開始時効果適用
   for (const inst of [...actor.statuses]) {
     const def = status[inst.id];
-    if (def.apply) {
+    if (!def.Immediate && def.apply) {
       def.apply(actor);
     }
   }
@@ -90,4 +91,11 @@ export function tickStatusesTurnStart(actor: Actor) {
       }
     }
   }
+}
+
+function resetStatusesEffects(actor: Actor) {
+  actor.physDamageUpRate = 0;
+  actor.physDamageCutRate = 0;
+  actor.psyDamageUpRate = 0;
+  actor.psyDamageCutRate = 0;
 }
