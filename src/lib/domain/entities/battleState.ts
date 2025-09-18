@@ -26,7 +26,12 @@ export interface GameState {
   stepIndex: number;
   phase: Phase;
   player: Player;
-  enemy?: Actor;
+  /** 味方（プレイヤー以外） */
+  allies: Actor[];
+  /** 現在の戦闘中の敵（複数対応） */
+  enemies: Actor[];
+  /** プレイヤーが選択している攻撃対象（enemiesのインデックス） */
+  selectedEnemyIndex?: number;
   actionOffer: Action[];
   actionUseCount: number;
   playerUsedActions?: Action[];
@@ -35,4 +40,6 @@ export interface GameState {
   rngSeed?: number;
   rewardOptions?: RewardOption[];
   rewardIsBoss?: boolean;
+  /** この戦闘の相手の種別（報酬判定用） */
+  currentEncounterKind?: 'normal' | 'elite' | 'boss';
 }

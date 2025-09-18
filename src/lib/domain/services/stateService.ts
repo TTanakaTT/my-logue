@@ -113,6 +113,9 @@ function initState(): GameState {
     stepIndex: 0,
     phase: 'progress',
     player: basePlayer(),
+    allies: [],
+    enemies: [],
+    selectedEnemyIndex: undefined,
     log: [{ message: 'ゲーム開始', kind: 'system' }],
     highestFloor: highest,
     actionOffer: [],
@@ -133,7 +136,8 @@ function commit() {
   gameState.update((s) => ({
     ...s,
     player: { ...s.player },
-    enemy: s.enemy ? { ...s.enemy } : undefined,
+    allies: s.allies.map((a) => ({ ...a })),
+    enemies: s.enemies.map((e) => ({ ...e })),
     log: [...s.log]
   }));
 }
@@ -178,7 +182,11 @@ export function chooseNode(state: GameState, kind: 'combat' | 'event' | 'rest' |
     // 4ステップ目(= index 3) の戦闘は elite とする (ボス除く)
     const enemyKind: 'normal' | 'elite' | 'boss' =
       kind === 'boss' ? 'boss' : state.stepIndex === 3 ? 'elite' : 'normal';
-    state.enemy = createEnemy(enemyKind, state.floorIndex);
+    // 複数戦闘: ひとまず1体生成だが配列にする。将来的に複数生成に拡張可能。
+  state.enemies = [createEnemy(enemyKind, state.floorIndex)];
+  state.selectedEnemyIndex = 0;
+    // 味方は開始時点では空。将来的に編成機能で埋まる想定。
+    state.currentEncounterKind = enemyKind;
     state.phase = 'combat';
     // 戦闘開始直後のターン開始効果を適用
     startTurn(state);
@@ -201,56 +209,84 @@ export function combatAction(state: GameState, id: Action) {
   if (state.phase !== 'combat') return;
   if (!state.actionOffer.includes(id)) return;
   if (state.playerUsedActions && state.playerUsedActions.includes(id)) return;
-  const res = performAction(state, state.player, state.enemy, id);
+  // プレイヤーのターゲットは選択中の敵（デフォルトは先頭生存）
+  let target = state.enemies.find((e) => e.hp > 0);
+  if (
+    state.selectedEnemyIndex !== undefined &&
+    state.enemies[state.selectedEnemyIndex] &&
+    state.enemies[state.selectedEnemyIndex].hp > 0
+  ) {
+    target = state.enemies[state.selectedEnemyIndex];
+  }
+  performAction(state, state.player, target, id);
   state.player = { ...state.player };
-  if (state.enemy) state.enemy = { ...state.enemy };
+  state.enemies = state.enemies.map((e) => ({ ...e }));
   state.actionUseCount += 1;
   state.playerUsedActions?.push(id);
-  // 洞察(Reveal) は即座に永続化 (attributes + actions)
-  if (id === 'Reveal' && state.enemy) {
-    persistRevealInfo(state.enemy.kind, state.floorIndex, state.enemy);
-    // 即時反映: enemy も再ラップ済みなので commit 前に早期コミット
-    commit();
-  }
-  if (res?.enemyDefeated && state.enemy) {
-    const defeated = state.enemy;
-    const wasBoss = defeated.kind === 'boss';
-    state.phase = 'progress';
-    if (wasBoss) {
-      prepareReward(state, 'boss');
-    } else {
-      const defeatedKind = defeated.kind as 'normal' | 'elite';
-      state.stepIndex += 1;
-      prepareReward(state, defeatedKind);
-    }
-    state.enemy = undefined;
+  // 撃破整理（プレイヤー行動で全滅した可能性）
+  removeDeadActors(state);
+  if (state.enemies.length === 0 && state.phase !== 'combat') {
     commit();
     return;
   }
+  // 洞察(Reveal) は即座に永続化 (attributes + actions)
+  if (id === 'Reveal') {
+    const enemy0 = state.enemies[0];
+    if (enemy0) persistRevealInfo(enemy0.kind, state.floorIndex, enemy0);
+    // 即時反映: enemy も再ラップ済みなので commit 前に早期コミット
+    commit();
+  }
+  // 敵1体が倒れた場合もあるが、配列からはターン終了時に掃除する。
   if (state.actionUseCount >= state.player.maxActionsPerTurn) {
-    enemyTurn(state);
-    startTurn(state); // 敵ターン後の新ターン開始
+    // プレイヤーのターン終了 -> 味方AI -> 敵AI -> 次ターン開始
+    alliesTurn(state);
+    if (state.phase !== 'combat') {
+      commit();
+      return;
+    }
+    enemiesTurn(state);
+    if (state.phase === 'combat') startTurn(state); // 敵ターン後の新ターン開始
   }
   commit();
 }
 
 // performActorAction は performAction に統合済み
 
-function enemyTurn(state: GameState) {
-  const enemy = state.enemy;
-  if (!enemy) return;
-  // ガードはターン終了で expire するので開始時の明示解除不要
-  const acted: Action[] = [];
-  const maxActs = enemy.maxActionsPerTurn;
-  for (let i = 0; i < maxActs; i++) {
-    const candidates = enemy.actions.filter((a) => !acted.includes(a));
-    if (candidates.length === 0) break;
-    const Action = candidates[Math.floor(Math.random() * candidates.length)];
-    acted.push(Action);
-    performAction(state, enemy, state.player, Action);
+function alliesTurn(state: GameState) {
+  // 味方は敵と同様に自動行動（敵AIとほぼ同じロジック）。
+  for (const ally of state.allies.filter((a) => a.hp > 0)) {
+    const acted: Action[] = [];
+    const maxActs = ally.maxActionsPerTurn;
+    for (let i = 0; i < maxActs; i++) {
+      const candidates = ally.actions.filter((a) => !acted.includes(a));
+      if (candidates.length === 0) break;
+      const act = candidates[Math.floor(Math.random() * candidates.length)];
+      acted.push(act);
+      const target = state.enemies.find((e) => e.hp > 0);
+      performAction(state, ally, target, act);
+      removeDeadActors(state);
+      if (state.enemies.length === 0) break;
+    }
+    if (state.enemies.length === 0) break;
+  }
+}
+
+function enemiesTurn(state: GameState) {
+  for (const enemy of state.enemies.filter((e) => e.hp > 0)) {
+    const acted: Action[] = [];
+    const maxActs = enemy.maxActionsPerTurn;
+    for (let i = 0; i < maxActs; i++) {
+      const candidates = enemy.actions.filter((a) => !acted.includes(a));
+      if (candidates.length === 0) break;
+      const act = candidates[Math.floor(Math.random() * candidates.length)];
+      acted.push(act);
+      // 敵のターゲットはプレイヤー優先。将来は味方含めたヘイトなど拡張余地。
+      const target = state.player.hp > 0 ? state.player : state.allies.find((a) => a.hp > 0);
+      performAction(state, enemy, target, act);
+      if (state.player.hp <= 0) break;
+    }
     if (state.player.hp <= 0) break;
   }
-  state.enemy = { ...enemy };
   state.player = { ...state.player };
   if (state.player.hp <= 0) {
     state.phase = 'gameover';
@@ -262,10 +298,28 @@ function enemyTurn(state: GameState) {
   }
 }
 
+function removeDeadActors(state: GameState) {
+  // 敵の死亡整理
+  const before = state.enemies.length;
+  state.enemies = state.enemies.filter((e) => e.hp > 0);
+  if (before > 0 && state.enemies.length === 0) {
+    state.selectedEnemyIndex = undefined;
+    // 全滅 -> 勝利（報酬へ）
+    const kind = state.currentEncounterKind ?? 'normal';
+    state.phase = 'progress';
+    if (kind === 'boss') {
+      prepareReward(state, 'boss');
+    } else {
+      state.stepIndex += 1;
+      prepareReward(state, kind);
+    }
+  }
+  // 味方の死亡整理（現時点では保持だけ。将来的な復活等は別途）
+  state.allies = state.allies.filter((a) => a.hp > 0);
+}
+
 function startTurn(state: GameState) {
-  const enemy = state.enemy;
-  const actors: Actor[] = [state.player];
-  if (enemy) actors.push(enemy);
+  const actors: Actor[] = [state.player, ...state.allies, ...state.enemies];
   for (const actor of actors) {
     tickStatusesTurnStart(actor);
     if (actor.hp <= 0) {
@@ -273,13 +327,19 @@ function startTurn(state: GameState) {
         state.phase = 'gameover';
         pushLog('毒で倒れた...', 'system');
       } else {
-        pushLog('敵を継続ダメージで倒した!', 'combat');
-        state.player.score += 1;
-        state.phase = 'progress';
-        const kind = actor.kind as 'normal' | 'elite';
-        state.stepIndex += 1;
-        prepareReward(state, kind);
-        state.enemy = undefined;
+        // 味方 or 敵が継続ダメージで倒れた
+        if (actor.side === 'enemy') {
+          pushLog('敵を継続ダメージで倒した!', 'combat');
+          state.player.score += 1;
+          removeDeadActors(state);
+          if (state.phase !== 'combat') {
+            commit();
+            return false;
+          }
+        } else {
+          pushLog('味方が継続ダメージで倒れた...', 'combat');
+          state.allies = state.allies.filter((a) => a.hp > 0);
+        }
       }
       commit();
       return false;
@@ -289,7 +349,8 @@ function startTurn(state: GameState) {
   state.actionUseCount = 0;
   state.playerUsedActions = [];
   state.player = { ...state.player };
-  if (state.enemy) state.enemy = { ...state.enemy };
+  state.allies = state.allies.map((a) => ({ ...a }));
+  state.enemies = state.enemies.map((e) => ({ ...e }));
   commit();
   return true;
 }

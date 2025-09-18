@@ -63,13 +63,20 @@
           .join(',')].join('|')}
         <CharacterPanel actor={state.player} side="player" />
       {/key}
-      {#if state.enemy}
-        {#key [state.enemy.hp, state.enemy.STR, state.enemy.CON, state.enemy.POW, state.enemy.DEX, state.enemy.APP, state.enemy.INT, state.enemy.statuses
+      {#each state.allies as ally, i (i)}
+        {#key [ally.hp, ally.STR, ally.CON, ally.POW, ally.DEX, ally.APP, ally.INT, ally.statuses
             .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
             .join(',')].join('|')}
-          <CharacterPanel actor={state.enemy} side="enemy" />
+          <CharacterPanel actor={ally} side="player" />
         {/key}
-      {/if}
+      {/each}
+      {#each state.enemies as enemy, i (i)}
+        {#key [enemy.hp, enemy.STR, enemy.CON, enemy.POW, enemy.DEX, enemy.APP, enemy.INT, enemy.statuses
+            .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
+            .join(',')].join('|')}
+          <CharacterPanel actor={enemy} side="enemy" />
+        {/key}
+      {/each}
     </div>
   </section>
   <section class="bg-panel rounded-lg mb-4 py-2 px-4">
@@ -94,7 +101,25 @@
     {/if}
     {#if state.phase === 'combat'}
       <h2 class="mt-0 text-lg font-semibold mb-2">戦闘</h2>
-      <div class="mb-2 text-sm">行動 {state.actionUseCount}/{state.player.maxActionsPerTurn}</div>
+      {#if state.player.maxActionsPerTurn > 1}
+        <div class="mb-2 text-sm">行動 {state.actionUseCount}/{state.player.maxActionsPerTurn}</div>
+      {/if}
+      {#if state.enemies.length > 1}
+        <div class="mb-2 text-sm flex flex-wrap gap-2 items-center">
+          <span class="text-gray-400">対象:</span>
+          {#each state.enemies as e, idx (idx)}
+            <button
+              class={`btn-base ${state.selectedEnemyIndex === idx ? 'border border-emerald-400' : ''}`}
+              disabled={e.hp <= 0}
+              on:click={() =>
+                gameState.update((s) => {
+                  s.selectedEnemyIndex = idx;
+                  return { ...s };
+                })}>{e.name}{e.hp <= 0 ? ' (撃破)' : ''}</button
+            >
+          {/each}
+        </div>
+      {/if}
       <div class="flex flex-wrap gap-2">
         {#each state.actionOffer as id (id)}
           {#if getAction(id)}

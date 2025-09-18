@@ -31,8 +31,9 @@ export const events = {
     description: '即座に精鋭と戦闘する',
     apply: (state) => {
       pushLog('精鋭が現れた!', 'event');
-      // 現在のステップを変えずそのまま elite 戦へ移行
-      state.enemy = createEnemy('elite', state.floorIndex);
+      // 現在のステップを変えずそのまま elite 戦へ移行（複数対応）
+      state.enemies = [createEnemy('elite', state.floorIndex)];
+      state.currentEncounterKind = 'elite';
       state.phase = 'combat';
       rollActions(state);
       pushLog('精鋭戦開始!(イベント)', 'combat');

@@ -19,6 +19,7 @@ export function applyPsychicDamage(source: Actor, target: Actor, amount: number)
 
 // 他のダメージタイプが増えた場合に備えて汎用的な damageType を受け取る形にしておく
 function applyDamage(_source: Actor, target: Actor, amount: number) {
-  target.hp -= Math.ceil(amount);
-  pushCombatLog(`${amount}のダメージ！`, _source.side, _source.kind);
+  const damage = Math.ceil(amount);
+  target.hp -= damage;
+  pushCombatLog(`${damage}のダメージ！`, _source.side, _source.kind);
 }
