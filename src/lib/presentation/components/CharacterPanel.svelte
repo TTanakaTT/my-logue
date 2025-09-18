@@ -5,26 +5,24 @@
   export let side: 'player' | 'enemy' = 'player';
   import { SvelteMap } from 'svelte/reactivity';
 
+  type StatKey =
+    | 'hp'
+    | 'physUp'
+    | 'physCut'
+    | 'psyUp'
+    | 'psyCut'
+    | 'CON'
+    | 'STR'
+    | 'POW'
+    | 'DEX'
+    | 'APP'
+    | 'INT';
+
   const order: {
-    key:
-      | 'hp'
-      | 'physUp'
-      | 'physCut'
-      | 'psyUp'
-      | 'psyCut'
-      | 'CON'
-      | 'STR'
-      | 'POW'
-      | 'DEX'
-      | 'APP'
-      | 'INT';
+    key: Exclude<StatKey, 'physUp' | 'physCut' | 'psyUp' | 'psyCut'>;
     label: string;
   }[] = [
     { key: 'hp', label: 'HP' },
-    { key: 'physUp', label: '物理ダメUP' },
-    { key: 'physCut', label: '物理ダメCUT' },
-    { key: 'psyUp', label: '精神ダメUP' },
-    { key: 'psyCut', label: '精神ダメCUT' },
     { key: 'CON', label: 'CON' },
     { key: 'STR', label: 'STR' },
     { key: 'POW', label: 'POW' },
@@ -47,7 +45,7 @@
     INT: actor.INT
   };
 
-  function valueFor(key: (typeof order)[number]['key']): string | number {
+  function valueFor(key: StatKey): string | number {
     switch (key) {
       case 'physUp':
       case 'physCut':
@@ -136,6 +134,20 @@
         <span>{valueFor(o.key)}</span>
       </div>
     {/each}
+  </div>
+  <div class="w-full flex flex-col gap-1">
+    <div class="flex items-center gap-2">
+      <span class="text-gray-400">物理ダメージ</span>
+      <span>UP {valueFor('physUp')}</span>
+      <span class="text-gray-400">/</span>
+      <span>CUT {valueFor('physCut')}</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-gray-400">精神ダメージ</span>
+      <span>UP {valueFor('psyUp')}</span>
+      <span class="text-gray-400">/</span>
+      <span>CUT {valueFor('psyCut')}</span>
+    </div>
   </div>
   <div class="mt-2">
     <div class="text-gray-400">アクション</div>
