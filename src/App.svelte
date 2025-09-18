@@ -47,8 +47,7 @@
 <header
   class="bg-panel rounded-lg py-2 px-4 flex flex-wrap items-center gap-4 text-sm text-gray-200"
 >
-  <div>階層: {state.floorIndex + 1} / 10</div>
-  <div>ステップ: {state.stepIndex + 1} / 5</div>
+  <div>階層: {state.floorIndex + 1} - {state.stepIndex + 1} / 5</div>
   <div>撃破数: {state.player.score}</div>
   <div>最高到達階層: {state.highestFloor}</div>
 </header>
