@@ -79,6 +79,7 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
           | 'actions'
           | 'revealed'
           | 'revealedActions'
+          | 'insightActions'
           | 'maxActionsPerTurn'
           | 'maxActionChoices'
           | 'score'
