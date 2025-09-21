@@ -34,6 +34,11 @@ export interface Actor {
    * プレイヤー側は不要なので省略可。
    */
   revealedActions?: Action[];
+  /**
+   * 敵専用: 洞察(Insight/Reveal)により開示されたアクションID一覧。
+   * 観測(使用による開示)と区別するため別管理する。
+   */
+  insightActions?: Action[];
   maxActionsPerTurn: number;
   maxActionChoices: number;
 }

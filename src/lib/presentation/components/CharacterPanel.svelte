@@ -63,12 +63,16 @@
   import type { StatusInstance } from '$lib/domain/entities/Status';
   $: actionInfos = actor.actions.map((id) => {
     const def = getAction(id);
-    const revealed = actor.side === 'enemy' ? actor.revealedActions?.includes(id) : true;
+    const revealedObserved = actor.side === 'enemy' ? actor.revealedActions?.includes(id) : true;
+    const revealedByInsight = actor.side === 'enemy' ? actor.insightActions?.includes(id) : false;
+    const revealed = revealedObserved || revealedByInsight;
     return {
       id,
       revealed,
       name: revealed ? def?.name || id : '???',
-      description: revealed ? def?.description : '???'
+      description: revealed ? def?.description : '???',
+      byInsight: !!revealedByInsight,
+      byObserved: !!revealedObserved
     };
   });
 
@@ -154,7 +158,7 @@
     <div class="flex flex-wrap gap-1 mt-1">
       {#each actionInfos as a (a.id)}
         <TooltipBadge
-          badgeClass="bg-gray-700/60"
+          badgeClass={`${a.byInsight ? 'bg-emerald-700/70 border border-emerald-400/50' : a.byObserved ? 'bg-sky-700/70 border border-sky-400/50' : 'bg-gray-700/60'}`}
           label={a.name}
           description={a.description}
           revealed={a.revealed}

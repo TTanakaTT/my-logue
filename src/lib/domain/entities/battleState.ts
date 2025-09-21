@@ -42,4 +42,9 @@ export interface GameState {
   rewardIsBoss?: boolean;
   /** この戦闘の相手の種別（報酬判定用） */
   currentEncounterKind?: 'normal' | 'elite' | 'boss';
+  /**
+   * 洞察(Reveal)で確認した敵アクションの集合。戦闘終了時に報酬へ反映するための一時保管。
+   * プレイヤーが既に所持しているものは報酬表示時に除外する。
+   */
+  insightRewardActions?: Action[];
 }

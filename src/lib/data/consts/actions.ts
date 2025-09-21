@@ -81,6 +81,10 @@ export const action = {
       const current = target.revealedActions ? [...target.revealedActions] : [];
       for (const id of target.actions) if (!current.includes(id)) current.push(id);
       target.revealedActions = current;
+      // 洞察アクションも別途保持（観測と区別するため）
+      const insight = target.insightActions ? [...target.insightActions] : [];
+      for (const id of target.actions) if (!insight.includes(id)) insight.push(id);
+      target.insightActions = insight;
     }
   }
 } satisfies Record<string, ActionDef>;

@@ -9,6 +9,7 @@ import { performAction } from './actionExecutor';
 import { randomEvent } from '$lib/domain/services/eventService';
 import { pushLog, setLogState } from '$lib/presentation/utils/logUtil';
 import { getRewardsForEnemy } from '$lib/data/repositories/rewardRepository';
+import type { RewardOption } from '$lib/domain/entities/BattleState';
 
 const HIGH_KEY = 'mylogue_highest_floor';
 const ENEMY_REVEAL_KEY_PREFIX = 'mylogue_enemy_revealed_'; // 旧: actions のみ
@@ -120,7 +121,8 @@ function initState(): GameState {
     highestFloor: highest,
     actionOffer: [],
     actionUseCount: 0,
-    playerUsedActions: []
+    playerUsedActions: [],
+    insightRewardActions: []
   };
 }
 
@@ -232,7 +234,17 @@ export function combatAction(state: GameState, id: Action) {
   // 洞察(Reveal) は即座に永続化 (attributes + actions)
   if (id === 'Reveal') {
     const enemy0 = state.enemies[0];
-    if (enemy0) persistRevealInfo(enemy0.kind, state.floorIndex, enemy0);
+    if (enemy0) {
+      // 洞察により、対象の全アクションを insightActions としてマーク
+      const allActs = enemy0.actions.slice();
+      const uniq = Array.from(new Set([...(enemy0.insightActions || []), ...allActs]));
+      enemy0.insightActions = uniq;
+      // 報酬用にも積んでおく（複数戦闘想定で floor 単位に持つなら別管理だが現状一時）
+      state.insightRewardActions = Array.from(
+        new Set([...(state.insightRewardActions || []), ...uniq])
+      );
+      persistRevealInfo(enemy0.kind, state.floorIndex, enemy0);
+    }
     // 即時反映: enemy も再ラップ済みなので commit 前に早期コミット
     commit();
   }
@@ -357,6 +369,22 @@ function startTurn(state: GameState) {
 
 function prepareReward(state: GameState, defeatedKind: 'normal' | 'elite' | 'boss') {
   const opts = getRewardsForEnemy(state, defeatedKind);
+  // 洞察で開示したアクションを1つだけ報酬に混ぜる（未所持のみ）。
+  const insightActs: Action[] = (state.insightRewardActions || []).slice();
+  const candidate = insightActs.find((a) => !state.player.actions.includes(a));
+  if (candidate) {
+    const extra: RewardOption = {
+      id: `insight:${candidate}`,
+      label: `洞察: ${candidate} を会得`,
+      kind: defeatedKind === 'boss' ? 'boss' : 'normal',
+      apply: (s: GameState) => {
+        if (!s.player.actions.includes(candidate)) s.player.actions.push(candidate);
+        pushLog(`洞察報酬: 新アクション ${candidate} を会得`, 'system');
+      }
+    };
+    // 既存3件に混ぜる。件数が増えるがUIは動的。
+    opts.push(extra);
+  }
   state.rewardOptions = opts;
   state.rewardIsBoss = defeatedKind === 'boss';
   state.phase = 'reward';
@@ -368,6 +396,8 @@ export function pickReward(state: GameState, id: string) {
   const opt = state.rewardOptions.find((o) => o.id === id);
   if (!opt) return;
   opt.apply(state);
+  // 洞察由来の一時リストは消費後にクリア（同一アクションの重複提示を避ける）
+  state.insightRewardActions = [];
   if (state.rewardIsBoss) {
     state.floorIndex += 1;
     if (state.floorIndex >= 10) {

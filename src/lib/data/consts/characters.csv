@@ -1,5 +1,5 @@
 id,kind,name,floorMin,floorMax,STR,CON,POW,DEX,APP,INT,actions,maxActionsPerTurn,maxActionChoices,revealed
-player,player,冒険者,0,0,10,10,8,10,8,10,Strike|Curse|Guard|FirstAid|Poison,2,3,hp|STR|CON|POW|DEX|APP|INT
+player,player,冒険者,0,0,10,10,8,10,8,10,Strike|Guard|FirstAid,2,3,hp|STR|CON|POW|DEX|APP|INT
 normal_early,normal,スライム,0,2,4,4,4,6,5,4,Strike,1,2,hp|STR
 normal_mid,normal,盗賊,3,5,8,5,5,10,7,8,Strike|Guard,1,2,hp|STR|DEX
 normal_late,normal,狂戦士,6,8,12,6,6,10,6,6,Strike|Curse,1,2,hp|STR|CON
