@@ -10,6 +10,7 @@
   } from '$lib/domain/services/stateService';
   import { getAction } from '$lib/data/repositories/actionRepository';
   import CharacterPanel from '$lib/presentation/components/CharacterPanel.svelte';
+  import LogViewer from '$lib/presentation/components/LogViewer.svelte';
   // Svelteの$store構文を使用し手動subscribeを撤廃
   $: state = $gameState;
 
@@ -77,6 +78,10 @@
         {/key}
       {/each}
     </div>
+  </section>
+  <section class="bg-panel rounded-lg mb-4 py-2 px-4">
+    <h3 class="mt-0 font-semibold mb-2">ログ</h3>
+    <LogViewer />
   </section>
   <section class="bg-panel rounded-lg mb-4 py-2 px-4">
     {#if state.phase === 'progress'}
@@ -180,29 +185,6 @@
         {/each}
       </div>
     {/if}
-  </section>
-
-  <section class="bg-panel rounded-lg mb-4 py-2 px-4">
-    <h3 class="mt-0 font-semibold mb-2">ログ</h3>
-    <div
-      class="text-sm leading-tight max-h-50 overflow-auto bg-logbg p-2 rounded-md flex flex-col gap-1"
-    >
-      {#each state.log as entry, i (i)}
-        <div class="flex items-center flex-wrap gap-1">
-          <span
-            class={`inline-block text-center font-semibold text-xs tracking-wide px-2 py-1 rounded bg-gray-700 text-gray-300 log-kind-${entry.kind}`}
-            >{entry.kind}</span
-          >
-          {#if entry.kind === 'combat' && entry.side}
-            <span
-              class={`inline-block px-2 py-1 rounded text-xs font-semibold tracking-wide log-side-${entry.side}`}
-              >{entry.actorKind === 'boss' ? 'boss' : entry.side}</span
-            >
-          {/if}
-          <span class="px-2 py-1">{entry.message}</span>
-        </div>
-      {/each}
-    </div>
   </section>
 </main>
 

@@ -7,7 +7,7 @@ import { calcMaxHP } from './attributeService';
 import { buildPlayerFromCsv, buildEnemyFromCsv } from '$lib/data/repositories/characterRepository';
 import { performAction } from './actionExecutor';
 import { randomEvent } from '$lib/domain/services/eventService';
-import { pushLog, setLogState } from '$lib/presentation/utils/logUtil';
+import { pushLog, setLogState, resetDisplayLogs } from '$lib/presentation/utils/logUtil';
 import { getRewardsForEnemy } from '$lib/data/repositories/rewardRepository';
 import type { RewardOption } from '$lib/domain/entities/BattleState';
 
@@ -131,7 +131,10 @@ export const gameState = writable<GameState>(initState());
 gameState.subscribe((s) => setLogState(s));
 
 export function restart() {
-  gameState.set(initState());
+  const s = initState();
+  // 表示ログのリセットと初期1行のシード
+  resetDisplayLogs();
+  gameState.set(s);
 }
 
 function commit() {
@@ -155,7 +158,7 @@ export function rollActions(state: GameState) {
 }
 
 function logProgress(state: GameState) {
-  pushLog(`進行: 階層${state.floorIndex + 1}/10 ステップ${state.stepIndex + 1}/5`, 'system');
+  pushLog(`進行: 階層${state.floorIndex + 1} - ${state.stepIndex + 1}/5`, 'system');
 }
 
 export function nextProgress(state: GameState) {
