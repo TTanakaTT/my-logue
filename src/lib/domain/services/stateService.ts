@@ -138,18 +138,7 @@ export function restart() {
   gameState.set(s);
 }
 
-function commit() {
-  gameState.update((s) => ({
-    ...s,
-    player: { ...s.player },
-    allies: s.allies.map((a) => ({ ...a })),
-    enemies: s.enemies.map((e) => ({ ...e })),
-    log: [...s.log]
-  }));
-}
-
-// ローカルの state 内容をそのまま store へ反映する強制コミット
-function commitState(state: GameState) {
+function commit(state: GameState) {
   gameState.set({
     ...state,
     player: { ...state.player },
@@ -190,7 +179,7 @@ export function nextProgress(state: GameState) {
         state.highestFloor = 10;
         localStorage.setItem(HIGH_KEY, String(state.highestFloor));
       }
-      commit();
+      commit(state);
       return;
     }
     state.stepIndex = 0;
@@ -198,7 +187,7 @@ export function nextProgress(state: GameState) {
   }
   state.phase = 'progress';
   logProgress(state);
-  commit();
+  commit(state);
 }
 
 export function chooseNode(state: GameState, kind: 'combat' | 'event' | 'rest' | 'boss') {
@@ -226,7 +215,7 @@ export function chooseNode(state: GameState, kind: 'combat' | 'event' | 'rest' |
   } else if (kind === 'rest') {
     state.phase = 'rest';
   }
-  commit();
+  commit(state);
 }
 
 export async function combatAction(state: GameState, id: Action) {
@@ -248,13 +237,13 @@ export async function combatAction(state: GameState, id: Action) {
   state.actionUseCount += 1;
   state.playerUsedActions?.push(id);
   // いったん反映し、エフェクトが終わるのを待つ
-  commit();
+  commit(state);
   await waitForAnimationsComplete();
   resyncFromStore(state);
   // 撃破整理（プレイヤー行動で全滅した可能性）
   removeDeadActors(state);
   if (state.enemies.length === 0 && state.phase !== 'combat') {
-    commit();
+    commit(state);
     return;
   }
   // 洞察(Reveal) は即座に永続化 (attributes + actions)
@@ -272,14 +261,14 @@ export async function combatAction(state: GameState, id: Action) {
       persistRevealInfo(enemy0.kind, state.floorIndex, enemy0);
     }
     // 即時反映: enemy も再ラップ済みなので commit 前に早期コミット
-    commit();
+    commit(state);
   }
   // 敵1体が倒れた場合もあるが、配列からはターン終了時に掃除する。
   if (state.actionUseCount >= state.player.maxActionsPerTurn) {
     // プレイヤーのターン終了 -> 味方AI -> 敵AI -> 次ターン開始
     await alliesTurn(state);
     if (state.phase !== 'combat') {
-      commit();
+      commit(state);
       return;
     }
     await enemiesTurn(state);
@@ -289,14 +278,14 @@ export async function combatAction(state: GameState, id: Action) {
       const ok = startTurn(state); // 敵ターン後の新ターン開始（毒などのターン開始エフェクトが発生）
       if (!ok) {
         // 何らかの理由でターン開始処理が途中で終了（死亡や勝敗確定）した場合
-        commitState(state);
+        commit(state);
         return;
       }
       await waitForAnimationsComplete();
       resyncFromStore(state);
     }
   }
-  commit();
+  commit(state);
 }
 
 // performActorAction は performAction に統合済み
@@ -313,7 +302,7 @@ async function alliesTurn(state: GameState) {
       acted.push(act);
       const target = state.enemies.find((e) => e.hp > 0);
       performAction(state, ally, target, act);
-      commit();
+      commit(state);
       await waitForAnimationsComplete();
       resyncFromStore(state);
       removeDeadActors(state);
@@ -335,7 +324,7 @@ async function enemiesTurn(state: GameState) {
       // 敵のターゲットはプレイヤー優先。将来は味方含めたヘイトなど拡張余地。
       const target = state.player.hp > 0 ? state.player : state.allies.find((a) => a.hp > 0);
       performAction(state, enemy, target, act);
-      commit();
+      commit(state);
       await waitForAnimationsComplete();
       resyncFromStore(state);
       if (state.player.hp <= 0) break;
@@ -388,7 +377,7 @@ function startTurn(state: GameState) {
           state.player.score += 1;
           removeDeadActors(state);
           if (state.phase !== 'combat') {
-            commitState(state);
+            commit(state);
             return false;
           }
         } else {
@@ -396,7 +385,7 @@ function startTurn(state: GameState) {
           state.allies = state.allies.filter((a) => a.hp > 0);
         }
       }
-      commitState(state);
+      commit(state);
       return false;
     }
   }
@@ -406,7 +395,7 @@ function startTurn(state: GameState) {
   state.player = { ...state.player };
   state.allies = state.allies.map((a) => ({ ...a }));
   state.enemies = state.enemies.map((e) => ({ ...e }));
-  commitState(state);
+  commit(state);
   return true;
 }
 
@@ -450,7 +439,7 @@ export function pickReward(state: GameState, id: string) {
         state.highestFloor = 10;
         localStorage.setItem(HIGH_KEY, String(state.highestFloor));
       }
-      commit();
+      commit(state);
       return;
     }
     state.stepIndex = 0;
@@ -462,7 +451,7 @@ export function pickReward(state: GameState, id: string) {
   state.rewardOptions = undefined;
   state.rewardIsBoss = false;
   logProgress(state);
-  commit();
+  commit(state);
 }
 
 export function restChoice(state: GameState, choice: 'heal' | 'maxhp') {
@@ -484,5 +473,5 @@ export function restChoice(state: GameState, choice: 'heal' | 'maxhp') {
   }
   state.stepIndex += 1;
   state.phase = 'progress';
-  commit();
+  commit(state);
 }
