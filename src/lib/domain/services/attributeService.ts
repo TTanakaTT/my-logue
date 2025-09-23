@@ -1,4 +1,5 @@
 import { pushCombatLog } from '$lib/presentation/utils/logUtil';
+import { showHeal } from '$lib/presentation/utils/effectBus';
 import type { Actor } from '../entities/Character';
 
 export function calcMaxHP(actor: Actor): number {
@@ -10,5 +11,7 @@ export function heal(_source: Actor, amount: number): number {
   const before = _source.hp;
   _source.hp = Math.min(max, _source.hp + amount);
   pushCombatLog(`${amount}回復。`, _source.side, _source.kind);
-  return _source.hp - before;
+  const healed = _source.hp - before;
+  if (healed > 0) showHeal(_source, healed);
+  return healed;
 }

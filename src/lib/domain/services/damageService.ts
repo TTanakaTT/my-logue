@@ -1,4 +1,5 @@
 import { pushCombatLog } from '$lib/presentation/utils/logUtil';
+import { showDamage } from '$lib/presentation/utils/effectBus';
 import type { Actor } from '../entities/Character';
 
 export function applyPhysicalDamage(source: Actor, target: Actor, amount: number) {
@@ -22,4 +23,5 @@ function applyDamage(_source: Actor, target: Actor, amount: number) {
   const damage = Math.ceil(amount);
   target.hp -= damage;
   pushCombatLog(`${damage}のダメージ！`, _source.side, _source.kind);
+  showDamage(target, damage);
 }

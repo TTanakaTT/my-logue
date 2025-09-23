@@ -4,6 +4,7 @@
   export let actor: Actor;
   export let side: 'player' | 'enemy' = 'player';
   import { SvelteMap } from 'svelte/reactivity';
+  import PanelEffectLayer from './PanelEffectLayer.svelte';
 
   type StatKey =
     | 'hp'
@@ -98,11 +99,16 @@
       return a.status.id.localeCompare(b.status.id);
     });
   })();
+  // 親から識別されるように panelKey を受け取る
+  export let panelKey: string = '';
 </script>
 
 <div
-  class={`rounded-lg p-3 text-xs space-y-1 bg-neutral-800/40 border-2 shadow-sm w-3xs panel-side-${side}`}
+  class={`relative rounded-lg p-3 text-xs space-y-1 bg-neutral-800/40 border-2 shadow-sm w-3xs panel-side-${side}`}
 >
+  {#if panelKey}
+    <PanelEffectLayer {panelKey} />
+  {/if}
   <div class="font-semibold mb-1 flex items-center gap-2">
     <span>{actor.name}</span>
   </div>

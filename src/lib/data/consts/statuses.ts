@@ -4,6 +4,7 @@
 import type { Actor } from '$lib/domain/entities/Character';
 import type { Status, StatusDef, StatusInstance } from '$lib/domain/entities/Status';
 import { pushCombatLog } from '$lib/presentation/utils/logUtil';
+import { playEffectOnActor } from '$lib/presentation/utils/effectBus';
 
 // ---- 定義一覧 ----
 export const status = {
@@ -29,6 +30,7 @@ export const status = {
       const dmg = 3; // 現仕様固定
       actor.hp -= dmg;
       pushCombatLog(`毒で${dmg}のダメージ！`, actor.side, actor.kind);
+      playEffectOnActor(actor, 'poison_tick', 500);
     },
     Immediate: false
   },

@@ -32,6 +32,11 @@ export function setLogState(state: GameState | undefined) {
   }
 }
 
+// 外部から現在の状態を読むための getter を公開
+export function getCurrentState(): GameState | undefined {
+  return getState();
+}
+
 // -----------------------------
 // 表示用: タイプライタ/キュー
 // -----------------------------
@@ -157,6 +162,7 @@ export const logUtil = {
   action: emitActionLog,
   register: registerLogStateProvider,
   setState: setLogState,
+  getCurrentState,
   displayLogs,
   resetDisplayLogs,
   seedInitialLogs

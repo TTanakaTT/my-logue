@@ -11,6 +11,7 @@
   import { getAction } from '$lib/data/repositories/actionRepository';
   import CharacterPanel from '$lib/presentation/components/CharacterPanel.svelte';
   import LogViewer from '$lib/presentation/components/LogViewer.svelte';
+  import { uiAnimating } from '$lib/presentation/utils/effectBus';
   // Svelteの$store構文を使用し手動subscribeを撤廃
   $: state = $gameState;
 
@@ -56,25 +57,25 @@
 <main>
   <!-- キャラクターパネル表示 -->
   <section class="rounded-lg mt-4 mb-4 mx-2 p-0">
-    <div class="flex flex-row gap-4 flex-wrap">
+    <div class="flex flex-row gap-4 flex-wrap relative">
       <!-- キーに全ステータスを含め POW/DEX/APP/INT 変化時も再描画されるようにする -->
       {#key [state.player.hp, state.player.STR, state.player.CON, state.player.POW, state.player.DEX, state.player.APP, state.player.INT, state.player.statuses
           .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
           .join(',')].join('|')}
-        <CharacterPanel actor={state.player} side="player" />
+        <CharacterPanel actor={state.player} side="player" panelKey="player" />
       {/key}
       {#each state.allies as ally, i (i)}
         {#key [ally.hp, ally.STR, ally.CON, ally.POW, ally.DEX, ally.APP, ally.INT, ally.statuses
             .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
             .join(',')].join('|')}
-          <CharacterPanel actor={ally} side="player" />
+          <CharacterPanel actor={ally} side="player" panelKey={`ally-${i}`} />
         {/key}
       {/each}
       {#each state.enemies as enemy, i (i)}
         {#key [enemy.hp, enemy.STR, enemy.CON, enemy.POW, enemy.DEX, enemy.APP, enemy.INT, enemy.statuses
             .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
             .join(',')].join('|')}
-          <CharacterPanel actor={enemy} side="enemy" />
+          <CharacterPanel actor={enemy} side="enemy" panelKey={`enemy-${i}`} />
         {/key}
       {/each}
     </div>
@@ -134,7 +135,7 @@
             {:else}
               <button
                 class="btn-base"
-                disabled={state.actionUseCount >= state.player.maxActionsPerTurn}
+                disabled={$uiAnimating || state.actionUseCount >= state.player.maxActionsPerTurn}
                 on:click={() => combatAction(state, id)}
               >
                 {getAction(id)?.name}

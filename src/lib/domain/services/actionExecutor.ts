@@ -4,6 +4,7 @@ import type { Action } from '$lib/domain/entities/Action';
 import type { Actor } from '$lib/domain/entities/Character';
 import type { GameState } from '$lib/domain/entities/BattleState';
 import { persistRevealedActions } from './stateService';
+import { triggerActionEffects } from '$lib/presentation/utils/effectBus';
 
 export interface PerformResult {
   actorDied?: Actor; // 行動で死亡したアクター (主に target)
@@ -29,6 +30,8 @@ export function performAction(
   const def = getAction(id);
   if (!def) return;
   emitActionLog(actor, target, def);
+  // UI: アクション開始時のエフェクトをトリガ
+  triggerActionEffects(actor, target, id);
   def.execute({ actor, target });
   let revealedAdded = false;
   if (actor.side === 'enemy') {

@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import type { GameState } from '../entities/BattleState';
 import type { Player, Actor, StatKey } from '../entities/Character';
 import { tickStatusesTurnStart } from '$lib/data/consts/statuses';
@@ -6,6 +6,7 @@ import type { Action } from '$lib/domain/entities/Action';
 import { calcMaxHP } from './attributeService';
 import { buildPlayerFromCsv, buildEnemyFromCsv } from '$lib/data/repositories/characterRepository';
 import { performAction } from './actionExecutor';
+import { waitForAnimationsComplete } from '$lib/presentation/utils/effectBus';
 import { randomEvent } from '$lib/domain/services/eventService';
 import { pushLog, setLogState, resetDisplayLogs } from '$lib/presentation/utils/logUtil';
 import { getRewardsForEnemy } from '$lib/data/repositories/rewardRepository';
@@ -147,6 +148,24 @@ function commit() {
   }));
 }
 
+// ローカルの state 内容をそのまま store へ反映する強制コミット
+function commitState(state: GameState) {
+  gameState.set({
+    ...state,
+    player: { ...state.player },
+    allies: state.allies.map((a) => ({ ...a })),
+    enemies: state.enemies.map((e) => ({ ...e })),
+    log: [...state.log]
+  });
+}
+
+// commit により store 内の参照が差し替わるため、呼び出し側引数 state を最新の store 値で再同期する
+function resyncFromStore(state: GameState) {
+  const cur = get(gameState);
+  // top-level プロパティを丸ごと差し替え、同一参照(state)を維持
+  Object.assign(state, cur);
+}
+
 export function rollActions(state: GameState) {
   // ガードはターン終了処理で自然消滅するためここでの手動解除は不要
   const pool = state.player.actions;
@@ -210,7 +229,7 @@ export function chooseNode(state: GameState, kind: 'combat' | 'event' | 'rest' |
   commit();
 }
 
-export function combatAction(state: GameState, id: Action) {
+export async function combatAction(state: GameState, id: Action) {
   if (state.phase !== 'combat') return;
   if (!state.actionOffer.includes(id)) return;
   if (state.playerUsedActions && state.playerUsedActions.includes(id)) return;
@@ -228,6 +247,10 @@ export function combatAction(state: GameState, id: Action) {
   state.enemies = state.enemies.map((e) => ({ ...e }));
   state.actionUseCount += 1;
   state.playerUsedActions?.push(id);
+  // いったん反映し、エフェクトが終わるのを待つ
+  commit();
+  await waitForAnimationsComplete();
+  resyncFromStore(state);
   // 撃破整理（プレイヤー行動で全滅した可能性）
   removeDeadActors(state);
   if (state.enemies.length === 0 && state.phase !== 'combat') {
@@ -254,20 +277,31 @@ export function combatAction(state: GameState, id: Action) {
   // 敵1体が倒れた場合もあるが、配列からはターン終了時に掃除する。
   if (state.actionUseCount >= state.player.maxActionsPerTurn) {
     // プレイヤーのターン終了 -> 味方AI -> 敵AI -> 次ターン開始
-    alliesTurn(state);
+    await alliesTurn(state);
     if (state.phase !== 'combat') {
       commit();
       return;
     }
-    enemiesTurn(state);
-    if (state.phase === 'combat') startTurn(state); // 敵ターン後の新ターン開始
+    await enemiesTurn(state);
+    if (state.phase === 'combat') {
+      // 敵ターンで store 参照が差し替わっている可能性があるため同期
+      resyncFromStore(state);
+      const ok = startTurn(state); // 敵ターン後の新ターン開始（毒などのターン開始エフェクトが発生）
+      if (!ok) {
+        // 何らかの理由でターン開始処理が途中で終了（死亡や勝敗確定）した場合
+        commitState(state);
+        return;
+      }
+      await waitForAnimationsComplete();
+      resyncFromStore(state);
+    }
   }
   commit();
 }
 
 // performActorAction は performAction に統合済み
 
-function alliesTurn(state: GameState) {
+async function alliesTurn(state: GameState) {
   // 味方は敵と同様に自動行動（敵AIとほぼ同じロジック）。
   for (const ally of state.allies.filter((a) => a.hp > 0)) {
     const acted: Action[] = [];
@@ -279,6 +313,9 @@ function alliesTurn(state: GameState) {
       acted.push(act);
       const target = state.enemies.find((e) => e.hp > 0);
       performAction(state, ally, target, act);
+      commit();
+      await waitForAnimationsComplete();
+      resyncFromStore(state);
       removeDeadActors(state);
       if (state.enemies.length === 0) break;
     }
@@ -286,7 +323,7 @@ function alliesTurn(state: GameState) {
   }
 }
 
-function enemiesTurn(state: GameState) {
+async function enemiesTurn(state: GameState) {
   for (const enemy of state.enemies.filter((e) => e.hp > 0)) {
     const acted: Action[] = [];
     const maxActs = enemy.maxActionsPerTurn;
@@ -298,6 +335,9 @@ function enemiesTurn(state: GameState) {
       // 敵のターゲットはプレイヤー優先。将来は味方含めたヘイトなど拡張余地。
       const target = state.player.hp > 0 ? state.player : state.allies.find((a) => a.hp > 0);
       performAction(state, enemy, target, act);
+      commit();
+      await waitForAnimationsComplete();
+      resyncFromStore(state);
       if (state.player.hp <= 0) break;
     }
     if (state.player.hp <= 0) break;
@@ -348,7 +388,7 @@ function startTurn(state: GameState) {
           state.player.score += 1;
           removeDeadActors(state);
           if (state.phase !== 'combat') {
-            commit();
+            commitState(state);
             return false;
           }
         } else {
@@ -356,7 +396,7 @@ function startTurn(state: GameState) {
           state.allies = state.allies.filter((a) => a.hp > 0);
         }
       }
-      commit();
+      commitState(state);
       return false;
     }
   }
@@ -366,7 +406,7 @@ function startTurn(state: GameState) {
   state.player = { ...state.player };
   state.allies = state.allies.map((a) => ({ ...a }));
   state.enemies = state.enemies.map((e) => ({ ...e }));
-  commit();
+  commitState(state);
   return true;
 }
 
