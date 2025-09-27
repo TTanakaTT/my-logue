@@ -1,3 +1,4 @@
+@import 'material-symbols/index.css';
 @import 'tailwindcss';
 
 @theme {
@@ -11,6 +12,19 @@
   --color-kind-rest: oklch(0.3696 0.0694 152.19);
   --color-side-player: var(--color-green-600);
   --color-side-enemy: var(--color-red-600);
+
+  /* Effect icon colors */
+  --color-guard-icon: var(--color-emerald-300);
+  --color-strike-attacker-icon: var(--color-amber-400);
+  --color-strike-hit-icon: var(--color-red-400);
+  --color-curse-cast-icon: var(--color-purple-300);
+  --color-poison-tick-icon: var(--color-violet-300);
+  --color-default-icon: var(--color-slate-300);
+
+  /* Floating numbers */
+  --color-float-damage-bg: color-mix(in oklab, var(--color-red-500) 90%, transparent);
+  --color-float-damage-fg: white;
+  --color-float-heal-bg: color-mix(in oklab, var(--color-emerald-500) 90%, transparent);
 }
 
 @layer utilities {
@@ -45,10 +59,109 @@
   .panel-side-enemy {
     border-color: var(--color-side-enemy);
   }
-  .text-bad {
-    color: var(--color-bad);
+
+  /* Effect animations and helpers (moved from component styles) */
+  @keyframes floatUp {
+    0% {
+      opacity: 0;
+      transform: translateY(8px) scale(0.9);
+    }
+    20% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-24px) scale(0.95);
+    }
   }
-  .text-good {
-    color: var(--color-good);
+  @keyframes pop {
+    0% {
+      transform: scale(0.6);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.05);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 0;
+    }
+  }
+  @keyframes punch {
+    0% {
+      transform: translateX(-30%) scale(0.7);
+      opacity: 0;
+    }
+    70% {
+      transform: translateX(0) scale(1.05);
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(10%) scale(0.98);
+      opacity: 0;
+    }
+  }
+  @keyframes burst {
+    0% {
+      transform: scale(0.6) rotate(-10deg);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.1) rotate(5deg);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(0.9) rotate(0deg);
+      opacity: 0;
+    }
+  }
+  @keyframes fadeup {
+    0% {
+      transform: translateY(12px) scale(0.8);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+  }
+  @keyframes wiggle {
+    0% {
+      transform: rotate(0deg);
+    }
+    25% {
+      transform: rotate(6deg);
+    }
+    50% {
+      transform: rotate(-6deg);
+    }
+    75% {
+      transform: rotate(4deg);
+    }
+    100% {
+      transform: rotate(0deg);
+      opacity: 0;
+    }
+  }
+
+  .animate-float-up {
+    animation: floatUp 1.5s ease-out forwards;
+  }
+  .animate-pop {
+    animation: pop 0.6s ease-out forwards;
+  }
+  .animate-punch {
+    animation: punch 0.35s ease-out forwards;
+  }
+  .animate-burst {
+    animation: burst 0.5s ease-out forwards;
+  }
+  .animate-fadeup {
+    animation: fadeup 0.45s ease-out forwards;
+  }
+  .animate-wiggle {
+    animation: wiggle 0.5s ease-out forwards;
   }
 }
