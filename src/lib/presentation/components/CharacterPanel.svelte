@@ -5,6 +5,7 @@
   export let side: 'player' | 'enemy' = 'player';
   import { SvelteMap } from 'svelte/reactivity';
   import PanelEffectLayer from './PanelEffectLayer.svelte';
+  import FloatingNumbersLayer from './FloatingNumbersLayer.svelte';
 
   type StatKey =
     | 'hp'
@@ -139,9 +140,14 @@
   </div>
   <div class="flex flex-row flex-wrap gap-2">
     {#each order as o (o.key)}
-      <div class="flex flex-col items-center">
+      <div class="flex flex-col items-center relative">
         <span class="text-gray-400">{o.label}</span>
         <span>{valueFor(o.key)}</span>
+        {#if o.key === 'hp'}
+          <div class="pointer-events-none absolute left-1/2 -top-1 z-60">
+            <FloatingNumbersLayer {panelKey} />
+          </div>
+        {/if}
       </div>
     {/each}
   </div>
