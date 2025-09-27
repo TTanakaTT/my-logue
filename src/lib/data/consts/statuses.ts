@@ -30,7 +30,8 @@ export const status = {
       const dmg = 3; // 現仕様固定
       actor.hp -= dmg;
       pushCombatLog(`毒で${dmg}のダメージ！`, actor.side, actor.kind);
-      playEffectOnActor(actor, 'poison_tick', 500);
+      // エフェクトIDは effectBus の定義 (PoisonTick) に合わせる
+      playEffectOnActor(actor, 'PoisonTick', 500);
     },
     Immediate: false
   },
