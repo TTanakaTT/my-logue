@@ -145,10 +145,26 @@ export function pushCombatLog(message: string, side: ActorSide, actorKind?: Acto
   append({ message, kind: 'combat', side, actorKind });
 }
 
-export function emitActionLog(actor: Actor, target: Actor | undefined, def: ActionDef) {
+export function emitActionLog(
+  actor: Actor,
+  target: Actor | undefined,
+  def: ActionDef,
+  opts?: { critical?: boolean }
+) {
   const state = getState();
   if (!state) return;
-  const message = def.log ? def.log({ actor, target, state }) : undefined;
+  let message: string | undefined;
+  const isCritical = !!opts?.critical;
+  const ext = def as ActionDef &
+    Partial<{
+      criticalLog: (ctx: { actor: Actor; target?: Actor; state: GameState }) => string | undefined;
+      normalLog: (ctx: { actor: Actor; target?: Actor; state: GameState }) => string | undefined;
+    }>;
+  if (isCritical && ext.criticalLog) {
+    message = ext.criticalLog({ actor, target, state });
+  } else if (!isCritical && ext.normalLog) {
+    message = ext.normalLog({ actor, target, state });
+  }
   if (!message) return;
   pushCombatLog(message, actor.side, actor.kind);
 }

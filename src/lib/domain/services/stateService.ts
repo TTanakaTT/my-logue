@@ -231,7 +231,8 @@ export async function combatAction(state: GameState, id: Action) {
   ) {
     target = state.enemies[state.selectedEnemyIndex];
   }
-  performAction(state, state.player, target, id);
+  const isCritical = state.actionOffer[0] === id; // 左端がクリティカル扱い
+  performAction(state, state.player, target, id, { isCritical });
   state.player = { ...state.player };
   state.enemies = state.enemies.map((e) => ({ ...e }));
   state.actionUseCount += 1;

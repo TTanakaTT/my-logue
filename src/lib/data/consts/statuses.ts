@@ -10,15 +10,31 @@ import { playEffectOnActor } from '$lib/presentation/utils/effectBus';
 export const status = {
   Guard: {
     name: 'ガード',
-    description: '物理ダメージ80%カット',
+    description: '物理ダメージ50%カット',
     ContinuousTurns: 1,
     apply: (actor) => {
-      const physDamageCutRate = 0.8;
+      const physDamageCutRate = 0.5;
       const physDamageThroughRate = (1 - actor.physDamageCutRate) * (1 - physDamageCutRate);
       actor.physDamageCutRate = 1 - physDamageThroughRate;
     },
     Immediate: true,
     badgeClass: 'bg-green-700/70 border-green-300'
+  },
+  Mikiri: {
+    name: '見切り',
+    description: '物理与ダメージ30%低下',
+    ContinuousTurns: 2,
+    // 与ダメージ減少。攻撃上昇(正)と同一の合成式を使うため負値を掛け合わせる形で蓄積
+    badgeClass: 'bg-blue-800/70 border-blue-300',
+    apply: (actor) => {
+      const physDamageDownRate = -0.3;
+      const physDamageThroughRate = (1 + actor.physDamageUpRate) * (1 + physDamageDownRate);
+      actor.physDamageUpRate = physDamageThroughRate - 1;
+      const psyDamageDownRate = -0.3;
+      const psyDamageThroughRate = (1 + actor.psyDamageUpRate) * (1 + psyDamageDownRate);
+      actor.psyDamageUpRate = psyDamageThroughRate - 1;
+    },
+    Immediate: true
   },
   Poison: {
     name: '毒',

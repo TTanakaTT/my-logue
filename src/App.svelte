@@ -126,19 +126,20 @@
         </div>
       {/if}
       <div class="flex flex-wrap gap-2">
-        {#each state.actionOffer as id (id)}
+        {#each state.actionOffer as id, idx (id)}
           {#if getAction(id)}
             {#if state.playerUsedActions && state.playerUsedActions.includes(id)}
               <button class="btn-base opacity-40 cursor-not-allowed line-through" disabled
-                >{getAction(id)?.name}</button
+                >{idx === 0 ? '★ ' : ''}{getAction(id)?.name}</button
               >
             {:else}
               <button
-                class="btn-base"
+                class={`btn-base ${idx === 0 ? 'border-amber-400 border-2 shadow-lg bg-amber-600/30' : ''}`}
                 disabled={$uiAnimating || state.actionUseCount >= state.player.maxActionsPerTurn}
                 on:click={() => combatAction(state, id)}
+                title={idx === 0 ? 'クリティカル (効果強化)' : getAction(id)?.description}
               >
-                {getAction(id)?.name}
+                {idx === 0 ? '★ ' : ''}{getAction(id)?.name}
               </button>
             {/if}
           {/if}

@@ -25,14 +25,23 @@ export function performAction(
   state: GameState,
   actor: Actor,
   target: Actor | undefined,
-  id: Action
+  id: Action,
+  opts?: { isCritical?: boolean }
 ): PerformResult | undefined {
   const def = getAction(id);
   if (!def) return;
-  emitActionLog(actor, target, def);
+  const isCritical = !!opts?.isCritical;
+  const logDef = def as Partial<{
+    normalAction: (ctx: { actor: Actor; target?: Actor }) => void;
+    criticalAction: (ctx: { actor: Actor; target?: Actor }) => void;
+  }>;
+  emitActionLog(actor, target, def, { critical: isCritical });
   // UI: アクション開始時のエフェクトをトリガ
   triggerActionEffects(actor, target, id);
-  def.execute({ actor, target });
+  // 実行: criticalAction > normalAction > execute(後方互換)
+  if (isCritical && logDef.criticalAction) logDef.criticalAction({ actor, target });
+  else if (!isCritical && logDef.normalAction) logDef.normalAction({ actor, target });
+  else if (logDef.normalAction) logDef.normalAction({ actor, target });
   let revealedAdded = false;
   if (actor.side === 'enemy') {
     if (!actor.revealedActions) actor.revealedActions = [];

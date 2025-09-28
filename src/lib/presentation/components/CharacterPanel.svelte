@@ -153,16 +153,16 @@
   </div>
   <div class="w-full flex flex-col gap-1">
     <div class="flex items-center gap-2">
-      <span class="text-gray-400">物理ダメージ</span>
-      <span>UP {valueFor('physUp')}</span>
-      <span class="text-gray-400">/</span>
-      <span>CUT {valueFor('physCut')}</span>
+      <span class="text-gray-400">物理</span>
+      <span>攻撃 {valueFor('physUp')}</span>
+      <span class="text-gray-400">|</span>
+      <span>防御 {valueFor('physCut')}</span>
     </div>
     <div class="flex items-center gap-2">
-      <span class="text-gray-400">精神ダメージ</span>
-      <span>UP {valueFor('psyUp')}</span>
-      <span class="text-gray-400">/</span>
-      <span>CUT {valueFor('psyCut')}</span>
+      <span class="text-gray-400">精神</span>
+      <span>攻撃 {valueFor('psyUp')}</span>
+      <span class="text-gray-400">|</span>
+      <span>防御 {valueFor('psyCut')}</span>
     </div>
   </div>
   <div class="mt-2">
