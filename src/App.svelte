@@ -21,15 +21,15 @@
   type NodeKindDisplay = 'normal' | 'elite' | 'boss' | 'event' | 'rest';
   function availableNodeKinds(stepIndex: number): NodeKindDisplay[] {
     switch (stepIndex) {
-      case 0:
-        return ['normal'];
       case 1:
-        return ['normal', 'event'];
+        return ['normal'];
       case 2:
-        return ['event', 'rest'];
+        return ['normal', 'event'];
       case 3:
-        return ['elite'];
+        return ['event', 'rest'];
       case 4:
+        return ['elite'];
+      case 5:
         return ['boss'];
       default:
         return ['normal'];
@@ -49,7 +49,7 @@
 <header
   class="bg-panel rounded-lg py-2 px-4 flex flex-wrap items-center gap-4 text-sm text-gray-200"
 >
-  <div>階層: {state.floorIndex + 1} - {state.stepIndex + 1}/5</div>
+  <div>階層: {state.floorIndex} - {state.stepIndex}/5</div>
   <div>撃破数: {state.player.score}</div>
   <div>最高到達階層: {state.highestFloor}</div>
 </header>

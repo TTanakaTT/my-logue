@@ -111,8 +111,8 @@ export function createEnemy(kind: 'normal' | 'elite' | 'boss', floorIndex: numbe
 function initState(): GameState {
   const highest = Number(localStorage.getItem(HIGH_KEY) || '0');
   return {
-    floorIndex: 0,
-    stepIndex: 0,
+    floorIndex: 1,
+    stepIndex: 1,
     phase: 'progress',
     player: basePlayer(),
     allies: [],
@@ -166,11 +166,11 @@ export function rollActions(state: GameState) {
 }
 
 function logProgress(state: GameState) {
-  pushLog(`進行: 階層${state.floorIndex + 1} - ${state.stepIndex + 1}/5`, 'system');
+  pushLog(`進行: 階層${state.floorIndex} - ${state.stepIndex}/5`, 'system');
 }
 
 export function nextProgress(state: GameState) {
-  if (state.stepIndex === 4) {
+  if (state.stepIndex === 5) {
     state.floorIndex += 1;
     if (state.floorIndex >= 10) {
       state.phase = 'victory';
@@ -182,7 +182,7 @@ export function nextProgress(state: GameState) {
       commit(state);
       return;
     }
-    state.stepIndex = 0;
+    state.stepIndex = 1;
     logProgress(state);
   }
   state.phase = 'progress';
@@ -194,7 +194,7 @@ export function chooseNode(state: GameState, kind: 'combat' | 'event' | 'rest' |
   if (kind === 'combat' || kind === 'boss') {
     // 4ステップ目(= index 3) の戦闘は elite とする (ボス除く)
     const enemyKind: 'normal' | 'elite' | 'boss' =
-      kind === 'boss' ? 'boss' : state.stepIndex === 3 ? 'elite' : 'normal';
+      kind === 'boss' ? 'boss' : state.stepIndex === 4 ? 'elite' : 'normal';
     // 複数戦闘: ひとまず1体生成だが配列にする。将来的に複数生成に拡張可能。
     state.enemies = [createEnemy(enemyKind, state.floorIndex)];
     state.selectedEnemyIndex = 0;
@@ -446,7 +446,7 @@ export function pickReward(state: GameState, id: string) {
       commit(state);
       return;
     }
-    state.stepIndex = 0;
+    state.stepIndex = 1;
     logProgress(state);
     state.phase = 'progress';
   } else {

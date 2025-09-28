@@ -7,8 +7,8 @@ interface RowCommon {
   id: string;
   kind: ActorKind;
   name: string;
-  floorMin: number;
-  floorMax: number;
+  floorMin?: number;
+  floorMax?: number;
   STR: number;
   CON: number;
   POW: number;
@@ -110,9 +110,18 @@ export function buildPlayerFromCsv(): Player {
 }
 
 export function pickEnemyRow(kind: 'normal' | 'elite' | 'boss', floorIndex: number) {
-  return enemyRows.find(
-    (r) => r.kind === kind && floorIndex >= r.floorMin && floorIndex <= r.floorMax
-  );
+  /**
+   * 指定階層に出現可能かを判定する。CSV で floorMin / floorMax が空の場合は無制限扱い。
+   *
+   * floorMin, floorMax は CSV 上で未入力の場合 undefined 扱いとなるため、
+   * TypeScript の strictNullChecks 下で比較可能なようにフォールバックする。
+   */
+  const inFloor = (r: RowCommon) => {
+    const min = r.floorMin ?? Number.NEGATIVE_INFINITY;
+    const max = r.floorMax ?? Number.POSITIVE_INFINITY;
+    return floorIndex >= min && floorIndex <= max;
+  };
+  return enemyRows.find((r) => r.kind === kind && inFloor(r));
 }
 
 export function buildEnemyFromCsv(kind: 'normal' | 'elite' | 'boss', floorIndex: number): Actor {

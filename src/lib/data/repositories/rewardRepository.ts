@@ -8,7 +8,7 @@ import { pushLog } from '$lib/presentation/utils/logUtil';
 import type { Player } from '$lib/domain/entities/Character';
 import { addStatus, findStatus, removeStatus } from '$lib/data/consts/statuses';
 
-// rewards.csv: id(number),kind,name,label
+// rewards.csv: id(number),kind,name,label,floorMin?,floorMax?
 // reward_detail.csv: rewardName,type,target,value,extra
 //   type: stat|action|dots
 
@@ -19,6 +19,8 @@ interface RewardRow {
   name: string; // 論理名
   kind: RawKind;
   label: string;
+  floorMin?: number; // 出現下限 (0-index の floorIndex)
+  floorMax?: number; // 出現上限 (0-index)
 }
 
 interface RewardDetailRow {
@@ -29,6 +31,12 @@ interface RewardDetailRow {
   extra: string; // optional
 }
 
+/**
+ * 汎用 CSV パーサ (極小仕様)。
+ * - # から始まる行はコメントとして除外
+ * - 空行は除外
+ * - 先頭/末尾の空白はトリム
+ */
 function parse(csvRaw: string): string[][] {
   return csvRaw
     .split(/\r?\n/)
@@ -40,13 +48,18 @@ function parse(csvRaw: string): string[][] {
 const rewardRows: RewardRow[] = parse(rewardCsvRaw)
   .slice(1)
   .map((cols) => {
-    const [idStr, kindRaw, name, label] = cols;
+    // 可変長 (後方互換)。旧: id,kind,name,label / 新: + floorMin,floorMax
+    const [idStr, kindRaw, name, label, floorMinStr, floorMaxStr] = cols;
     const id = Number(idStr);
     if (Number.isNaN(id)) throw new Error(`rewards.csv invalid numeric id: ${idStr}`);
     if (!kindRaw.startsWith('enemy_')) {
       throw new Error(`Invalid kind in rewards.csv (must start with enemy_): ${kindRaw}`);
     }
-    return { id, name, kind: kindRaw as RawKind, label };
+    const floorMin =
+      floorMinStr !== undefined && floorMinStr !== '' ? Number(floorMinStr) : undefined;
+    const floorMax =
+      floorMaxStr !== undefined && floorMaxStr !== '' ? Number(floorMaxStr) : undefined;
+    return { id, name, kind: kindRaw as RawKind, label, floorMin, floorMax };
   });
 
 const detailRows: RewardDetailRow[] = parse(rewardDetailCsvRaw)
@@ -83,6 +96,7 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
           | 'maxActionsPerTurn'
           | 'maxActionChoices'
           | 'score'
+          | 'maxActionsPerTurn'
         >;
         const numericKeys: Record<string, NumericPlayerStat> = {
           STR: 'STR',
@@ -97,6 +111,9 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
           s.player[key] += amount;
           recalcPlayer(s.player);
           pushLog(`${key}+${amount}`, 'system');
+        } else if (d.target === 'maxActionsPerTurn') {
+          s.player.maxActionsPerTurn += amount;
+          pushLog(`行動回数+${amount}`, 'system');
         }
       }
       break;
@@ -143,9 +160,22 @@ function shuffle<T>(arr: T[]) {
   return arr;
 }
 
+/**
+ * 指定の敵種別に対する報酬候補を生成する。
+ * 1. rewards.csv から kind (= enemy_*) に一致し、floor 範囲 (floorMin/floorMax) を満たす行を抽出
+ * 2. action 報酬で既に所持しているものを除外
+ * 3. ボス戦で 1F 限定の行動回数+1 報酬 (act_slot_up1) を強制的に含め、残りをランダムで補完
+ * 4. 最大3件 (限定含む) を返す
+ */
 export function getRewardsForEnemy(state: GameState, enemyKind: string): RewardOption[] {
   const rawKind = `enemy_${enemyKind}` as RawKind;
-  const candidates = rewardRows.filter((r) => r.kind === rawKind);
+  const floor = state.floorIndex; // 0-index
+  const candidates = rewardRows.filter((r) => {
+    if (r.kind !== rawKind) return false;
+    if (r.floorMin !== undefined && floor < r.floorMin) return false;
+    if (r.floorMax !== undefined && floor > r.floorMax) return false;
+    return true;
+  });
 
   // アクション報酬のうち既所持のものは除外
   const filtered = candidates.filter((row) => {
@@ -158,9 +188,16 @@ export function getRewardsForEnemy(state: GameState, enemyKind: string): RewardO
     return true;
   });
 
-  const picked = shuffle(filtered.slice())
-    .slice(0, 3)
-    .sort((a, b) => a.id - b.id);
+  // ボス戦かつ限定報酬(行動回数+1) が候補内にある場合は必ず含める
+  const limited: RewardRow[] = [];
+  if (enemyKind === 'boss') {
+    const actSlot = filtered.find((r) => r.name === 'act_slot_up1');
+    if (actSlot) limited.push(actSlot);
+  }
+
+  const restPool = filtered.filter((r) => !limited.includes(r));
+  const pickedRandom = shuffle(restPool.slice()).slice(0, Math.max(0, 3 - limited.length));
+  const picked = [...limited, ...pickedRandom].sort((a, b) => a.id - b.id);
 
   return picked.map<RewardOption>((row) => ({
     id: String(row.id),
