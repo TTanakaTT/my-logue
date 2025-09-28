@@ -76,16 +76,36 @@ export function removeStatusInstance(actor: Actor, inst: StatusInstance) {
   actor.statuses = actor.statuses.filter((s) => s !== inst);
 }
 
+/**
+ * 対象アクターの "自ターン開始時" にのみ呼び出す。
+ * 仕様変更: 以前は全アクターを一括処理していたため Guard / AttackUp (Immediate) が
+ * 直後に失効してしまっていた。現在は以下の順序で処理する:
+ * 1. 一旦一時効果(攻撃/防御補正)をリセット
+ * 2. Immediate=true のステータス: remainingTurns が 1 のものはこのターンで失効するため適用せず、それ以外は再計算目的で apply 実行
+ * 3. Immediate=false のステータス: apply (継続効果 / ダメージ等) を実行
+ * 4. すべてのステータスについて残ターンを 1 減算し、0 以下を削除
+ *    -> Guard(1T) は付与ターン終了後、対象の次ターン開始で効果を再適用せず即削除されるため
+ *       「付与直後～次ターン開始直前」まで有効となる。Poison(3T) は 3 回ダメージ tick する。
+ */
 export function tickStatusesTurnStart(actor: Actor) {
   resetStatusesEffects(actor);
-  // 1. ターン開始時効果適用
+  // Immediate ステ (永続再計算系) を first-pass: 失効予定(remaining=1)は適用しない
+  for (const inst of actor.statuses) {
+    const def = status[inst.id];
+    if (def.Immediate && def.apply) {
+      if (inst.remainingTurns === undefined || inst.remainingTurns > 1) {
+        def.apply(actor);
+      }
+    }
+  }
+  // 非 Immediate ステ (ターン開始で効果発動するもの: 毒など)
   for (const inst of [...actor.statuses]) {
     const def = status[inst.id];
     if (!def.Immediate && def.apply) {
       def.apply(actor);
     }
   }
-  // 2. 残ターン共通減算 + 期限切れ削除
+  // 残ターン減算 & 失効
   for (const inst of [...actor.statuses]) {
     if (inst.remainingTurns !== undefined) {
       inst.remainingTurns -= 1;

@@ -313,6 +313,19 @@ async function alliesTurn(state: GameState) {
 }
 
 async function enemiesTurn(state: GameState) {
+  // 敵ターン開始: 生存している敵それぞれの自ターン開始ステータス処理
+  for (const enemy of state.enemies.filter((e) => e.hp > 0)) {
+    tickStatusesTurnStart(enemy);
+    if (enemy.hp <= 0) {
+      pushLog('敵を継続ダメージで倒した!', 'combat');
+      state.player.score += 1;
+      removeDeadActors(state);
+      if (state.phase !== 'combat') {
+        commit(state);
+        return;
+      }
+    }
+  }
   for (const enemy of state.enemies.filter((e) => e.hp > 0)) {
     const acted: Action[] = [];
     const maxActs = enemy.maxActionsPerTurn;
@@ -363,7 +376,8 @@ function removeDeadActors(state: GameState) {
 }
 
 function startTurn(state: GameState) {
-  const actors: Actor[] = [state.player, ...state.allies, ...state.enemies];
+  // プレイヤー/味方のターン開始時のみ自側のステータスを tick
+  const actors: Actor[] = [state.player, ...state.allies];
   for (const actor of actors) {
     tickStatusesTurnStart(actor);
     if (actor.hp <= 0) {
@@ -371,19 +385,8 @@ function startTurn(state: GameState) {
         state.phase = 'gameover';
         pushLog('毒で倒れた...', 'system');
       } else {
-        // 味方 or 敵が継続ダメージで倒れた
-        if (actor.side === 'enemy') {
-          pushLog('敵を継続ダメージで倒した!', 'combat');
-          state.player.score += 1;
-          removeDeadActors(state);
-          if (state.phase !== 'combat') {
-            commit(state);
-            return false;
-          }
-        } else {
-          pushLog('味方が継続ダメージで倒れた...', 'combat');
-          state.allies = state.allies.filter((a) => a.hp > 0);
-        }
+        pushLog('味方が継続ダメージで倒れた...', 'combat');
+        state.allies = state.allies.filter((a) => a.hp > 0);
       }
       commit(state);
       return false;
