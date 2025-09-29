@@ -1,9 +1,9 @@
 import { writable, get } from 'svelte/store';
-import type { GameState } from '../entities/BattleState';
-import type { Player, Actor, StatKey } from '../entities/Character';
+import type { GameState } from '$lib/domain/entities/BattleState';
+import type { Player, Actor, StatKey } from '$lib/domain/entities/Character';
 import { tickStatusesTurnStart } from '$lib/data/consts/statuses';
 import type { Action } from '$lib/domain/entities/Action';
-import { calcMaxHP } from './attributeService';
+import { calcMaxHP } from '$lib/domain/services/attributeService';
 import { buildPlayerFromCsv, buildEnemyFromCsv } from '$lib/data/repositories/characterRepository';
 import { performAction } from './actionExecutor';
 import { waitForAnimationsComplete } from '$lib/presentation/utils/effectBus';

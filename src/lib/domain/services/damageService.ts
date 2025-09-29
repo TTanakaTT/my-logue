@@ -1,6 +1,6 @@
 import { pushCombatLog } from '$lib/presentation/utils/logUtil';
 import { showDamage } from '$lib/presentation/utils/effectBus';
-import type { Actor } from '../entities/Character';
+import type { Actor } from '$lib/domain/entities/Character';
 
 export function applyPhysicalDamage(source: Actor, target: Actor, amount: number) {
   const up = source.physDamageUpRate || 0;

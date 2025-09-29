@@ -1,7 +1,7 @@
 import charactersCsvRaw from '$lib/data/consts/characters.csv?raw';
 import { ACTOR_KINDS } from '$lib/domain/entities/Character';
 import type { ActorKind, Actor, Player } from '$lib/domain/entities/Character';
-import type { Action } from '../../domain/entities/Action';
+import type { Action } from '$lib/domain/entities/Action';
 
 interface RowCommon {
   id: string;

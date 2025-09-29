@@ -1,4 +1,4 @@
-import type { Player, Actor, ActorSide, ActorKind } from './Character';
+import type { Player, Actor, ActorSide, ActorKind } from '$lib/domain/entities/Character';
 import type { Action } from '$lib/domain/entities/Action';
 
 export type Phase = 'progress' | 'combat' | 'event' | 'rest' | 'reward' | 'victory' | 'gameover';

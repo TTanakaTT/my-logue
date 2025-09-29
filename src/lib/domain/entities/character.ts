@@ -1,5 +1,5 @@
 import type { Action } from '$lib/domain/entities/Action';
-import type { StatusInstance } from './Status';
+import type { StatusInstance } from '$lib/domain/entities/Status';
 
 export type ActorKind = 'normal' | 'elite' | 'boss' | 'player';
 export const ACTOR_KINDS: ActorKind[] = ['normal', 'elite', 'boss', 'player'];

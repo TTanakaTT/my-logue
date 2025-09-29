@@ -1,6 +1,6 @@
-import type { Actor } from './Character';
+import type { Actor } from '$lib/domain/entities/Character';
 
-import type { status } from '../../data/consts/statuses';
+import type { status } from '$lib/data/consts/statuses';
 
 export interface StatusDef {
   name: string; // UI表示

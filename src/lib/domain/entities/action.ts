@@ -1,6 +1,6 @@
-import type { GameState } from './BattleState';
-import type { Actor } from './Character';
-import type { action } from '../../data/consts/actions';
+import type { GameState } from '$lib/domain/entities/BattleState';
+import type { Actor } from '$lib/domain/entities/Character';
+import type { action } from '$lib/data/consts/actions';
 
 /**
  * アクション定義。

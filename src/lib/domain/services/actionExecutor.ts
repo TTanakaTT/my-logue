@@ -3,7 +3,7 @@ import { getAction } from '$lib/data/repositories/actionRepository';
 import type { Action } from '$lib/domain/entities/Action';
 import type { Actor } from '$lib/domain/entities/Character';
 import type { GameState } from '$lib/domain/entities/BattleState';
-import { persistRevealedActions } from './stateService';
+import { persistRevealedActions } from '$lib/domain/services/stateService';
 import { triggerActionEffects } from '$lib/presentation/utils/effectBus';
 
 export interface PerformResult {
