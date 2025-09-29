@@ -28,12 +28,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: Expected screenshots
+          name: Screenshots
           path: tests/e2e/*.spec.ts-snapshots
-          retention-days: 30
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: Reports
-          path: playwright-report/
           retention-days: 30
