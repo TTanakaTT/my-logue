@@ -26,6 +26,8 @@ export interface GameState {
   stepIndex: number;
   phase: Phase;
   player: Player;
+  /** プレイヤー名がユーザーにより確定済みか。未確定ならリスタート/初期進行前に入力UIを表示する */
+  playerNameCommitted?: boolean;
   /** 味方（プレイヤー以外） */
   allies: Actor[];
   /** 現在の戦闘中の敵（複数対応） */

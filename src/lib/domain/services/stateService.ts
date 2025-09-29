@@ -5,6 +5,7 @@ import { tickStatusesTurnStart } from '$lib/data/consts/statuses';
 import type { Action } from '$lib/domain/entities/Action';
 import { calcMaxHP } from '$lib/domain/services/attributeService';
 import { buildPlayerFromCsv, buildEnemyFromCsv } from '$lib/data/repositories/characterRepository';
+import { randomName } from '$lib/data/repositories/random_name_repository';
 import { performAction } from './actionExecutor';
 import { waitForAnimationsComplete } from '$lib/presentation/utils/effectBus';
 import { randomEvent } from '$lib/domain/services/eventService';
@@ -82,6 +83,9 @@ export function recalcPlayer(p: Player) {
 
 function basePlayer(): Player {
   const p = buildPlayerFromCsv();
+  // 初期プレイヤー名: mineral.csv のカタカナ列からランダム選択
+  // 既存 CSV の name は雛形的に保持しつつ上書き (ユーザー確定前は自由に再生成されるため本関数のみ)
+  p.name = randomName();
   p.hp = calcMaxHP(p);
   return p;
 }
@@ -115,6 +119,7 @@ function initState(): GameState {
     stepIndex: 1,
     phase: 'progress',
     player: basePlayer(),
+    playerNameCommitted: false,
     allies: [],
     enemies: [],
     selectedEnemyIndex: undefined,
@@ -136,6 +141,22 @@ export function restart() {
   // 表示ログのリセットと初期1行のシード
   resetDisplayLogs();
   gameState.set(s);
+}
+
+/**
+ * プレイヤー名をユーザー入力で確定する。空文字や空白のみは無視。
+ * 確定後は playerNameCommitted を true にし再入力UIを隠す。
+ */
+export function commitPlayerName(newName: string) {
+  const trimmed = (newName || '').trim();
+  if (!trimmed) return;
+  gameState.update((s) => {
+    s.player.name = trimmed;
+    s.player = { ...s.player };
+    s.playerNameCommitted = true;
+    pushLog(`プレイヤー名を「${trimmed}」に設定`, 'system');
+    return { ...s };
+  });
 }
 
 function commit(state: GameState) {
