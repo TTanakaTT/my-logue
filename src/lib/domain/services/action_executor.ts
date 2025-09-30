@@ -3,7 +3,7 @@ import { getAction } from '$lib/data/repositories/action_repository';
 import type { Action } from '$lib/domain/entities/action';
 import type { Actor } from '$lib/domain/entities/character';
 import type { GameState } from '$lib/domain/entities/battle_state';
-import { persistRevealedActions } from '$lib/domain/services/state_service';
+import { addKnownActions } from '$lib/domain/services/state_service';
 import { triggerActionEffects } from '$lib/presentation/utils/effectBus';
 
 export interface PerformResult {
@@ -40,7 +40,7 @@ export function performAction(
       actor.revealedActions.push(id);
       revealedAdded = true;
       if (actor.kind !== 'player') {
-        persistRevealedActions(actor.kind, state.floorIndex, actor.revealedActions);
+        addKnownActions(actor.name, actor.revealedActions);
       }
     }
   }

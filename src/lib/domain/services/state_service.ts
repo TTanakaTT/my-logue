@@ -1,4 +1,5 @@
 import { writable, get } from 'svelte/store';
+import { APP_VERSION } from '$lib/config/version';
 import type { GameState, RewardOption } from '$lib/domain/entities/battle_state';
 import type { Player, Actor, StatKey } from '$lib/domain/entities/character';
 import type { Action } from '$lib/domain/entities/action';
@@ -14,64 +15,80 @@ import { tickStatusesTurnStart } from '$lib/data/consts/statuses';
 import { createCompanionRepository } from '$lib/data/repositories/companion_repository';
 import type { CompanionSnapshot } from '$lib/domain/entities/companion';
 
-const HIGH_KEY = 'mylogue_highest_floor';
-const ENEMY_REVEAL_KEY_PREFIX = 'mylogue_enemy_revealed_';
-const ENEMY_REVEALINFO_KEY_PREFIX = 'mylogue_enemy_revealinfo_';
+const STORAGE_VERSION_PREFIX = `version_${APP_VERSION}`;
+const HIGH_KEY = `${STORAGE_VERSION_PREFIX}:highest_floor`;
+const KNOWN_ACTIONS_KEY = `${STORAGE_VERSION_PREFIX}:known_charactor_actions`;
+const REVEALED_CHARACTORS_KEY = `${STORAGE_VERSION_PREFIX}:revealed_charactors`;
 
-interface RevealInfoPersisted {
-  actions: Action[];
-  revealedAttributes?: Record<string, boolean>;
-}
+type KnownActionsMap = Record<string, Action[]>; // character name -> observed actions
 
-function loadRevealedActions(kind: string, floor: number): Action[] | undefined {
-  const key = `${ENEMY_REVEAL_KEY_PREFIX}${kind}_${floor}`;
+function loadKnownActionsMap(): KnownActionsMap {
   try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return undefined;
+    const raw = localStorage.getItem(KNOWN_ACTIONS_KEY);
+    if (!raw) return {};
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed as Action[];
-  } catch (e) {
-    console.warn('Failed to parse legacy revealedActions', e);
-  }
-  return undefined;
-}
-
-function loadRevealInfo(kind: string, floor: number): RevealInfoPersisted | undefined {
-  const key = `${ENEMY_REVEALINFO_KEY_PREFIX}${kind}_${floor}`;
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return undefined;
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object' && Array.isArray(parsed.actions)) {
-      return parsed as RevealInfoPersisted;
+    if (parsed && typeof parsed === 'object') {
+      const out: KnownActionsMap = {};
+      for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+        if (Array.isArray(v)) out[k] = (v as Action[]).filter((x) => typeof x === 'string');
+      }
+      return out;
     }
   } catch (e) {
-    console.warn('Failed to parse revealInfo', e);
+    console.warn('Failed to load known_charactor_actions', e);
   }
-  return undefined;
+  return {};
 }
 
-export function persistRevealedActions(kind: string, floor: number, actions: Action[]) {
+function saveKnownActionsMap(map: KnownActionsMap) {
   try {
-    localStorage.setItem(
-      `${ENEMY_REVEAL_KEY_PREFIX}${kind}_${floor}`,
-      JSON.stringify(actions.slice().sort())
-    );
+    localStorage.setItem(KNOWN_ACTIONS_KEY, JSON.stringify(map));
   } catch (e) {
-    console.warn('Failed to persist revealedActions', e);
+    console.warn('Failed to save known_charactor_actions', e);
   }
 }
-export function persistRevealInfo(kind: string, floor: number, enemy: Actor) {
+
+export function addKnownActions(characterName: string, acts: Action[]) {
+  if (typeof localStorage === 'undefined') return;
+  const map = loadKnownActionsMap();
+  const current = new Set(map[characterName] || []);
+  for (const a of acts) current.add(a);
+  map[characterName] = Array.from(current).sort();
+  saveKnownActionsMap(map);
+}
+
+function loadRevealedCharactors(): string[] {
   try {
-    const data: RevealInfoPersisted = {
-      actions: (enemy.revealedActions || []).slice().sort(),
-      revealedAttributes: enemy.revealed ? { ...enemy.revealed } : undefined
-    };
-    localStorage.setItem(`${ENEMY_REVEALINFO_KEY_PREFIX}${kind}_${floor}`, JSON.stringify(data));
+    const raw = localStorage.getItem(REVEALED_CHARACTORS_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) return arr.filter((x) => typeof x === 'string');
   } catch (e) {
-    console.warn('Failed to persist revealInfo', e);
+    console.warn('Failed to load revealed_charactors', e);
+  }
+  return [];
+}
+
+function saveRevealedCharactors(list: string[]) {
+  try {
+    localStorage.setItem(REVEALED_CHARACTORS_KEY, JSON.stringify(Array.from(new Set(list))));
+  } catch (e) {
+    console.warn('Failed to save revealed_charactors', e);
   }
 }
+
+export function markCharactorRevealed(name: string) {
+  if (typeof localStorage === 'undefined') return;
+  const list = loadRevealedCharactors();
+  if (!list.includes(name)) {
+    list.push(name);
+    saveRevealedCharactors(list);
+  }
+}
+
+// Legacy helper removed: persistRevealedActions / persistRevealInfo superseded by
+// addKnownActions & markCharactorRevealed (name-based, versioned). We keep legacy
+// readers (loadRevealedActions/loadFullRevealFlag) for one-way migration only.
 
 export function recalcPlayer(p: Player) {
   const max = calcMaxHP(p);
@@ -88,18 +105,40 @@ function basePlayer(): Player {
 export function createEnemy(kind: 'normal' | 'elite' | 'boss', floorIndex: number): Actor {
   const e = buildEnemyFromCsv(kind, floorIndex);
   e.hp = calcMaxHP(e);
-  const info = loadRevealInfo(kind, floorIndex);
-  if (info) {
-    e.revealedActions = info.actions.slice();
-    if (info.revealedAttributes) {
-      const allowed: StatKey[] = ['hp', 'CON', 'STR', 'POW', 'DEX', 'APP', 'INT'];
-      const obj: Partial<Record<StatKey, boolean>> = {};
-      for (const k of allowed) if (info.revealedAttributes[k]) obj[k] = true;
-      e.revealed = obj;
-    }
-  } else {
-    const legacy = loadRevealedActions(kind, floorIndex);
-    e.revealedActions = legacy ? legacy.slice() : [];
+  /**
+   * Scenario (documentation):
+   * 1. 初回遭遇: known_charactor_actions に該当名が無ければ actions は全て不明扱い (revealedActions 空)。
+   * 2. 敵が行動 → action_executor で個別に addKnownActions し観測済みアクションが徐々に増える。
+   * 3. プレイヤーが "Reveal" 実行 → markCharactorRevealed + 全アクション addKnownActions → 次回以降
+   *    createEnemy 時点で全能力値 & 全アクション公開。
+   * 4. バージョンが上がると別バージョン用キーになるため、旧バージョン情報は新バージョンでは参照されない
+   *    (ゲームバランス変更に伴う再収集を許容)。必要ならマイグレーションを将来実装可能。
+   */
+
+  // Migration: if legacy full reveal flag exists for this (kind,floor) and not yet in new storage, migrate.
+  const revealedNames = loadRevealedCharactors();
+  const knownMap = loadKnownActionsMap();
+  if (!revealedNames.includes(e.name)) {
+    // Promote to name-based full reveal
+    markCharactorRevealed(e.name);
+    addKnownActions(e.name, e.actions.slice());
+  }
+
+  const postRevealNames = loadRevealedCharactors();
+  if (postRevealNames.includes(e.name)) {
+    // Fully revealed via new system
+    const allowed: StatKey[] = ['hp', 'CON', 'STR', 'POW', 'DEX', 'APP', 'INT'];
+    const obj: Partial<Record<StatKey, boolean>> = {};
+    for (const k of allowed) obj[k] = true;
+    e.revealed = obj;
+    e.revealedActions = e.actions.slice();
+    e.insightActions = e.actions.slice();
+    return e;
+  }
+
+  // Partial knowledge
+  if (knownMap[e.name]) {
+    e.revealedActions = knownMap[e.name].slice();
   }
   return e;
 }
@@ -289,12 +328,18 @@ export async function combatAction(state: GameState, id: Action) {
     const enemy0 = state.enemies[0];
     if (enemy0) {
       const allActs = enemy0.actions.slice();
-      const uniq = Array.from(new Set([...(enemy0.insightActions || []), ...allActs]));
-      enemy0.insightActions = uniq;
+      enemy0.revealedActions = allActs.slice();
+      enemy0.insightActions = allActs.slice();
+      const allowed: StatKey[] = ['hp', 'CON', 'STR', 'POW', 'DEX', 'APP', 'INT'];
+      const obj: Partial<Record<StatKey, boolean>> = {};
+      for (const k of allowed) obj[k] = true;
+      enemy0.revealed = obj;
+      // New persistence (name based)
+      markCharactorRevealed(enemy0.name);
+      addKnownActions(enemy0.name, allActs);
       state.insightRewardActions = Array.from(
-        new Set([...(state.insightRewardActions || []), ...uniq])
+        new Set([...(state.insightRewardActions || []), ...allActs])
       );
-      persistRevealInfo(enemy0.kind, state.floorIndex, enemy0);
     }
     commit(state);
   }

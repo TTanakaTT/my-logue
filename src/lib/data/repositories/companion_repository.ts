@@ -1,6 +1,8 @@
 import type { CompanionSnapshot } from '$lib/domain/entities/companion';
+import { APP_VERSION } from '$lib/config/version';
 
-const STORAGE_KEY = 'mylogue:companions';
+const STORAGE_VERSION_PREFIX = `version_${APP_VERSION}`;
+const STORAGE_KEY = `${STORAGE_VERSION_PREFIX}:companions`;
 const MAX_COMPANIONS = 3;
 
 function safeParse(json: string | null): CompanionSnapshot[] {
