@@ -1,7 +1,16 @@
 import type { Player, Actor, ActorSide, ActorKind } from '$lib/domain/entities/character';
 import type { Action } from '$lib/domain/entities/action';
+import type { CompanionSnapshot } from '$lib/domain/entities/companion';
 
-export type Phase = 'progress' | 'combat' | 'event' | 'rest' | 'reward' | 'victory' | 'gameover';
+export type Phase =
+  | 'companion_select'
+  | 'progress'
+  | 'combat'
+  | 'event'
+  | 'rest'
+  | 'reward'
+  | 'victory'
+  | 'gameover';
 export type RewardKind = 'normal' | 'boss';
 
 export interface LogEntry {
@@ -26,6 +35,8 @@ export interface GameState {
   stepIndex: number;
   phase: Phase;
   player: Player;
+  /** 前周回から引き継いだ仲間候補 (ゲーム開始直後 companion_select フェーズで表示) */
+  companionCandidates?: CompanionSnapshot[];
   /** プレイヤー名確定済みか */
   playerNameCommitted?: boolean;
   allies: Actor[];

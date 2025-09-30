@@ -7,7 +7,9 @@
     restChoice,
     nextProgress,
     pickReward,
-    commitPlayerName
+    commitPlayerName,
+    selectCompanion,
+    skipCompanionSelection
   } from '$lib/domain/services/state_service';
   import { getAction } from '$lib/data/repositories/action_repository';
   import CharacterPanel from '$lib/presentation/components/CharacterPanel.svelte';
@@ -104,6 +106,37 @@
           >
         </div>
       </div>
+    {:else if $gameState.phase === 'companion_select'}
+      <h2 class="mt-0 text-lg font-semibold mb-2">仲間を選択</h2>
+      <div class="flex gap-3 mb-4">
+        {#each $gameState.companionCandidates || [] as c (c.id)}<button
+            class="btn-base mt-1 w-3xs"
+            on:click={() => selectCompanion($gameState, c.id)}
+          >
+            <div class="flex flex-col gap-1 p-2">
+              <span class="font-semibold">{c.name}</span>
+              <div class="flex flex-wrap gap-4 text-sm">
+                <span>STR {c.STR}</span>
+                <span>CON {c.CON}</span>
+                <span>POW {c.POW}</span>
+                <span>DEX {c.DEX}</span>
+                <span>APP {c.APP}</span>
+                <span>INT {c.INT}</span>
+              </div>
+              <div class="flex flex-wrap gap-1">
+                {#each c.actions as a (a)}
+                  <span class="px-2 py-0.5 rounded bg-gray-500 text-xs">{a}</span>
+                {/each}
+              </div>
+            </div>
+          </button>
+        {/each}
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-base" on:click={() => skipCompanionSelection($gameState)}
+          >スキップ</button
+        >
+      </div>
     {:else if $gameState.phase === 'progress'}
       <h2 class="mt-0 text-lg font-semibold mb-2">進行</h2>
       <div class="flex flex-wrap gap-2 mb-2">
@@ -123,6 +156,7 @@
         >
       {/if}
     {/if}
+
     {#if $gameState.phase === 'combat'}
       <h2 class="mt-0 text-lg font-semibold mb-2">戦闘</h2>
       {#if $gameState.player.maxActionsPerTurn > 1}
@@ -171,7 +205,6 @@
 
     {#if $gameState.phase === 'event'}
       <h2 class="mt-0 text-lg font-semibold mb-2">イベント結果</h2>
-      <p class="mb-3 text-sm">イベント効果が適用されました。</p>
       <button
         class="btn-base"
         on:click={() =>

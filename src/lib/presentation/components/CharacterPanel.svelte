@@ -59,6 +59,8 @@
       case 'psyCut':
         return (displayed[key] * 100).toFixed(0) + '%';
     }
+    // 自分および味方(side==='player')は常に公開
+    if (actor.side === 'player') return displayed[key];
     const rev = actor.revealed?.[key];
     if (!rev) return '???';
     return displayed[key];
@@ -166,7 +168,7 @@
     </div>
   </div>
   <div class="mt-2">
-    <div class="text-gray-400">アクション</div>
+    <div class="text-gray-400">アクション ({actor.maxActionsPerTurn}回)</div>
     <div class="flex flex-wrap gap-1 mt-1">
       {#each actionInfos as a (a.id)}
         <TooltipBadge

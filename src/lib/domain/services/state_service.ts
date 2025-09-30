@@ -11,6 +11,8 @@ import { randomEvent } from '$lib/domain/services/event_service';
 import { pushLog, setLogState, resetDisplayLogs } from '$lib/presentation/utils/logUtil';
 import { getRewardsForEnemy } from '$lib/data/repositories/reward_repository';
 import { tickStatusesTurnStart } from '$lib/data/consts/statuses';
+import { createCompanionRepository } from '$lib/data/repositories/companion_repository';
+import type { CompanionSnapshot } from '$lib/domain/entities/companion';
 
 const HIGH_KEY = 'mylogue_highest_floor';
 const ENEMY_REVEAL_KEY_PREFIX = 'mylogue_enemy_revealed_';
@@ -104,12 +106,15 @@ export function createEnemy(kind: 'normal' | 'elite' | 'boss', floorIndex: numbe
 
 function initState(): GameState {
   const highest = Number(localStorage.getItem(HIGH_KEY) || '0');
+  const compRepo = createCompanionRepository();
+  const companions = compRepo.list();
   return {
     floorIndex: 1,
     stepIndex: 1,
-    phase: 'progress',
+    phase: companions.length > 0 ? 'companion_select' : 'progress',
     player: basePlayer(),
     playerNameCommitted: false,
+    companionCandidates: companions,
     allies: [],
     enemies: [],
     selectedEnemyIndex: undefined,
@@ -129,6 +134,45 @@ export function restart() {
   const s = initState();
   resetDisplayLogs();
   gameState.set(s);
+}
+
+export function selectCompanion(state: GameState, id: string) {
+  if (state.phase !== 'companion_select') return;
+  const target = state.companionCandidates?.find((c) => c.id === id);
+  if (!target) return;
+  // スナップショットを Actor 化 (ally)
+  const ally: Actor = {
+    side: 'player',
+    kind: 'player',
+    name: target.name,
+    STR: target.STR,
+    CON: target.CON,
+    POW: target.POW,
+    DEX: target.DEX,
+    APP: target.APP,
+    INT: target.INT,
+    hp: 0,
+    statuses: [],
+    physDamageCutRate: 0,
+    psyDamageCutRate: 0,
+    physDamageUpRate: 0,
+    psyDamageUpRate: 0,
+    actions: [...target.actions],
+    maxActionsPerTurn: target.maxActionsPerTurn,
+    maxActionChoices: target.maxActionChoices
+  };
+  ally.hp = calcMaxHP(ally);
+  state.allies.push(ally);
+  state.phase = 'progress';
+  pushLog(`仲間 ${ally.name} を迎え入れた`, 'system');
+  commit(state);
+}
+
+export function skipCompanionSelection(state: GameState) {
+  if (state.phase !== 'companion_select') return;
+  state.phase = 'progress';
+  pushLog('仲間選択をスキップ', 'system');
+  commit(state);
 }
 
 export function commitPlayerName(newName: string) {
@@ -317,7 +361,8 @@ async function enemiesTurn(state: GameState) {
       if (candidates.length === 0) break;
       const act = candidates[Math.floor(Math.random() * candidates.length)];
       acted.push(act);
-      const target = state.player.hp > 0 ? state.player : state.allies.find((a) => a.hp > 0);
+      const livingAllies: Actor[] = [state.player, ...state.allies].filter((a) => a.hp > 0);
+      const target = livingAllies[Math.floor(Math.random() * livingAllies.length)];
       performAction(state, enemy, target, act);
       commit(state);
       await waitForAnimationsComplete();
@@ -333,6 +378,28 @@ async function enemiesTurn(state: GameState) {
     if (state.highestFloor < state.floorIndex + 1) {
       state.highestFloor = state.floorIndex + 1;
       localStorage.setItem(HIGH_KEY, String(state.highestFloor));
+    }
+    // ゲームオーバー時プレイヤーを仲間候補として保存
+    try {
+      const repo = createCompanionRepository();
+      const snap: CompanionSnapshot = {
+        id: String(Date.now()),
+        name: state.player.name,
+        STR: state.player.STR,
+        CON: state.player.CON,
+        POW: state.player.POW,
+        DEX: state.player.DEX,
+        APP: state.player.APP,
+        INT: state.player.INT,
+        maxActionsPerTurn: state.player.maxActionsPerTurn,
+        maxActionChoices: state.player.maxActionChoices,
+        actions: [...state.player.actions]
+      };
+      repo.add(snap);
+      pushLog(` ${state.player.name} を仲間にした`, 'system');
+    } catch (e) {
+      // 失敗してもゲーム進行は継続
+      console.warn('companion save failed', e);
     }
   }
 }
@@ -361,6 +428,27 @@ function startTurn(state: GameState) {
       if (actor === state.player) {
         state.phase = 'gameover';
         pushLog('毒で倒れた...', 'system');
+        // ゲームオーバー時プレイヤーを仲間候補として保存
+        try {
+          const repo = createCompanionRepository();
+          const snap: CompanionSnapshot = {
+            id: String(Date.now()),
+            name: state.player.name,
+            STR: state.player.STR,
+            CON: state.player.CON,
+            POW: state.player.POW,
+            DEX: state.player.DEX,
+            APP: state.player.APP,
+            INT: state.player.INT,
+            maxActionsPerTurn: state.player.maxActionsPerTurn,
+            maxActionChoices: state.player.maxActionChoices,
+            actions: [...state.player.actions]
+          };
+          repo.add(snap);
+          pushLog(` ${state.player.name} を仲間にした`, 'system');
+        } catch (e) {
+          console.warn('companion save failed', e);
+        }
       } else {
         pushLog('味方が継続ダメージで倒れた...', 'combat');
         state.allies = state.allies.filter((a: Actor) => a.hp > 0);
