@@ -1,3 +1,4 @@
+// https://www.gsj.jp/Muse/hyohon/mineral/list.html
 import mineralCsvRaw from '$lib/data/consts/mineral.csv?raw';
 
 /** mineral.csv からカタカナ列(mineralName_katakana) を抽出し配列化する。 */

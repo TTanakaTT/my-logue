@@ -47,7 +47,7 @@ mineralName_ja,mineralName_katakana,mineralName_en,category
 バスタム石,バスタム,Bustamite,イノ珪酸塩鉱物
 バナジン鉛鉱,バナジン,Vanadinite,バナジン酸塩鉱物
 バビントン石,バビントン,Babingtonite,イノ珪酸塩鉱物
-バラ輝石,バラ,Rhodonite,イノ珪酸塩鉱物
+バラ輝石,ロドナイト,Rhodonite,イノ珪酸塩鉱物
 バリシア石,バリシア,Variscite,燐酸塩鉱物
 ビクスビ鉱,ビクスビ,Bixbyite,酸化鉱物
 ヒスイ輝石,ヒスイ,Jadeite,イノ珪酸塩鉱物
@@ -170,9 +170,9 @@ mineralName_ja,mineralName_katakana,mineralName_en,category
 正長石,,Orthoclase,テクト珪酸塩鉱物
 青鉛鉱,,Linarite,硫酸塩鉱物
 石膏,,Gypsum,硫酸塩鉱物
-石膏（砂漠の薔薇、サバクノバラ）,サバクノバラ,Desert Rose (Gypsum),硫酸塩鉱物
-石膏（雪花石膏）,,Gypsum,硫酸塩鉱物
-石膏（透石膏）,,Gypsum,硫酸塩鉱物
+砂漠の薔薇,デザートローズ,Desert Rose,硫酸塩鉱物
+雪花石膏,アラバスター,Alabaster,硫酸塩鉱物
+透石膏,セレナイト,Selenite,硫酸塩鉱物
 石墨,,,元素鉱物
 赤鉄鉱,,Hematite,酸化鉱物
 赤鉄鉱（雲母鉄鉱）,,Hematite,酸化鉱物

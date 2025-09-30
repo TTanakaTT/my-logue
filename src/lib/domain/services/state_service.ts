@@ -465,12 +465,18 @@ function removeDeadActors(state: GameState) {
   state.allies = state.allies.filter((a: Actor) => a.hp > 0);
 }
 
+/**
+ * プレイヤーターン開始処理。
+ * @returns boolean プレイヤーが行動可能なら true / ゲームオーバーなら false
+ */
 function startTurn(state: GameState) {
   const actors: Actor[] = [state.player, ...state.allies];
+  let playerDead = false;
   for (const actor of actors) {
     tickStatusesTurnStart(actor);
     if (actor.hp <= 0) {
       if (actor === state.player) {
+        playerDead = true;
         state.phase = 'gameover';
         pushLog('毒で倒れた...', 'system');
         // ゲームオーバー時プレイヤーを仲間候補として保存
@@ -494,14 +500,22 @@ function startTurn(state: GameState) {
         } catch (e) {
           console.warn('companion save failed', e);
         }
+        break; // 以降の味方 tick は不要
       } else {
+        // 味方死亡: ログのみ。ループは続行し他の味方やプレイヤーを処理。
         pushLog('味方が継続ダメージで倒れた...', 'combat');
-        state.allies = state.allies.filter((a: Actor) => a.hp > 0);
       }
-      commit(state);
-      return false;
     }
   }
+
+  // 死亡味方の除去 (ループ後にまとめて反映)
+  state.allies = state.allies.filter((a: Actor) => a.hp > 0);
+
+  if (playerDead) {
+    commit(state);
+    return false;
+  }
+
   if (state.phase === 'combat') rollActions(state);
   state.actionUseCount = 0;
   state.playerUsedActions = [];
