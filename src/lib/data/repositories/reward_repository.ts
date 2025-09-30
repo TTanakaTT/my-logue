@@ -1,11 +1,11 @@
 import rewardCsvRaw from '$lib/data/consts/rewards.csv?raw';
 import rewardDetailCsvRaw from '$lib/data/consts/reward_detail.csv?raw';
-import type { GameState, RewardOption } from '$lib/domain/entities/BattleState';
-import type { Action } from '$lib/domain/entities/Action';
-import { calcMaxHP } from '$lib/domain/services/attributeService';
-import { recalcPlayer } from '$lib/domain/services/stateService';
+import type { GameState, RewardOption } from '$lib/domain/entities/battle_state';
+import type { Action } from '$lib/domain/entities/action';
+import { calcMaxHP } from '$lib/domain/services/attribute_service';
+import { recalcPlayer } from '$lib/domain/services/state_service';
 import { pushLog } from '$lib/presentation/utils/logUtil';
-import type { Player } from '$lib/domain/entities/Character';
+import type { Player } from '$lib/domain/entities/character';
 import { addStatus, findStatus, removeStatus } from '$lib/data/consts/statuses';
 
 // rewards.csv: id(number),kind,name,label,floorMin?,floorMax?

@@ -1,8 +1,8 @@
-import type { ActionDef } from '$lib/domain/entities/Action';
-import { heal } from '$lib/domain/services/attributeService';
-import { applyPhysicalDamage, applyPsychicDamage } from '$lib/domain/services/damageService';
+import type { ActionDef } from '$lib/domain/entities/action';
+import { heal } from '$lib/domain/services/attribute_service';
+import { applyPhysicalDamage, applyPsychicDamage } from '$lib/domain/services/damage_service';
 import { addStatus } from '$lib/data/consts/statuses';
-import type { Actor } from '$lib/domain/entities/Character';
+import type { Actor } from '$lib/domain/entities/character';
 
 export const action = {
   Strike: {

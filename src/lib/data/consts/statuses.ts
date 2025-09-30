@@ -1,8 +1,8 @@
 // 統合ステータス定義
 // ゲーム内の継続/一時的効果は全て Status として扱う。
 
-import type { Actor } from '$lib/domain/entities/Character';
-import type { Status, StatusDef, StatusInstance } from '$lib/domain/entities/Status';
+import type { Actor } from '$lib/domain/entities/character';
+import type { Status, StatusDef, StatusInstance } from '$lib/domain/entities/status';
 import { pushCombatLog } from '$lib/presentation/utils/logUtil';
 import { playEffectOnActor } from '$lib/presentation/utils/effectBus';
 

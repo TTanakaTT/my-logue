@@ -8,8 +8,8 @@
     nextProgress,
     pickReward,
     commitPlayerName
-  } from '$lib/domain/services/stateService';
-  import { getAction } from '$lib/data/repositories/actionRepository';
+  } from '$lib/domain/services/state_service';
+  import { getAction } from '$lib/data/repositories/action_repository';
   import CharacterPanel from '$lib/presentation/components/CharacterPanel.svelte';
   import LogViewer from '$lib/presentation/components/LogViewer.svelte';
   import { uiAnimating } from '$lib/presentation/utils/effectBus';

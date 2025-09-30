@@ -1,6 +1,6 @@
 import { pushCombatLog } from '$lib/presentation/utils/logUtil';
 import { showDamage } from '$lib/presentation/utils/effectBus';
-import type { Actor } from '$lib/domain/entities/Character';
+import type { Actor } from '$lib/domain/entities/character';
 
 export function applyPhysicalDamage(source: Actor, target: Actor, amount: number) {
   const up = source.physDamageUpRate || 0;
@@ -18,7 +18,6 @@ export function applyPsychicDamage(source: Actor, target: Actor, amount: number)
   applyDamage(source, target, damage);
 }
 
-// 他のダメージタイプが増えた場合に備えて汎用的な damageType を受け取る形にしておく
 function applyDamage(_source: Actor, target: Actor, amount: number) {
   const damage = Math.ceil(amount);
   target.hp -= damage;

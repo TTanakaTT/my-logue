@@ -1,6 +1,6 @@
 import { pushCombatLog } from '$lib/presentation/utils/logUtil';
 import { showHeal } from '$lib/presentation/utils/effectBus';
-import type { Actor } from '$lib/domain/entities/Character';
+import type { Actor } from '$lib/domain/entities/character';
 
 export function calcMaxHP(actor: Actor): number {
   return 10 + actor.CON * 5;

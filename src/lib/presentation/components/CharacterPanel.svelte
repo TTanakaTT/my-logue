@@ -1,11 +1,15 @@
 <script lang="ts">
-  import type { Actor } from '$lib/domain/entities/Character';
-  import { calcMaxHP } from '$lib/domain/services/attributeService';
+  import type { Actor } from '$lib/domain/entities/character';
+  import { calcMaxHP } from '$lib/domain/services/attribute_service';
   export let actor: Actor;
   export let side: 'player' | 'enemy' = 'player';
   import { SvelteMap } from 'svelte/reactivity';
   import PanelEffectLayer from './PanelEffectLayer.svelte';
   import FloatingNumbersLayer from './FloatingNumbersLayer.svelte';
+  import { getAction } from '$lib/data/repositories/action_repository';
+  import TooltipBadge from './TooltipBadge.svelte';
+  import { status } from '$lib/data/consts/statuses';
+  import type { StatusInstance } from '$lib/domain/entities/status';
 
   type StatKey =
     | 'hp'
@@ -59,10 +63,6 @@
     if (!rev) return '???';
     return displayed[key];
   }
-  import { getAction } from '$lib/data/repositories/actionRepository';
-  import TooltipBadge from './TooltipBadge.svelte';
-  import { status } from '$lib/data/consts/statuses';
-  import type { StatusInstance } from '$lib/domain/entities/Status';
   $: actionInfos = actor.actions.map((id) => {
     const def = getAction(id);
     const revealedObserved = actor.side === 'enemy' ? actor.revealedActions?.includes(id) : true;

@@ -1,6 +1,6 @@
-import type { GameState, LogEntry } from '$lib/domain/entities/BattleState';
-import type { Actor, ActorKind, ActorSide } from '$lib/domain/entities/Character';
-import type { ActionDef } from '$lib/domain/entities/Action';
+import type { GameState, LogEntry } from '$lib/domain/entities/battle_state';
+import type { Actor, ActorKind, ActorSide } from '$lib/domain/entities/character';
+import type { ActionDef } from '$lib/domain/entities/action';
 import { get, writable, type Writable } from 'svelte/store';
 
 // ログ関連のユーティリティを集約

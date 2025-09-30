@@ -1,29 +1,27 @@
 import { writable, get } from 'svelte/store';
-import type { GameState } from '$lib/domain/entities/BattleState';
-import type { Player, Actor, StatKey } from '$lib/domain/entities/Character';
-import { tickStatusesTurnStart } from '$lib/data/consts/statuses';
-import type { Action } from '$lib/domain/entities/Action';
-import { calcMaxHP } from '$lib/domain/services/attributeService';
-import { buildPlayerFromCsv, buildEnemyFromCsv } from '$lib/data/repositories/characterRepository';
+import type { GameState, RewardOption } from '$lib/domain/entities/battle_state';
+import type { Player, Actor, StatKey } from '$lib/domain/entities/character';
+import type { Action } from '$lib/domain/entities/action';
+import { calcMaxHP } from '$lib/domain/services/attribute_service';
+import { buildPlayerFromCsv, buildEnemyFromCsv } from '$lib/data/repositories/character_repository';
 import { randomName } from '$lib/data/repositories/random_name_repository';
-import { performAction } from './actionExecutor';
+import { performAction } from '$lib/domain/services/action_executor';
 import { waitForAnimationsComplete } from '$lib/presentation/utils/effectBus';
-import { randomEvent } from '$lib/domain/services/eventService';
+import { randomEvent } from '$lib/domain/services/event_service';
 import { pushLog, setLogState, resetDisplayLogs } from '$lib/presentation/utils/logUtil';
-import { getRewardsForEnemy } from '$lib/data/repositories/rewardRepository';
-import type { RewardOption } from '$lib/domain/entities/BattleState';
+import { getRewardsForEnemy } from '$lib/data/repositories/reward_repository';
+import { tickStatusesTurnStart } from '$lib/data/consts/statuses';
 
 const HIGH_KEY = 'mylogue_highest_floor';
-const ENEMY_REVEAL_KEY_PREFIX = 'mylogue_enemy_revealed_'; // 旧: actions のみ
-const ENEMY_REVEALINFO_KEY_PREFIX = 'mylogue_enemy_revealinfo_'; // 新: attributes + actions
+const ENEMY_REVEAL_KEY_PREFIX = 'mylogue_enemy_revealed_';
+const ENEMY_REVEALINFO_KEY_PREFIX = 'mylogue_enemy_revealinfo_';
 
 interface RevealInfoPersisted {
   actions: Action[];
-  revealedAttributes?: Record<string, boolean>; // hp, STR など true
+  revealedAttributes?: Record<string, boolean>;
 }
 
 function loadRevealedActions(kind: string, floor: number): Action[] | undefined {
-  // 互換: 旧キー (actionsのみ)
   const key = `${ENEMY_REVEAL_KEY_PREFIX}${kind}_${floor}`;
   try {
     const raw = localStorage.getItem(key);
@@ -31,7 +29,7 @@ function loadRevealedActions(kind: string, floor: number): Action[] | undefined 
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed as Action[];
   } catch (e) {
-    console.warn('Failed to parse legacy revealedActions from localStorage', e);
+    console.warn('Failed to parse legacy revealedActions', e);
   }
   return undefined;
 }
@@ -46,35 +44,32 @@ function loadRevealInfo(kind: string, floor: number): RevealInfoPersisted | unde
       return parsed as RevealInfoPersisted;
     }
   } catch (e) {
-    console.warn('Failed to parse revealInfo from localStorage', e);
+    console.warn('Failed to parse revealInfo', e);
   }
   return undefined;
 }
 
 export function persistRevealedActions(kind: string, floor: number, actions: Action[]) {
-  const key = `${ENEMY_REVEAL_KEY_PREFIX}${kind}_${floor}`;
   try {
-    localStorage.setItem(key, JSON.stringify(actions.slice().sort()));
+    localStorage.setItem(
+      `${ENEMY_REVEAL_KEY_PREFIX}${kind}_${floor}`,
+      JSON.stringify(actions.slice().sort())
+    );
   } catch (e) {
-    // 失敗してもゲーム継続可能なので握りつぶす
     console.warn('Failed to persist revealedActions', e);
   }
 }
-
 export function persistRevealInfo(kind: string, floor: number, enemy: Actor) {
   try {
-    const key = `${ENEMY_REVEALINFO_KEY_PREFIX}${kind}_${floor}`;
     const data: RevealInfoPersisted = {
       actions: (enemy.revealedActions || []).slice().sort(),
       revealedAttributes: enemy.revealed ? { ...enemy.revealed } : undefined
     };
-    localStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem(`${ENEMY_REVEALINFO_KEY_PREFIX}${kind}_${floor}`, JSON.stringify(data));
   } catch (e) {
     console.warn('Failed to persist revealInfo', e);
   }
 }
-
-// ログ処理は logUtil に集約済み
 
 export function recalcPlayer(p: Player) {
   const max = calcMaxHP(p);
@@ -83,8 +78,6 @@ export function recalcPlayer(p: Player) {
 
 function basePlayer(): Player {
   const p = buildPlayerFromCsv();
-  // 初期プレイヤー名: mineral.csv のカタカナ列からランダム選択
-  // 既存 CSV の name は雛形的に保持しつつ上書き (ユーザー確定前は自由に再生成されるため本関数のみ)
   p.name = randomName();
   p.hp = calcMaxHP(p);
   return p;
@@ -93,16 +86,13 @@ function basePlayer(): Player {
 export function createEnemy(kind: 'normal' | 'elite' | 'boss', floorIndex: number): Actor {
   const e = buildEnemyFromCsv(kind, floorIndex);
   e.hp = calcMaxHP(e);
-  // 新フォーマット優先、無ければ旧フォーマット(actionsのみ) を読む
   const info = loadRevealInfo(kind, floorIndex);
   if (info) {
     e.revealedActions = info.actions.slice();
     if (info.revealedAttributes) {
       const allowed: StatKey[] = ['hp', 'CON', 'STR', 'POW', 'DEX', 'APP', 'INT'];
       const obj: Partial<Record<StatKey, boolean>> = {};
-      for (const k of allowed) {
-        if (info.revealedAttributes[k]) obj[k] = true;
-      }
+      for (const k of allowed) if (info.revealedAttributes[k]) obj[k] = true;
       e.revealed = obj;
     }
   } else {
@@ -133,20 +123,14 @@ function initState(): GameState {
 }
 
 export const gameState = writable<GameState>(initState());
-// 初期状態を logUtil に登録
 gameState.subscribe((s) => setLogState(s));
 
 export function restart() {
   const s = initState();
-  // 表示ログのリセットと初期1行のシード
   resetDisplayLogs();
   gameState.set(s);
 }
 
-/**
- * プレイヤー名をユーザー入力で確定する。空文字や空白のみは無視。
- * 確定後は playerNameCommitted を true にし再入力UIを隠す。
- */
 export function commitPlayerName(newName: string) {
   const trimmed = (newName || '').trim();
   if (!trimmed) return;
@@ -169,15 +153,11 @@ function commit(state: GameState) {
   });
 }
 
-// commit により store 内の参照が差し替わるため、呼び出し側引数 state を最新の store 値で再同期する
 function resyncFromStore(state: GameState) {
-  const cur = get(gameState);
-  // top-level プロパティを丸ごと差し替え、同一参照(state)を維持
-  Object.assign(state, cur);
+  Object.assign(state, get(gameState));
 }
 
 export function rollActions(state: GameState) {
-  // ガードはターン終了処理で自然消滅するためここでの手動解除は不要
   const pool = state.player.actions;
   const limit = state.player.maxActionChoices;
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
@@ -213,16 +193,12 @@ export function nextProgress(state: GameState) {
 
 export function chooseNode(state: GameState, kind: 'combat' | 'event' | 'rest' | 'boss') {
   if (kind === 'combat' || kind === 'boss') {
-    // 4ステップ目(= index 3) の戦闘は elite とする (ボス除く)
     const enemyKind: 'normal' | 'elite' | 'boss' =
       kind === 'boss' ? 'boss' : state.stepIndex === 4 ? 'elite' : 'normal';
-    // 複数戦闘: ひとまず1体生成だが配列にする。将来的に複数生成に拡張可能。
     state.enemies = [createEnemy(enemyKind, state.floorIndex)];
     state.selectedEnemyIndex = 0;
-    // 味方は開始時点では空。将来的に編成機能で埋まる想定。
     state.currentEncounterKind = enemyKind;
     state.phase = 'combat';
-    // 戦闘開始直後のターン開始効果を適用
     startTurn(state);
     pushLog(
       kind === 'boss' ? 'ボス戦開始!' : enemyKind === 'elite' ? '精鋭戦開始!' : '戦闘開始',
@@ -243,7 +219,6 @@ export async function combatAction(state: GameState, id: Action) {
   if (state.phase !== 'combat') return;
   if (!state.actionOffer.includes(id)) return;
   if (state.playerUsedActions && state.playerUsedActions.includes(id)) return;
-  // プレイヤーのターゲットは選択中の敵（デフォルトは先頭生存）
   let target = state.enemies.find((e) => e.hp > 0);
   if (
     state.selectedEnemyIndex !== undefined &&
@@ -252,42 +227,34 @@ export async function combatAction(state: GameState, id: Action) {
   ) {
     target = state.enemies[state.selectedEnemyIndex];
   }
-  const isCritical = state.actionOffer[0] === id; // 左端がクリティカル扱い
+  const isCritical = state.actionOffer[0] === id;
   performAction(state, state.player, target, id, { isCritical });
   state.player = { ...state.player };
   state.enemies = state.enemies.map((e) => ({ ...e }));
   state.actionUseCount += 1;
   state.playerUsedActions?.push(id);
-  // いったん反映し、エフェクトが終わるのを待つ
   commit(state);
   await waitForAnimationsComplete();
   resyncFromStore(state);
-  // 撃破整理（プレイヤー行動で全滅した可能性）
   removeDeadActors(state);
   if (state.enemies.length === 0 && state.phase !== 'combat') {
     commit(state);
     return;
   }
-  // 洞察(Reveal) は即座に永続化 (attributes + actions)
   if (id === 'Reveal') {
     const enemy0 = state.enemies[0];
     if (enemy0) {
-      // 洞察により、対象の全アクションを insightActions としてマーク
       const allActs = enemy0.actions.slice();
       const uniq = Array.from(new Set([...(enemy0.insightActions || []), ...allActs]));
       enemy0.insightActions = uniq;
-      // 報酬用にも積んでおく（複数戦闘想定で floor 単位に持つなら別管理だが現状一時）
       state.insightRewardActions = Array.from(
         new Set([...(state.insightRewardActions || []), ...uniq])
       );
       persistRevealInfo(enemy0.kind, state.floorIndex, enemy0);
     }
-    // 即時反映: enemy も再ラップ済みなので commit 前に早期コミット
     commit(state);
   }
-  // 敵1体が倒れた場合もあるが、配列からはターン終了時に掃除する。
   if (state.actionUseCount >= state.player.maxActionsPerTurn) {
-    // プレイヤーのターン終了 -> 味方AI -> 敵AI -> 次ターン開始
     await alliesTurn(state);
     if (state.phase !== 'combat') {
       commit(state);
@@ -295,11 +262,9 @@ export async function combatAction(state: GameState, id: Action) {
     }
     await enemiesTurn(state);
     if (state.phase === 'combat') {
-      // 敵ターンで store 参照が差し替わっている可能性があるため同期
       resyncFromStore(state);
-      const ok = startTurn(state); // 敵ターン後の新ターン開始（毒などのターン開始エフェクトが発生）
+      const ok = startTurn(state);
       if (!ok) {
-        // 何らかの理由でターン開始処理が途中で終了（死亡や勝敗確定）した場合
         commit(state);
         return;
       }
@@ -310,15 +275,12 @@ export async function combatAction(state: GameState, id: Action) {
   commit(state);
 }
 
-// performActorAction は performAction に統合済み
-
 async function alliesTurn(state: GameState) {
-  // 味方は敵と同様に自動行動（敵AIとほぼ同じロジック）。
-  for (const ally of state.allies.filter((a) => a.hp > 0)) {
+  for (const ally of state.allies.filter((a: Actor) => a.hp > 0)) {
     const acted: Action[] = [];
     const maxActs = ally.maxActionsPerTurn;
     for (let i = 0; i < maxActs; i++) {
-      const candidates = ally.actions.filter((a) => !acted.includes(a));
+      const candidates = ally.actions.filter((a: Action) => !acted.includes(a));
       if (candidates.length === 0) break;
       const act = candidates[Math.floor(Math.random() * candidates.length)];
       acted.push(act);
@@ -335,8 +297,7 @@ async function alliesTurn(state: GameState) {
 }
 
 async function enemiesTurn(state: GameState) {
-  // 敵ターン開始: 生存している敵それぞれの自ターン開始ステータス処理
-  for (const enemy of state.enemies.filter((e) => e.hp > 0)) {
+  for (const enemy of state.enemies.filter((e: Actor) => e.hp > 0)) {
     tickStatusesTurnStart(enemy);
     if (enemy.hp <= 0) {
       pushLog('敵を継続ダメージで倒した!', 'combat');
@@ -348,15 +309,14 @@ async function enemiesTurn(state: GameState) {
       }
     }
   }
-  for (const enemy of state.enemies.filter((e) => e.hp > 0)) {
+  for (const enemy of state.enemies.filter((e: Actor) => e.hp > 0)) {
     const acted: Action[] = [];
     const maxActs = enemy.maxActionsPerTurn;
     for (let i = 0; i < maxActs; i++) {
-      const candidates = enemy.actions.filter((a) => !acted.includes(a));
+      const candidates = enemy.actions.filter((a: Action) => !acted.includes(a));
       if (candidates.length === 0) break;
       const act = candidates[Math.floor(Math.random() * candidates.length)];
       acted.push(act);
-      // 敵のターゲットはプレイヤー優先。将来は味方含めたヘイトなど拡張余地。
       const target = state.player.hp > 0 ? state.player : state.allies.find((a) => a.hp > 0);
       performAction(state, enemy, target, act);
       commit(state);
@@ -378,27 +338,22 @@ async function enemiesTurn(state: GameState) {
 }
 
 function removeDeadActors(state: GameState) {
-  // 敵の死亡整理
   const before = state.enemies.length;
-  state.enemies = state.enemies.filter((e) => e.hp > 0);
+  state.enemies = state.enemies.filter((e: Actor) => e.hp > 0);
   if (before > 0 && state.enemies.length === 0) {
     state.selectedEnemyIndex = undefined;
-    // 全滅 -> 勝利（報酬へ）
     const kind = state.currentEncounterKind ?? 'normal';
     state.phase = 'progress';
-    if (kind === 'boss') {
-      prepareReward(state, 'boss');
-    } else {
+    if (kind === 'boss') prepareReward(state, 'boss');
+    else {
       state.stepIndex += 1;
       prepareReward(state, kind);
     }
   }
-  // 味方の死亡整理（現時点では保持だけ。将来的な復活等は別途）
-  state.allies = state.allies.filter((a) => a.hp > 0);
+  state.allies = state.allies.filter((a: Actor) => a.hp > 0);
 }
 
 function startTurn(state: GameState) {
-  // プレイヤー/味方のターン開始時のみ自側のステータスを tick
   const actors: Actor[] = [state.player, ...state.allies];
   for (const actor of actors) {
     tickStatusesTurnStart(actor);
@@ -408,7 +363,7 @@ function startTurn(state: GameState) {
         pushLog('毒で倒れた...', 'system');
       } else {
         pushLog('味方が継続ダメージで倒れた...', 'combat');
-        state.allies = state.allies.filter((a) => a.hp > 0);
+        state.allies = state.allies.filter((a: Actor) => a.hp > 0);
       }
       commit(state);
       return false;
@@ -426,7 +381,6 @@ function startTurn(state: GameState) {
 
 function prepareReward(state: GameState, defeatedKind: 'normal' | 'elite' | 'boss') {
   const opts = getRewardsForEnemy(state, defeatedKind);
-  // 洞察で開示したアクションを1つだけ報酬に混ぜる（未所持のみ）。
   const insightActs: Action[] = (state.insightRewardActions || []).slice();
   const candidate = insightActs.find((a) => !state.player.actions.includes(a));
   if (candidate) {
@@ -439,7 +393,6 @@ function prepareReward(state: GameState, defeatedKind: 'normal' | 'elite' | 'bos
         pushLog(`洞察報酬: 新アクション ${candidate} を会得`, 'system');
       }
     };
-    // 既存3件に混ぜる。件数が増えるがUIは動的。
     opts.push(extra);
   }
   state.rewardOptions = opts;
@@ -453,7 +406,6 @@ export function pickReward(state: GameState, id: string) {
   const opt = state.rewardOptions.find((o) => o.id === id);
   if (!opt) return;
   opt.apply(state);
-  // 洞察由来の一時リストは消費後にクリア（同一アクションの重複提示を避ける）
   state.insightRewardActions = [];
   if (state.rewardIsBoss) {
     state.floorIndex += 1;

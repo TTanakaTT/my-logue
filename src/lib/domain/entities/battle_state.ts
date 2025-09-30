@@ -1,5 +1,5 @@
-import type { Player, Actor, ActorSide, ActorKind } from '$lib/domain/entities/Character';
-import type { Action } from '$lib/domain/entities/Action';
+import type { Player, Actor, ActorSide, ActorKind } from '$lib/domain/entities/character';
+import type { Action } from '$lib/domain/entities/action';
 
 export type Phase = 'progress' | 'combat' | 'event' | 'rest' | 'reward' | 'victory' | 'gameover';
 export type RewardKind = 'normal' | 'boss';
@@ -26,13 +26,10 @@ export interface GameState {
   stepIndex: number;
   phase: Phase;
   player: Player;
-  /** プレイヤー名がユーザーにより確定済みか。未確定ならリスタート/初期進行前に入力UIを表示する */
+  /** プレイヤー名確定済みか */
   playerNameCommitted?: boolean;
-  /** 味方（プレイヤー以外） */
   allies: Actor[];
-  /** 現在の戦闘中の敵（複数対応） */
   enemies: Actor[];
-  /** プレイヤーが選択している攻撃対象（enemiesのインデックス） */
   selectedEnemyIndex?: number;
   actionOffer: Action[];
   actionUseCount: number;
@@ -42,11 +39,7 @@ export interface GameState {
   rngSeed?: number;
   rewardOptions?: RewardOption[];
   rewardIsBoss?: boolean;
-  /** この戦闘の相手の種別（報酬判定用） */
   currentEncounterKind?: 'normal' | 'elite' | 'boss';
-  /**
-   * 洞察(Reveal)で確認した敵アクションの集合。戦闘終了時に報酬へ反映するための一時保管。
-   * プレイヤーが既に所持しているものは報酬表示時に除外する。
-   */
+  /** 洞察で確認し報酬候補化するアクション */
   insightRewardActions?: Action[];
 }
