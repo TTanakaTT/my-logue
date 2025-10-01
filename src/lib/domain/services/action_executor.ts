@@ -1,9 +1,9 @@
 import { emitActionLog } from '$lib/presentation/utils/logUtil';
 import { getAction } from '$lib/data/repositories/action_repository';
 import type { Action } from '$lib/domain/entities/action';
-import type { Actor } from '$lib/domain/entities/character';
+import { isEnemy, type Actor } from '$lib/domain/entities/character';
 import type { GameState } from '$lib/domain/entities/battle_state';
-import { addKnownActions } from '$lib/domain/services/state_service';
+import { addObservedActions } from '$lib/domain/services/state_service';
 import { triggerActionEffects } from '$lib/presentation/utils/effectBus';
 
 export interface PerformResult {
@@ -11,7 +11,7 @@ export interface PerformResult {
   targetDied?: Actor;
   enemyDefeated?: boolean;
   playerDefeated?: boolean;
-  revealedAdded?: boolean;
+  observedAdded?: boolean;
 }
 
 export function performAction(
@@ -33,18 +33,18 @@ export function performAction(
   if (isCritical && logDef.criticalAction) logDef.criticalAction({ actor, target });
   else if (!isCritical && logDef.normalAction) logDef.normalAction({ actor, target });
   else if (logDef.normalAction) logDef.normalAction({ actor, target });
-  let revealedAdded = false;
-  if (actor.side === 'enemy') {
-    if (!actor.revealedActions) actor.revealedActions = [];
-    if (!actor.revealedActions.includes(id)) {
-      actor.revealedActions.push(id);
-      revealedAdded = true;
+  let observedAdded = false;
+  if (isEnemy(actor)) {
+    if (!actor.observedActions) actor.observedActions = [];
+    if (!actor.observedActions.includes(id)) {
+      actor.observedActions.push(id);
+      observedAdded = true;
       if (actor.kind !== 'player') {
-        addKnownActions(actor.name, actor.revealedActions);
+        addObservedActions(actor.id, actor.observedActions);
       }
     }
   }
-  const result: PerformResult = { revealedAdded };
+  const result: PerformResult = { observedAdded };
   if (target && target.hp <= 0) {
     if (target.side === 'enemy') result.enemyDefeated = true;
     else result.playerDefeated = true;

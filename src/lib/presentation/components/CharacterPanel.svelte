@@ -1,8 +1,13 @@
 <script lang="ts">
-  import type { Actor } from '$lib/domain/entities/character';
+  import {
+    isActor,
+    isEnemy,
+    type ActorAttribute,
+    type Attribute,
+    type Character,
+    type CharacterAttribute
+  } from '$lib/domain/entities/character';
   import { calcMaxHP } from '$lib/domain/services/attribute_service';
-  export let actor: Actor;
-  export let side: 'player' | 'enemy' = 'player';
   import { SvelteMap } from 'svelte/reactivity';
   import PanelEffectLayer from './PanelEffectLayer.svelte';
   import FloatingNumbersLayer from './FloatingNumbersLayer.svelte';
@@ -11,72 +16,102 @@
   import { status } from '$lib/data/consts/statuses';
   import type { StatusInstance } from '$lib/domain/entities/status';
 
-  type StatKey =
-    | 'hp'
-    | 'physUp'
-    | 'physCut'
-    | 'psyUp'
-    | 'psyCut'
-    | 'CON'
-    | 'STR'
-    | 'POW'
-    | 'DEX'
-    | 'APP'
-    | 'INT';
+  export let character: Character;
+  export let side: 'player' | 'enemy' = 'player';
 
-  const order: {
-    key: Exclude<StatKey, 'physUp' | 'physCut' | 'psyUp' | 'psyCut'>;
+  $: _isActor = isActor(character);
+  type DamageScaling = 'physUp' | 'physCut' | 'psyUp' | 'psyCut';
+
+  const characterAttributes: {
+    key: CharacterAttribute;
     label: string;
   }[] = [
-    { key: 'hp', label: 'HP' },
-    { key: 'CON', label: 'CON' },
-    { key: 'STR', label: 'STR' },
-    { key: 'POW', label: 'POW' },
-    { key: 'DEX', label: 'DEX' },
-    { key: 'APP', label: 'APP' },
-    { key: 'INT', label: 'INT' }
+    { key: 'CON', label: '体力' },
+    { key: 'STR', label: '筋力' },
+    { key: 'POW', label: '精神' },
+    { key: 'DEX', label: '器用' },
+    { key: 'APP', label: '魅力' },
+    { key: 'INT', label: '知力' }
   ];
+  const actorAttributes: {
+    key: ActorAttribute;
+    label: string;
+  }[] = [{ key: 'hp', label: 'HP' }];
 
-  $: displayed = {
-    hp: `${actor.hp}/${calcMaxHP(actor)}`,
-    physUp: actor.physDamageUpRate,
-    physCut: actor.physDamageCutRate,
-    psyUp: actor.psyDamageUpRate,
-    psyCut: actor.psyDamageCutRate,
-    CON: actor.CON,
-    STR: actor.STR,
-    POW: actor.POW,
-    DEX: actor.DEX,
-    APP: actor.APP,
-    INT: actor.INT
+  $: characterAttributeValues = {
+    CON: character.CON,
+    STR: character.STR,
+    POW: character.POW,
+    DEX: character.DEX,
+    APP: character.APP,
+    INT: character.INT
   };
+  $: actorAttributeValues = isActor(character)
+    ? {
+        hp: `${character.hp}/${calcMaxHP(character)}`,
+        physUp: character.physDamageUpRate,
+        physCut: character.physDamageCutRate,
+        psyUp: character.psyDamageUpRate,
+        psyCut: character.psyDamageCutRate
+      }
+    : { hp: '', physUp: 0, physCut: 0, psyUp: 0, psyCut: 0 };
 
-  function valueFor(key: StatKey): string | number {
+  function getDisplayedScaling(key: DamageScaling): string | number {
+    if (!isActor(character)) return '???';
     switch (key) {
       case 'physUp':
       case 'physCut':
       case 'psyUp':
       case 'psyCut':
-        return (displayed[key] * 100).toFixed(0) + '%';
+        return (actorAttributeValues[key] * 100).toFixed(0) + '%';
     }
-    // 自分および味方(side==='player')は常に公開
-    if (actor.side === 'player') return displayed[key];
-    const rev = actor.revealed?.[key];
-    if (!rev) return '???';
-    return displayed[key];
   }
-  $: actionInfos = actor.actions.map((id) => {
+  function getDisplayedAttribute(key: Attribute): string | number {
+    // アクター以外の表示制御
+    if (!isActor(character)) {
+      return key === 'hp' ? '' : characterAttributeValues[key];
+    }
+
+    if (!isEnemy(character)) {
+      // 自分および味方は常に公開
+      return key === 'hp' ? actorAttributeValues[key] : characterAttributeValues[key];
+    }
+
+    // 敵の表示制御
+    if (
+      character.isExposed ||
+      (character.revealedAttributes && character.revealedAttributes.includes(key))
+    ) {
+      return key === 'hp' ? actorAttributeValues[key] : characterAttributeValues[key];
+    } else {
+      return '???';
+    }
+  }
+
+  $: actionInfos = character.actions.map((id) => {
     const def = getAction(id);
-    const revealedObserved = actor.side === 'enemy' ? actor.revealedActions?.includes(id) : true;
-    const revealedByInsight = actor.side === 'enemy' ? actor.insightActions?.includes(id) : false;
-    const revealed = revealedObserved || revealedByInsight;
+    let isObserved = false;
+    let isExposed = false;
+    let revealed = true;
+    let name = def?.name || id;
+    let description = def?.description;
+
+    if (isActor(character) && isEnemy(character)) {
+      if (character.observedActions) isObserved = character.observedActions.includes(id);
+      isExposed = character.isExposed;
+      revealed = isExposed || isObserved;
+      if (!revealed) {
+        name = '???';
+        description = '???';
+      }
+    }
     return {
       id,
       revealed,
-      name: revealed ? def?.name || id : '???',
-      description: revealed ? def?.description : '???',
-      byInsight: !!revealedByInsight,
-      byObserved: !!revealedObserved
+      name,
+      description,
+      isExposed,
+      isObserved
     };
   });
 
@@ -86,8 +121,10 @@
     count: number;
   }
   $: groupedStatuses = (() => {
+    if (!isActor(character)) return [];
+
     const map = new SvelteMap<string, GroupedStatus>();
-    for (const st of actor.statuses) {
+    for (const st of character.statuses) {
       const key = `${st.id}:${st.remainingTurns ?? 'inf'}`;
       const ex = map.get(key);
       if (ex) ex.count += 1;
@@ -113,7 +150,7 @@
     <PanelEffectLayer {panelKey} />
   {/if}
   <div class="font-semibold mb-1 flex items-center gap-2">
-    <span>{actor.name}</span>
+    <span>{character.name}</span>
   </div>
   <div class="flex flex-wrap gap-1 mb-1 min-h-4">
     {#each groupedStatuses as g (g.status.id + ':' + (g.status.remainingTurns ?? 'inf'))}
@@ -141,38 +178,48 @@
     {/each}
   </div>
   <div class="flex flex-row flex-wrap gap-2">
-    {#each order as o (o.key)}
-      <div class="flex flex-col items-center relative">
-        <span class="text-gray-400">{o.label}</span>
-        <span>{valueFor(o.key)}</span>
-        {#if o.key === 'hp'}
+    {#if _isActor}
+      {#each actorAttributes as o (o.key)}
+        <div class="flex flex-col items-center relative">
+          <span class="text-gray-400">{o.label}</span>
+          <span>{getDisplayedAttribute(o.key)}</span>
           <div class="pointer-events-none absolute left-1/2 -top-1 z-60">
             <FloatingNumbersLayer {panelKey} />
           </div>
-        {/if}
+        </div>
+      {/each}
+    {/if}
+    {#each characterAttributes as o (o.key)}
+      <div class="flex flex-col items-center relative">
+        <span class="text-gray-400">{o.label}</span>
+        <span>{getDisplayedAttribute(o.key)}</span>
       </div>
     {/each}
   </div>
-  <div class="w-full flex flex-col gap-1">
-    <div class="flex items-center gap-2">
-      <span class="text-gray-400">物理</span>
-      <span>攻撃 {valueFor('physUp')}</span>
-      <span class="text-gray-400">|</span>
-      <span>防御 {valueFor('physCut')}</span>
+  {#if _isActor}
+    <div class="w-full flex flex-col gap-1">
+      <div class="flex items-center gap-2">
+        <span class="text-gray-400">物理</span>
+        <span>攻撃 {getDisplayedScaling('physUp')}</span>
+        <span class="text-gray-400">|</span>
+        <span>防御 {getDisplayedScaling('physCut')}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-gray-400">精神</span>
+        <span>攻撃 {getDisplayedScaling('psyUp')}</span>
+        <span class="text-gray-400">|</span>
+        <span>防御 {getDisplayedScaling('psyCut')}</span>
+      </div>
     </div>
-    <div class="flex items-center gap-2">
-      <span class="text-gray-400">精神</span>
-      <span>攻撃 {valueFor('psyUp')}</span>
-      <span class="text-gray-400">|</span>
-      <span>防御 {valueFor('psyCut')}</span>
+  {/if}
+  <div class="mt-2 flex flex-col">
+    <div class="flex">
+      <span class="text-gray-400">アクション ({character.maxActionsPerTurn}回)</span>
     </div>
-  </div>
-  <div class="mt-2">
-    <div class="text-gray-400">アクション ({actor.maxActionsPerTurn}回)</div>
     <div class="flex flex-wrap gap-1 mt-1">
       {#each actionInfos as a (a.id)}
         <TooltipBadge
-          badgeClass={`${a.byInsight ? 'bg-emerald-700/70 border border-emerald-400/50' : a.byObserved ? 'bg-sky-700/70 border border-sky-400/50' : 'bg-gray-700/60'}`}
+          badgeClass={`${a.isExposed ? 'bg-emerald-700/70 border border-emerald-400/50' : a.isObserved ? 'bg-sky-700/70 border border-sky-400/50' : 'bg-gray-700/60'}`}
           label={a.name}
           description={a.description}
           revealed={a.revealed}

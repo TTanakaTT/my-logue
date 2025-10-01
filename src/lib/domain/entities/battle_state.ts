@@ -1,6 +1,12 @@
-import type { Player, Actor, ActorSide, ActorKind } from '$lib/domain/entities/character';
+import type {
+  Actor,
+  ActorSide,
+  ActorKind,
+  Player,
+  Enemy,
+  Character
+} from '$lib/domain/entities/character';
 import type { Action } from '$lib/domain/entities/action';
-import type { CompanionSnapshot } from '$lib/domain/entities/companion';
 
 export type Phase =
   | 'companion_select'
@@ -36,11 +42,11 @@ export interface GameState {
   phase: Phase;
   player: Player;
   /** 前周回から引き継いだ仲間候補 (ゲーム開始直後 companion_select フェーズで表示) */
-  companionCandidates?: CompanionSnapshot[];
+  companionCandidates?: Character[];
   /** プレイヤー名確定済みか */
   playerNameCommitted?: boolean;
   allies: Actor[];
-  enemies: Actor[];
+  enemies: Enemy[];
   selectedEnemyIndex?: number;
   actionOffer: Action[];
   actionUseCount: number;

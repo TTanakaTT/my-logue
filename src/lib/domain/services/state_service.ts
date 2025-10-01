@@ -1,7 +1,7 @@
 import { writable, get } from 'svelte/store';
 import { APP_VERSION } from '$lib/config/version';
 import type { GameState, RewardOption } from '$lib/domain/entities/battle_state';
-import type { Player, Actor, StatKey } from '$lib/domain/entities/character';
+import type { Actor, Character, Enemy, Player } from '$lib/domain/entities/character';
 import type { Action } from '$lib/domain/entities/action';
 import { calcMaxHP } from '$lib/domain/services/attribute_service';
 import { buildPlayerFromCsv, buildEnemyFromCsv } from '$lib/data/repositories/character_repository';
@@ -13,84 +13,79 @@ import { pushLog, setLogState, resetDisplayLogs } from '$lib/presentation/utils/
 import { getRewardsForEnemy } from '$lib/data/repositories/reward_repository';
 import { tickStatusesTurnStart } from '$lib/data/consts/statuses';
 import { createCompanionRepository } from '$lib/data/repositories/companion_repository';
-import type { CompanionSnapshot } from '$lib/domain/entities/companion';
 
 const STORAGE_VERSION_PREFIX = `version_${APP_VERSION}`;
 const HIGH_KEY = `${STORAGE_VERSION_PREFIX}:highest_floor`;
-const KNOWN_ACTIONS_KEY = `${STORAGE_VERSION_PREFIX}:known_charactor_actions`;
-const REVEALED_CHARACTORS_KEY = `${STORAGE_VERSION_PREFIX}:revealed_charactors`;
+const OBSERVED_ACTIONS_KEY = `${STORAGE_VERSION_PREFIX}:observed_charactor_actions`;
+const EXPOSED_CHARACTORS_KEY = `${STORAGE_VERSION_PREFIX}:exposed_charactors`;
 
-type KnownActionsMap = Record<string, Action[]>; // character name -> observed actions
+type ObservedActionsMap = Record<string, Action[]>; // character name -> observed actions
 
-function loadKnownActionsMap(): KnownActionsMap {
+function loadObservedActionsMap(): ObservedActionsMap {
   try {
-    const raw = localStorage.getItem(KNOWN_ACTIONS_KEY);
+    const raw = localStorage.getItem(OBSERVED_ACTIONS_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed === 'object') {
-      const out: KnownActionsMap = {};
+      const out: ObservedActionsMap = {};
       for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
         if (Array.isArray(v)) out[k] = (v as Action[]).filter((x) => typeof x === 'string');
       }
       return out;
     }
   } catch (e) {
-    console.warn('Failed to load known_charactor_actions', e);
+    console.warn('Failed to load observed_charactor_actions', e);
   }
   return {};
 }
 
-function saveKnownActionsMap(map: KnownActionsMap) {
+function saveObservedActionsMap(map: ObservedActionsMap) {
   try {
-    localStorage.setItem(KNOWN_ACTIONS_KEY, JSON.stringify(map));
+    localStorage.setItem(OBSERVED_ACTIONS_KEY, JSON.stringify(map));
   } catch (e) {
-    console.warn('Failed to save known_charactor_actions', e);
+    console.warn('Failed to save observed_charactor_actions', e);
   }
 }
 
-export function addKnownActions(characterName: string, acts: Action[]) {
+export function addObservedActions(characterId: string, acts: Action[]) {
   if (typeof localStorage === 'undefined') return;
-  const map = loadKnownActionsMap();
-  const current = new Set(map[characterName] || []);
+  const map = loadObservedActionsMap();
+  const current = new Set(map[characterId] || []);
   for (const a of acts) current.add(a);
-  map[characterName] = Array.from(current).sort();
-  saveKnownActionsMap(map);
+  map[characterId] = Array.from(current).sort();
+  saveObservedActionsMap(map);
 }
 
-function loadRevealedCharactors(): string[] {
+function loadExposedCharactors(): string[] {
   try {
-    const raw = localStorage.getItem(REVEALED_CHARACTORS_KEY);
+    const raw = localStorage.getItem(EXPOSED_CHARACTORS_KEY);
     if (!raw) return [];
     const arr = JSON.parse(raw);
     if (Array.isArray(arr)) return arr.filter((x) => typeof x === 'string');
   } catch (e) {
-    console.warn('Failed to load revealed_charactors', e);
+    console.warn('Failed to load exposed_charactors', e);
   }
   return [];
 }
 
-function saveRevealedCharactors(list: string[]) {
+function saveExposedCharactors(list: string[]) {
   try {
-    localStorage.setItem(REVEALED_CHARACTORS_KEY, JSON.stringify(Array.from(new Set(list))));
+    localStorage.setItem(EXPOSED_CHARACTORS_KEY, JSON.stringify(Array.from(new Set(list))));
   } catch (e) {
-    console.warn('Failed to save revealed_charactors', e);
+    console.warn('Failed to save exposed_charactors', e);
   }
 }
 
-export function markCharactorRevealed(name: string) {
+export function markCharactorExposed(name: string) {
   if (typeof localStorage === 'undefined') return;
-  const list = loadRevealedCharactors();
+  const list = loadExposedCharactors();
   if (!list.includes(name)) {
     list.push(name);
-    saveRevealedCharactors(list);
+    saveExposedCharactors(list);
   }
 }
 
-// Legacy helper removed: persistRevealedActions / persistRevealInfo superseded by
-// addKnownActions & markCharactorRevealed (name-based, versioned). We keep legacy
-// readers (loadRevealedActions/loadFullRevealFlag) for one-way migration only.
-
-export function recalcPlayer(p: Player) {
+export function recalcPlayer(p: Actor) {
   const max = calcMaxHP(p);
   if (p.hp > max) p.hp = max;
 }
@@ -102,43 +97,34 @@ function basePlayer(): Player {
   return p;
 }
 
-export function createEnemy(kind: 'normal' | 'elite' | 'boss', floorIndex: number): Actor {
+export function createEnemy(kind: 'normal' | 'elite' | 'boss', floorIndex: number): Enemy {
   const e = buildEnemyFromCsv(kind, floorIndex);
   e.hp = calcMaxHP(e);
   /**
    * Scenario (documentation):
-   * 1. 初回遭遇: known_charactor_actions に該当名が無ければ actions は全て不明扱い (revealedActions 空)。
-   * 2. 敵が行動 → action_executor で個別に addKnownActions し観測済みアクションが徐々に増える。
-   * 3. プレイヤーが "Reveal" 実行 → markCharactorRevealed + 全アクション addKnownActions → 次回以降
+   * 1. 初回遭遇: observed_charactor_actions に該当名が無ければ actions は全て不明扱い (exposedActions 空)。
+   * 2. 敵が行動 → action_executor で個別に addObservedActions し観測済みアクションが徐々に増える。
+   * 3. プレイヤーが "Observed" 実行 → markCharactorExposed + 全アクション addObservedActions → 次回以降
    *    createEnemy 時点で全能力値 & 全アクション公開。
    * 4. バージョンが上がると別バージョン用キーになるため、旧バージョン情報は新バージョンでは参照されない
    *    (ゲームバランス変更に伴う再収集を許容)。必要ならマイグレーションを将来実装可能。
    */
-
-  // Migration: if legacy full reveal flag exists for this (kind,floor) and not yet in new storage, migrate.
-  const revealedNames = loadRevealedCharactors();
-  const knownMap = loadKnownActionsMap();
-  if (!revealedNames.includes(e.name)) {
-    // Promote to name-based full reveal
-    markCharactorRevealed(e.name);
-    addKnownActions(e.name, e.actions.slice());
+  const exposedIds = loadExposedCharactors();
+  const observedMap = loadObservedActionsMap();
+  if (exposedIds.includes(e.id)) {
+    markCharactorExposed(e.id);
+    addObservedActions(e.id, e.actions.slice());
   }
 
-  const postRevealNames = loadRevealedCharactors();
-  if (postRevealNames.includes(e.name)) {
-    // Fully revealed via new system
-    const allowed: StatKey[] = ['hp', 'CON', 'STR', 'POW', 'DEX', 'APP', 'INT'];
-    const obj: Partial<Record<StatKey, boolean>> = {};
-    for (const k of allowed) obj[k] = true;
-    e.revealed = obj;
-    e.revealedActions = e.actions.slice();
-    e.insightActions = e.actions.slice();
+  const postExposedIds = loadExposedCharactors();
+  if (postExposedIds.includes(e.id)) {
+    e.isExposed = true;
     return e;
   }
 
   // Partial knowledge
-  if (knownMap[e.name]) {
-    e.revealedActions = knownMap[e.name].slice();
+  if (observedMap[e.id]) {
+    e.observedActions = observedMap[e.id].slice();
   }
   return e;
 }
@@ -181,6 +167,7 @@ export function selectCompanion(state: GameState, id: string) {
   if (!target) return;
   // スナップショットを Actor 化 (ally)
   const ally: Actor = {
+    id: target.id,
     side: 'player',
     kind: 'player',
     name: target.name,
@@ -197,8 +184,7 @@ export function selectCompanion(state: GameState, id: string) {
     physDamageUpRate: 0,
     psyDamageUpRate: 0,
     actions: [...target.actions],
-    maxActionsPerTurn: target.maxActionsPerTurn,
-    maxActionChoices: target.maxActionChoices
+    maxActionsPerTurn: target.maxActionsPerTurn
   };
   ally.hp = calcMaxHP(ally);
   state.allies.push(ally);
@@ -240,6 +226,33 @@ function resyncFromStore(state: GameState) {
   Object.assign(state, get(gameState));
 }
 
+/**
+ * プレイヤー現在値を CompanionRepository へ保存する共通処理。
+ * ゲームオーバー/勝利双方で呼び出し。
+ * 失敗してもゲーム進行へ影響しない。
+ */
+function savePlayerAsCompanion(state: GameState) {
+  try {
+    const repo = createCompanionRepository();
+    const snap: Character = {
+      id: String(Date.now()),
+      name: state.player.name,
+      STR: state.player.STR,
+      CON: state.player.CON,
+      POW: state.player.POW,
+      DEX: state.player.DEX,
+      APP: state.player.APP,
+      INT: state.player.INT,
+      maxActionsPerTurn: state.player.maxActionsPerTurn,
+      actions: [...state.player.actions]
+    };
+    repo.add(snap);
+    pushLog(` ${state.player.name} を仲間にした`, 'system');
+  } catch (e) {
+    console.warn('companion save failed', e);
+  }
+}
+
 export function rollActions(state: GameState) {
   const pool = state.player.actions;
   const limit = state.player.maxActionChoices;
@@ -259,6 +272,8 @@ export function nextProgress(state: GameState) {
     if (state.floorIndex >= 10) {
       state.phase = 'victory';
       pushLog('全階層を踏破! 勝利!', 'system');
+      // 勝利プレイヤーも仲間化
+      savePlayerAsCompanion(state);
       if (state.highestFloor < 10) {
         state.highestFloor = 10;
         localStorage.setItem(HIGH_KEY, String(state.highestFloor));
@@ -324,19 +339,14 @@ export async function combatAction(state: GameState, id: Action) {
     commit(state);
     return;
   }
-  if (id === 'Reveal') {
+  if (id === 'Insight') {
     const enemy0 = state.enemies[0];
     if (enemy0) {
       const allActs = enemy0.actions.slice();
-      enemy0.revealedActions = allActs.slice();
-      enemy0.insightActions = allActs.slice();
-      const allowed: StatKey[] = ['hp', 'CON', 'STR', 'POW', 'DEX', 'APP', 'INT'];
-      const obj: Partial<Record<StatKey, boolean>> = {};
-      for (const k of allowed) obj[k] = true;
-      enemy0.revealed = obj;
-      // New persistence (name based)
-      markCharactorRevealed(enemy0.name);
-      addKnownActions(enemy0.name, allActs);
+      enemy0.observedActions = allActs.slice();
+      enemy0.isExposed = true;
+      markCharactorExposed(enemy0.id);
+      addObservedActions(enemy0.id, allActs);
       state.insightRewardActions = Array.from(
         new Set([...(state.insightRewardActions || []), ...allActs])
       );
@@ -390,7 +400,6 @@ async function enemiesTurn(state: GameState) {
     tickStatusesTurnStart(enemy);
     if (enemy.hp <= 0) {
       pushLog('敵を継続ダメージで倒した!', 'combat');
-      state.player.score += 1;
       removeDeadActors(state);
       if (state.phase !== 'combat') {
         commit(state);
@@ -424,28 +433,8 @@ async function enemiesTurn(state: GameState) {
       state.highestFloor = state.floorIndex + 1;
       localStorage.setItem(HIGH_KEY, String(state.highestFloor));
     }
-    // ゲームオーバー時プレイヤーを仲間候補として保存
-    try {
-      const repo = createCompanionRepository();
-      const snap: CompanionSnapshot = {
-        id: String(Date.now()),
-        name: state.player.name,
-        STR: state.player.STR,
-        CON: state.player.CON,
-        POW: state.player.POW,
-        DEX: state.player.DEX,
-        APP: state.player.APP,
-        INT: state.player.INT,
-        maxActionsPerTurn: state.player.maxActionsPerTurn,
-        maxActionChoices: state.player.maxActionChoices,
-        actions: [...state.player.actions]
-      };
-      repo.add(snap);
-      pushLog(` ${state.player.name} を仲間にした`, 'system');
-    } catch (e) {
-      // 失敗してもゲーム進行は継続
-      console.warn('companion save failed', e);
-    }
+    // プレイヤーを仲間候補として保存
+    savePlayerAsCompanion(state);
   }
 }
 
@@ -480,26 +469,7 @@ function startTurn(state: GameState) {
         state.phase = 'gameover';
         pushLog('毒で倒れた...', 'system');
         // ゲームオーバー時プレイヤーを仲間候補として保存
-        try {
-          const repo = createCompanionRepository();
-          const snap: CompanionSnapshot = {
-            id: String(Date.now()),
-            name: state.player.name,
-            STR: state.player.STR,
-            CON: state.player.CON,
-            POW: state.player.POW,
-            DEX: state.player.DEX,
-            APP: state.player.APP,
-            INT: state.player.INT,
-            maxActionsPerTurn: state.player.maxActionsPerTurn,
-            maxActionChoices: state.player.maxActionChoices,
-            actions: [...state.player.actions]
-          };
-          repo.add(snap);
-          pushLog(` ${state.player.name} を仲間にした`, 'system');
-        } catch (e) {
-          console.warn('companion save failed', e);
-        }
+        savePlayerAsCompanion(state);
         break; // 以降の味方 tick は不要
       } else {
         // 味方死亡: ログのみ。ループは続行し他の味方やプレイヤーを処理。
@@ -559,6 +529,8 @@ export function pickReward(state: GameState, id: string) {
     if (state.floorIndex >= 10) {
       state.phase = 'victory';
       pushLog('全階層を踏破! 勝利!', 'system');
+      // 勝利プレイヤーも仲間化
+      savePlayerAsCompanion(state);
       if (state.highestFloor < 10) {
         state.highestFloor = 10;
         localStorage.setItem(HIGH_KEY, String(state.highestFloor));

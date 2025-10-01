@@ -5,7 +5,7 @@ import type { Action } from '$lib/domain/entities/action';
 import { calcMaxHP } from '$lib/domain/services/attribute_service';
 import { recalcPlayer } from '$lib/domain/services/state_service';
 import { pushLog } from '$lib/presentation/utils/logUtil';
-import type { Player } from '$lib/domain/entities/character';
+import type { Actor } from '$lib/domain/entities/character';
 import { addStatus, findStatus, removeStatus } from '$lib/data/consts/statuses';
 
 // rewards.csv: id(number),kind,name,label,floorMin?,floorMax?
@@ -83,20 +83,8 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
         pushLog(`HP+${Math.min(amount, max)} (<=最大HP)`, 'system');
       } else {
         type NumericPlayerStat = Exclude<
-          keyof Player,
-          | 'name'
-          | 'side'
-          | 'kind'
-          | 'hp'
-          | 'statuses'
-          | 'actions'
-          | 'revealed'
-          | 'revealedActions'
-          | 'insightActions'
-          | 'maxActionsPerTurn'
-          | 'maxActionChoices'
-          | 'score'
-          | 'maxActionsPerTurn'
+          keyof Actor,
+          'id' | 'name' | 'actions' | 'maxActionsPerTurn' | 'kind' | 'side' | 'hp' | 'statuses'
         >;
         const numericKeys: Record<string, NumericPlayerStat> = {
           STR: 'STR',

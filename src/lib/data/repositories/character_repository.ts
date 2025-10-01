@@ -1,6 +1,6 @@
 import charactersCsvRaw from '$lib/data/consts/characters.csv?raw';
 import { ACTOR_KINDS } from '$lib/domain/entities/character';
-import type { ActorKind, Actor, Player } from '$lib/domain/entities/character';
+import type { ActorKind, Attribute, Player, Enemy } from '$lib/domain/entities/character';
 import type { Action } from '$lib/domain/entities/action';
 
 interface RowCommon {
@@ -81,6 +81,7 @@ export function buildPlayerFromCsv(): Player {
   if (!playerRow) throw new Error('player row not found in characters.csv');
   const row = playerRow;
   const base: Player = {
+    id: row.id,
     side: 'player',
     kind: row.kind,
     name: row.name,
@@ -98,13 +99,8 @@ export function buildPlayerFromCsv(): Player {
     psyDamageUpRate: 0,
     // row.actions は再起動間で共有されるためコピーして破壊的変更の伝播を防ぐ
     actions: [...row.actions],
-    revealed: Object.fromEntries(row.revealed.map((k) => [k as string, true])) as Record<
-      string,
-      boolean
-    >,
     maxActionsPerTurn: row.maxActionsPerTurn,
-    maxActionChoices: row.maxActionChoices,
-    score: 0
+    maxActionChoices: row.maxActionChoices
   };
   return base;
 }
@@ -124,9 +120,10 @@ export function pickEnemyRow(kind: 'normal' | 'elite' | 'boss', floorIndex: numb
   return enemyRows.find((r) => r.kind === kind && inFloor(r));
 }
 
-export function buildEnemyFromCsv(kind: 'normal' | 'elite' | 'boss', floorIndex: number): Actor {
+export function buildEnemyFromCsv(kind: 'normal' | 'elite' | 'boss', floorIndex: number): Enemy {
   const row = pickEnemyRow(kind, floorIndex) || enemyRows.find((r) => r.kind === kind)!;
-  const enemy: Actor = {
+  const enemy: Enemy = {
+    id: row.id,
     side: 'enemy',
     kind: row.kind,
     name: row.name,
@@ -143,12 +140,9 @@ export function buildEnemyFromCsv(kind: 'normal' | 'elite' | 'boss', floorIndex:
     physDamageUpRate: 0,
     psyDamageUpRate: 0,
     actions: [...row.actions],
-    revealed: Object.fromEntries(row.revealed.map((k) => [k as string, true])) as Record<
-      string,
-      boolean
-    >,
+    revealedAttributes: row.revealed.map((k) => k as Attribute) as Attribute[],
     maxActionsPerTurn: row.maxActionsPerTurn,
-    maxActionChoices: row.maxActionChoices
+    isExposed: false
   };
   return enemy;
 }

@@ -7,4 +7,4 @@ id,kind,name,label,floorMin,floorMax
 6,enemy_boss,hp_full,HP999回復 & 状態異常解除,2,
 7,enemy_boss,act_slot_up1,行動回数+1,1,1
 8,enemy_elite,all_stats_1,全ステ+1,1,
-9,enemy_elite,action_reveal,「洞察」を習得,1,
+9,enemy_elite,action_insight,「洞察」を習得,1,

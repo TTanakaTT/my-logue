@@ -18,5 +18,8 @@ export interface StatusInstance {
   /** 残ターン (undefined は永続) */
   remainingTurns?: number;
 }
+export function isStatusInstance(value: unknown): value is StatusInstance {
+  return true;
+}
 
 export type Status = keyof typeof status;

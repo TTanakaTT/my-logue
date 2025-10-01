@@ -2,7 +2,7 @@ import type { ActionDef } from '$lib/domain/entities/action';
 import { heal } from '$lib/domain/services/attribute_service';
 import { applyPhysicalDamage, applyPsychicDamage } from '$lib/domain/services/damage_service';
 import { addStatus } from '$lib/data/consts/statuses';
-import type { Actor } from '$lib/domain/entities/character';
+import { isEnemy } from '$lib/domain/entities/character';
 
 export const action = {
   Strike: {
@@ -82,7 +82,7 @@ export const action = {
       addStatus(target, 'Poison');
     }
   },
-  Reveal: {
+  Insight: {
     name: '洞察',
     description: '相手を洞察し見切りを付与(物理/精神与ダメ-30%) (クリティカル: 物理/精神与ダメ-51%',
     normalLog: ({ target }) => {
@@ -94,36 +94,19 @@ export const action = {
       return `鋭い洞察！${target.name}の行動パターンまでも看破し完全に見切った。`;
     },
     normalAction: ({ target }) => {
-      revealAction(target);
-      if (target) addStatus(target, 'Mikiri');
+      if (!target) return;
+
+      if (isEnemy(target)) target.isExposed = true;
+
+      addStatus(target, 'Mikiri');
     },
     criticalAction: ({ target }) => {
-      revealAction(target);
-      if (target) {
-        addStatus(target, 'Mikiri');
-        addStatus(target, 'Mikiri');
-      }
+      if (!target) return;
+
+      if (isEnemy(target)) target.isExposed = true;
+
+      addStatus(target, 'Mikiri');
+      addStatus(target, 'Mikiri');
     }
   }
 } satisfies Record<string, ActionDef>;
-
-function revealAction(target: Actor | undefined): void {
-  if (!target) return;
-  const nextRevealed = {
-    ...(target.revealed || {}),
-    hp: true,
-    CON: true,
-    STR: true,
-    POW: true,
-    DEX: true,
-    APP: true,
-    INT: true
-  } as typeof target.revealed;
-  target.revealed = nextRevealed;
-  const current = target.revealedActions ? [...target.revealedActions] : [];
-  for (const id of target.actions) if (!current.includes(id)) current.push(id);
-  target.revealedActions = current;
-  const insight = target.insightActions ? [...target.insightActions] : [];
-  for (const id of target.actions) if (!insight.includes(id)) insight.push(id);
-  target.insightActions = insight;
-}

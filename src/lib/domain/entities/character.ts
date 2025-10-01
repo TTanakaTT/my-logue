@@ -1,17 +1,22 @@
 import type { Action } from '$lib/domain/entities/action';
-import type { StatusInstance } from '$lib/domain/entities/status';
+import { isStatusInstance, type StatusInstance } from '$lib/domain/entities/status';
 
-export type ActorKind = 'normal' | 'elite' | 'boss' | 'player';
-export const ACTOR_KINDS: ActorKind[] = ['normal', 'elite', 'boss', 'player'];
-export type ActorSide = 'player' | 'enemy';
+export const ACTOR_KINDS = ['normal', 'elite', 'boss', 'player'];
+export type ActorKind = (typeof ACTOR_KINDS)[number];
 
-/**
- * アクター (プレイヤー/敵) の共通型。
- * すべての一時効果は statuses に集約。
- */
-export interface Actor {
-  kind: ActorKind;
-  side: ActorSide;
+export function isActorKind(value: unknown): value is ActorKind {
+  return typeof value === 'string' && (ACTOR_KINDS as readonly string[]).includes(value);
+}
+
+export const ACTOR_SIDES = ['player', 'enemy'];
+export type ActorSide = (typeof ACTOR_SIDES)[number];
+
+export function isActorSide(value: unknown): value is ActorSide {
+  return typeof value === 'string' && (ACTOR_SIDES as readonly string[]).includes(value);
+}
+
+export interface Character {
+  id: string;
   name: string;
   STR: number;
   CON: number;
@@ -19,6 +24,18 @@ export interface Actor {
   DEX: number;
   APP: number;
   INT: number;
+  actions: Action[];
+  /** 1ターンに使用できる最大アクション数 */
+  maxActionsPerTurn: number;
+}
+
+/**
+ * アクター (プレイヤー/敵) の共通型。
+ * すべての一時効果は statuses に集約。
+ */
+export interface Actor extends Character {
+  kind: ActorKind;
+  side: ActorSide;
   hp: number;
   statuses: StatusInstance[];
   /** 物理ダメージカット率 (0~1) */
@@ -29,21 +46,58 @@ export interface Actor {
   physDamageUpRate: number;
   /** 精神与ダメアップ率 (加算) */
   psyDamageUpRate: number;
-  actions: Action[];
-  /** 公開済み能力値 */
-  revealed?: Partial<Record<StatKey, boolean>>;
-  /** 使用により観測されたアクションID */
-  revealedActions?: Action[];
-  /** 洞察で開示されたアクションID */
-  insightActions?: Action[];
-  /** 1ターンに使用できる最大アクション数 */
-  maxActionsPerTurn: number;
-  /** 戦闘開始時に提示されるアクション選択肢数 */
-  maxActionChoices: number;
+}
+
+export function isActor(value: Character): value is Enemy {
+  if (typeof value !== 'object' || !value) {
+    return false;
+  }
+  const {
+    kind,
+    side,
+    hp,
+    statuses,
+    physDamageCutRate,
+    psyDamageCutRate,
+    physDamageUpRate,
+    psyDamageUpRate
+  } = value as Record<keyof Actor, unknown>;
+
+  return (
+    isActorKind(kind) &&
+    isActorSide(side) &&
+    typeof hp === 'number' &&
+    Array.isArray(statuses) &&
+    statuses.every((s) => isStatusInstance(s)) &&
+    typeof physDamageCutRate === 'number' &&
+    typeof psyDamageCutRate === 'number' &&
+    typeof physDamageUpRate === 'number' &&
+    typeof psyDamageUpRate === 'number'
+  );
 }
 
 export interface Player extends Actor {
-  score: number;
+  /** 戦闘開始時に提示されるアクション選択肢数 */
+  maxActionChoices: number;
+}
+export interface Enemy extends Actor {
+  /** 情報開示済み */
+  isExposed: boolean;
+  /** 公開済み能力値 */
+  revealedAttributes?: Attribute[];
+  /** 使用により観測されたアクションID */
+  observedActions?: Action[];
 }
 
-export type StatKey = 'hp' | 'CON' | 'STR' | 'POW' | 'DEX' | 'APP' | 'INT';
+export function isEnemy(value: Actor): value is Enemy {
+  if (typeof value !== 'object' || !value) {
+    return false;
+  }
+  const { isExposed } = value as Record<keyof Enemy, unknown>;
+
+  return typeof isExposed === 'boolean';
+}
+
+export type CharacterAttribute = 'CON' | 'STR' | 'POW' | 'DEX' | 'APP' | 'INT';
+export type ActorAttribute = 'hp';
+export type Attribute = CharacterAttribute | ActorAttribute;

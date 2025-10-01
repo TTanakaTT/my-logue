@@ -51,7 +51,6 @@
   class="bg-panel rounded-lg py-2 px-4 flex flex-wrap items-center gap-4 text-sm text-gray-200"
 >
   <div>階層: {$gameState.floorIndex} - {$gameState.stepIndex}/5</div>
-  <div>撃破数: {$gameState.player.score}</div>
   <div>最高到達階層: {$gameState.highestFloor}</div>
 </header>
 
@@ -63,20 +62,20 @@
       {#key [$gameState.player.hp, $gameState.player.STR, $gameState.player.CON, $gameState.player.POW, $gameState.player.DEX, $gameState.player.APP, $gameState.player.INT, $gameState.player.statuses
           .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
           .join(',')].join('|')}
-        <CharacterPanel actor={$gameState.player} side="player" panelKey="player" />
+        <CharacterPanel character={$gameState.player} side="player" panelKey="player" />
       {/key}
       {#each $gameState.allies as ally, i (i)}
         {#key [ally.hp, ally.STR, ally.CON, ally.POW, ally.DEX, ally.APP, ally.INT, ally.statuses
             .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
             .join(',')].join('|')}
-          <CharacterPanel actor={ally} side="player" panelKey={`ally-${i}`} />
+          <CharacterPanel character={ally} side="player" panelKey={`ally-${i}`} />
         {/key}
       {/each}
       {#each $gameState.enemies as enemy, i (i)}
         {#key [enemy.hp, enemy.STR, enemy.CON, enemy.POW, enemy.DEX, enemy.APP, enemy.INT, enemy.statuses
             .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
             .join(',')].join('|')}
-          <CharacterPanel actor={enemy} side="enemy" panelKey={`enemy-${i}`} />
+          <CharacterPanel character={enemy} side="enemy" panelKey={`enemy-${i}`} />
         {/key}
       {/each}
     </div>
@@ -89,14 +88,21 @@
     {#if !$gameState.playerNameCommitted}
       <h2 class="mt-0 text-lg font-semibold mb-2">プレイヤー名設定</h2>
       <div class="flex flex-col gap-2 max-w-xs mb-4">
-        <div class="flex gap-2">
-          <input
-            class="px-2 py-1 rounded bg-gray-800 border border-gray-600 focus:outline-none"
-            bind:value={$gameState.player.name}
-            placeholder="名前を入力"
-            maxlength={20}
-          />
-          <button class="btn-base" on:click={restart}>ランダム生成</button>
+        <div class="flex gap-2 items-end">
+          <div class="flex flex-col flex-1">
+            <label for="player-name" class="text-xs text-gray-400 mb-1">プレイヤー名</label>
+            <input
+              id="player-name"
+              class="px-2 py-1 rounded bg-gray-800 border border-gray-600 focus:outline-none"
+              bind:value={$gameState.player.name}
+              placeholder="名前を入力"
+              maxlength={20}
+              autocomplete="off"
+            />
+          </div>
+          <button class="btn-base" on:click={restart} aria-label="名前をランダム生成"
+            >ランダム生成</button
+          >
         </div>
         <div class="flex gap-2">
           <button
@@ -108,27 +114,12 @@
       </div>
     {:else if $gameState.phase === 'companion_select'}
       <h2 class="mt-0 text-lg font-semibold mb-2">仲間を選択</h2>
-      <div class="flex gap-3 mb-4">
+      <div class="flex flex-wrap gap-3 mb-4">
         {#each $gameState.companionCandidates || [] as c (c.id)}<button
-            class="btn-base mt-1 w-3xs"
+            class="hover:bg-gray-600 cursor-pointer"
             on:click={() => selectCompanion($gameState, c.id)}
           >
-            <div class="flex flex-col gap-1 p-2">
-              <span class="font-semibold">{c.name}</span>
-              <div class="flex flex-wrap gap-4 text-sm">
-                <span>STR {c.STR}</span>
-                <span>CON {c.CON}</span>
-                <span>POW {c.POW}</span>
-                <span>DEX {c.DEX}</span>
-                <span>APP {c.APP}</span>
-                <span>INT {c.INT}</span>
-              </div>
-              <div class="flex flex-wrap gap-1">
-                {#each c.actions as a (a)}
-                  <span class="px-2 py-0.5 rounded bg-gray-500 text-xs">{a}</span>
-                {/each}
-              </div>
-            </div>
+            <CharacterPanel character={c} side="player" panelKey={c.name} />
           </button>
         {/each}
       </div>
