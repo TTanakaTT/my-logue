@@ -2,6 +2,7 @@ import charactersCsvRaw from '$lib/data/consts/characters.csv?raw';
 import { ACTOR_KINDS } from '$lib/domain/entities/character';
 import type { ActorKind, Attribute, Player, Enemy } from '$lib/domain/entities/character';
 import type { Action } from '$lib/domain/entities/action';
+import { parseCsv } from '$lib/data/repositories/utils/csv_util';
 
 interface RowCommon {
   id: string;
@@ -21,15 +22,7 @@ interface RowCommon {
   revealed: string[];
 }
 
-function parse(csvRaw: string): string[][] {
-  return csvRaw
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l && !l.startsWith('#'))
-    .map((line) => line.split(',').map((s) => s.trim()));
-}
-
-const allRows: RowCommon[] = parse(charactersCsvRaw)
+const allRows: RowCommon[] = parseCsv(charactersCsvRaw)
   .slice(1)
   .map((cols) => {
     const [

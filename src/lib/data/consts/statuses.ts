@@ -3,8 +3,8 @@
 
 import type { Actor } from '$lib/domain/entities/character';
 import type { Status, StatusDef, StatusInstance } from '$lib/domain/entities/status';
-import { pushCombatLog } from '$lib/presentation/utils/logUtil';
-import { playEffectOnActor } from '$lib/presentation/utils/effectBus';
+import { pushCombatLog } from '$lib/presentation/utils/log_util';
+import { playEffectOnActor } from '$lib/presentation/utils/effect_bus';
 
 // ---- 定義一覧 ----
 export const status = {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { floatings } from '$lib/presentation/utils/effectBus';
+  import { floatings } from '$lib/presentation/utils/effect_bus';
   export let panelKey: string;
   // filter 対象
   $: local = $floatings.filter((f) => f.panelKey === panelKey);

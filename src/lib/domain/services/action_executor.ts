@@ -1,10 +1,10 @@
-import { emitActionLog } from '$lib/presentation/utils/logUtil';
+import { emitActionLog } from '$lib/presentation/utils/log_util';
 import { getAction } from '$lib/data/repositories/action_repository';
 import type { Action } from '$lib/domain/entities/action';
 import { isEnemy, type Actor } from '$lib/domain/entities/character';
 import type { GameState } from '$lib/domain/entities/battle_state';
 import { addObservedActions } from '$lib/domain/services/state_service';
-import { triggerActionEffects } from '$lib/presentation/utils/effectBus';
+import { triggerActionEffects } from '$lib/presentation/utils/effect_bus';
 
 export interface PerformResult {
   actorDied?: Actor;

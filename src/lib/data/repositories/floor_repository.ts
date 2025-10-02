@@ -7,6 +7,8 @@ import {
   type NodeType
 } from '$lib/domain/entities/floor';
 import floorNodeRulesCsvRaw from '$lib/data/consts/floor_node_rules.csv?raw';
+import { shuffle } from '$lib/utils/array_util';
+import { parseCsv } from '$lib/data/repositories/utils/csv_util';
 
 interface StructureRow {
   floorIndex: number;
@@ -24,16 +26,7 @@ interface NodeRuleRow {
   maxCount?: number; // 上限 (undefined は制限なし)
 }
 
-function parse(csvRaw: string): string[][] {
-  const lines = csvRaw
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l);
-  if (lines.length === 0) return [];
-  return lines.map((line) => line.split(',').map((s) => s.trim()));
-}
-
-const structureRows: StructureRow[] = parse(floorStructureCsvRaw)
+const structureRows: StructureRow[] = parseCsv(floorStructureCsvRaw)
   .slice(1)
   .map((cols) => {
     const [floorIndexStr, totalNodesStr, minStepsStr, maxStepsStr, progressMinStepStr] = cols;
@@ -58,7 +51,7 @@ export function getFloorStructure(floorIndex: number): StructureRow | undefined 
 }
 
 // ルール CSV 解析
-const nodeRuleRows: NodeRuleRow[] = parse(floorNodeRulesCsvRaw)
+const nodeRuleRows: NodeRuleRow[] = parseCsv(floorNodeRulesCsvRaw)
   .slice(1)
   .map((cols) => {
     const [floorIndexStr, nodeTypeStr, weightStr, minCountStr, maxCountStr] = cols;
@@ -267,12 +260,4 @@ function shuffleNodes(
     })
   }));
   return result;
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
 }

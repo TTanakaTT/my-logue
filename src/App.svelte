@@ -14,7 +14,7 @@
   import { getAction } from '$lib/data/repositories/action_repository';
   import CharacterPanel from '$lib/presentation/components/CharacterPanel.svelte';
   import LogViewer from '$lib/presentation/components/LogViewer.svelte';
-  import { uiAnimating } from '$lib/presentation/utils/effectBus';
+  import { uiAnimating } from '$lib/presentation/utils/effect_bus';
 
   let debugMode = false;
 

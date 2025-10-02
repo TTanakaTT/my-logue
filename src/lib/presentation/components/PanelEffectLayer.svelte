@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { effects } from '$lib/presentation/utils/effectBus';
+  import { effects } from '$lib/presentation/utils/effect_bus';
   import Icon from './Icon.svelte';
   export let panelKey: string;
   $: localEffects = $effects.filter((e) => e.panelKey === panelKey);

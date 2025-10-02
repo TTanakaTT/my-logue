@@ -1,7 +1,7 @@
 import type { Actor } from '$lib/domain/entities/character';
 import type { GameState } from '$lib/domain/entities/battle_state';
 import { writable, derived, get } from 'svelte/store';
-import { setLogState as _setLogState, getCurrentState } from '$lib/presentation/utils/logUtil';
+import { setLogState as _setLogState, getCurrentState } from '$lib/presentation/utils/log_util';
 
 export type FloatKind = 'damage' | 'heal';
 
