@@ -1,6 +1,6 @@
 import type { EventDef } from '$lib/domain/entities/events';
 import { createEnemy, rollActions } from '$lib/domain/services/state_service';
-import { pushLog } from '$lib/presentation/utils/logUtil';
+import { pushLog } from '$lib/presentation/utils/log_util';
 import { calcMaxHP } from '$lib/domain/services/attribute_service';
 
 // PascalCase キー & id 削除

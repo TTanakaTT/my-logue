@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { DisplayLogEntry } from '$lib/presentation/utils/logUtil';
-  import { displayLogs } from '$lib/presentation/utils/logUtil';
+  import type { DisplayLogEntry } from '$lib/presentation/utils/log_util';
+  import { displayLogs } from '$lib/presentation/utils/log_util';
   // Svelteの$store構文
   $: logs = $displayLogs as DisplayLogEntry[];
 </script>

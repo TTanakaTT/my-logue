@@ -1,5 +1,5 @@
-import { pushCombatLog } from '$lib/presentation/utils/logUtil';
-import { showDamage } from '$lib/presentation/utils/effectBus';
+import { pushCombatLog } from '$lib/presentation/utils/log_util';
+import { showDamage } from '$lib/presentation/utils/effect_bus';
 import type { Actor } from '$lib/domain/entities/character';
 
 export function applyPhysicalDamage(source: Actor, target: Actor, amount: number) {

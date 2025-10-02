@@ -1,14 +1,6 @@
 // https://www.gsj.jp/Muse/hyohon/mineral/list.html
 import mineralCsvRaw from '$lib/data/consts/mineral.csv?raw';
-
-/** mineral.csv からカタカナ列(mineralName_katakana) を抽出し配列化する。 */
-function parse(csvRaw: string): string[][] {
-  return csvRaw
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l && !l.startsWith('#'))
-    .map((line) => line.split(',').map((s) => s.trim()));
-}
+import { parseCsv } from '$lib/data/repositories/utils/csv_util';
 
 interface MineralRow {
   nameJa: string; // mineralName_ja
@@ -18,7 +10,7 @@ interface MineralRow {
 }
 
 const rows: MineralRow[] = (() => {
-  const parsed = parse(mineralCsvRaw);
+  const parsed = parseCsv(mineralCsvRaw);
   const header = parsed[0];
   const body = parsed.slice(1);
   const idxJa = header.indexOf('mineralName_ja');

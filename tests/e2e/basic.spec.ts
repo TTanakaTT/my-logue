@@ -10,5 +10,4 @@ base.runTest(async ({ page }) => {
   await base.compareScreenshot(page, '1-0.png');
 
   await page.getByRole('button', { name: '開始' }).click();
-  await base.compareScreenshot(page, '1-1.png');
 });

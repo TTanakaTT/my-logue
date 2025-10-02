@@ -1,7 +1,7 @@
 import type { Actor } from '$lib/domain/entities/character';
 import type { GameState } from '$lib/domain/entities/battle_state';
 import { writable, derived, get } from 'svelte/store';
-import { setLogState as _setLogState, getCurrentState } from '$lib/presentation/utils/logUtil';
+import { setLogState as _setLogState, getCurrentState } from '$lib/presentation/utils/log_util';
 
 export type FloatKind = 'damage' | 'heal';
 
@@ -64,10 +64,6 @@ let _seq = 1;
 function now() {
   return typeof performance !== 'undefined' ? performance.now() : Date.now();
 }
-
-// requestAnimationFrame は現在未使用
-
-// （旧）期限切れ掃除ループは、setTimeout による個別解除へ切替済み
 
 export function beginAnimation(durationMs: number) {
   _animCounter.update((c) => c + 1);

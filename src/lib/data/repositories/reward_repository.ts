@@ -4,9 +4,11 @@ import type { GameState, RewardOption } from '$lib/domain/entities/battle_state'
 import type { Action } from '$lib/domain/entities/action';
 import { calcMaxHP } from '$lib/domain/services/attribute_service';
 import { recalcPlayer } from '$lib/domain/services/state_service';
-import { pushLog } from '$lib/presentation/utils/logUtil';
+import { pushLog } from '$lib/presentation/utils/log_util';
 import type { Actor } from '$lib/domain/entities/character';
 import { addStatus, findStatus, removeStatus } from '$lib/data/consts/statuses';
+import { shuffle } from '$lib/utils/array_util';
+import { parseCsv } from '$lib/data/repositories/utils/csv_util';
 
 // rewards.csv: id(number),kind,name,label,floorMin?,floorMax?
 // reward_detail.csv: rewardName,type,target,value,extra
@@ -19,8 +21,8 @@ interface RewardRow {
   name: string; // 論理名
   kind: RawKind;
   label: string;
-  floorMin?: number; // 出現下限 (0-index の floorIndex)
-  floorMax?: number; // 出現上限 (0-index)
+  floorMin?: number; // 出現下限
+  floorMax?: number; // 出現上限
 }
 
 interface RewardDetailRow {
@@ -31,24 +33,9 @@ interface RewardDetailRow {
   extra: string; // optional
 }
 
-/**
- * 汎用 CSV パーサ (極小仕様)。
- * - # から始まる行はコメントとして除外
- * - 空行は除外
- * - 先頭/末尾の空白はトリム
- */
-function parse(csvRaw: string): string[][] {
-  return csvRaw
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l && !l.startsWith('#'))
-    .map((line) => line.split(',').map((s) => s.trim()));
-}
-
-const rewardRows: RewardRow[] = parse(rewardCsvRaw)
+const rewardRows: RewardRow[] = parseCsv(rewardCsvRaw)
   .slice(1)
   .map((cols) => {
-    // 可変長 (後方互換)。旧: id,kind,name,label / 新: + floorMin,floorMax
     const [idStr, kindRaw, name, label, floorMinStr, floorMaxStr] = cols;
     const id = Number(idStr);
     if (Number.isNaN(id)) throw new Error(`rewards.csv invalid numeric id: ${idStr}`);
@@ -62,7 +49,7 @@ const rewardRows: RewardRow[] = parse(rewardCsvRaw)
     return { id, name, kind: kindRaw as RawKind, label, floorMin, floorMax };
   });
 
-const detailRows: RewardDetailRow[] = parse(rewardDetailCsvRaw)
+const detailRows: RewardDetailRow[] = parseCsv(rewardDetailCsvRaw)
   .slice(1)
   .map((cols) => {
     const [rewardName, type, target, value, extra = ''] = cols;
@@ -138,14 +125,6 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
       break;
     }
   }
-}
-
-function shuffle<T>(arr: T[]) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
 }
 
 /**
