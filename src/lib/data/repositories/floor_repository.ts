@@ -242,7 +242,7 @@ function shuffleNodes(
   const progressIndex = steps
     .map((step, i) => (step.includes('progress') ? i : -1))
     .filter((i) => i >= 0)[0];
-  if (progressIndex !== progressStepCount - 1) {
+  if (progressIndex !== undefined && progressIndex !== progressStepCount - 1) {
     const indexFrom = progressIndex;
     const indexTo = progressStepCount - 1;
     const stepFrom = steps[indexFrom];

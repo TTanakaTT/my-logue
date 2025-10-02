@@ -284,9 +284,9 @@ function advanceToNextAvailableStep(state: GameState) {
     .map((s) => s.stepIndex)
     .sort((a, b) => a - b);
   if (stepsWithNodes.length === 0) {
-    // 進めるノードが無い: そのまま (階層進行は progress ノードのみ)
-    pushLog('進行可能なノードがありません', 'system');
-    commit(state);
+    // 進めるノードが無い場合、階層進行する
+    state.floorIndex += 1;
+    handleFloorTransition(state);
     return;
   }
   // 現在より大きい stepIndex の中で最小を探し、無ければ最小にラップ
