@@ -196,11 +196,12 @@ function shuffleNodes(
   let _stepCount = stepCount;
   let progressStepCount = randomInt(progressMinStepCount, stepCount);
   const spliceIndicesTmp: number[] = [];
+  const MAX_SPLICE_RETRIES = 10;
   for (let i = 0; i < _stepCount - 1; i++) {
     let spliceIndexTmp = randomInt(1, nodes.length - 1);
     let retryCnt = 0;
     while (spliceIndicesTmp.includes(spliceIndexTmp)) {
-      if (retryCnt > 10) {
+      if (retryCnt > MAX_SPLICE_RETRIES) {
         // スライス位置の重複が解消できない場合、ステップ数を減らす
         _stepCount--;
         progressStepCount--;
@@ -241,7 +242,7 @@ function shuffleNodes(
   const progressIndex = steps
     .map((step, i) => (step.includes('progress') ? i : -1))
     .filter((i) => i >= 0)[0];
-  if (progressIndex !== undefined && progressIndex !== progressStepCount) {
+  if (progressIndex !== progressStepCount - 1) {
     const indexFrom = progressIndex;
     const indexTo = progressStepCount - 1;
     const stepFrom = steps[indexFrom];

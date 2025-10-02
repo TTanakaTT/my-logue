@@ -279,7 +279,6 @@ function logProgress(state: GameState) {
 
 function advanceToNextAvailableStep(state: GameState) {
   const layout = ensureFloorLayout(state.floorIndex, state);
-  if (!layout) return;
   const stepsWithNodes = layout.steps
     .filter((s) => s.nodes.length > 0)
     .map((s) => s.stepIndex)
