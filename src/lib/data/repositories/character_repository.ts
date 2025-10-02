@@ -115,7 +115,7 @@ export function pickEnemyRow(kind: 'normal' | 'elite' | 'boss', floorIndex: numb
   const inFloor = (r: RowCommon) => {
     const min = r.floorMin ?? Number.NEGATIVE_INFINITY;
     const max = r.floorMax ?? Number.POSITIVE_INFINITY;
-    return floorIndex >= min && floorIndex <= max;
+    return min <= floorIndex && floorIndex <= max;
   };
   return enemyRows.find((r) => r.kind === kind && inFloor(r));
 }

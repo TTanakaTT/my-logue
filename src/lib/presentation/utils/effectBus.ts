@@ -65,10 +65,6 @@ function now() {
   return typeof performance !== 'undefined' ? performance.now() : Date.now();
 }
 
-// requestAnimationFrame は現在未使用
-
-// （旧）期限切れ掃除ループは、setTimeout による個別解除へ切替済み
-
 export function beginAnimation(durationMs: number) {
   _animCounter.update((c) => c + 1);
   // ダミー効果としてカウンタだけ管理しても良いが、共通化のため cleanupLoop に委譲

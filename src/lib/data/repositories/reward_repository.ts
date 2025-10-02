@@ -19,8 +19,8 @@ interface RewardRow {
   name: string; // 論理名
   kind: RawKind;
   label: string;
-  floorMin?: number; // 出現下限 (0-index の floorIndex)
-  floorMax?: number; // 出現上限 (0-index)
+  floorMin?: number; // 出現下限
+  floorMax?: number; // 出現上限
 }
 
 interface RewardDetailRow {
@@ -48,7 +48,6 @@ function parse(csvRaw: string): string[][] {
 const rewardRows: RewardRow[] = parse(rewardCsvRaw)
   .slice(1)
   .map((cols) => {
-    // 可変長 (後方互換)。旧: id,kind,name,label / 新: + floorMin,floorMax
     const [idStr, kindRaw, name, label, floorMinStr, floorMaxStr] = cols;
     const id = Number(idStr);
     if (Number.isNaN(id)) throw new Error(`rewards.csv invalid numeric id: ${idStr}`);

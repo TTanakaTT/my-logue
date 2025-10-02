@@ -18,39 +18,34 @@
 
   let debugMode = false;
 
-  // ノード種別: 表示上 normal / elite / boss / event / rest
-  type NodeKindDisplay = 'normal' | 'elite' | 'boss' | 'event' | 'rest';
-  function availableNodeKinds(stepIndex: number): NodeKindDisplay[] {
-    switch (stepIndex) {
-      case 1:
-        return ['normal'];
-      case 2:
-        return ['normal', 'event'];
-      case 3:
-        return ['event', 'rest'];
-      case 4:
-        return ['elite'];
-      case 5:
-        return ['boss'];
-      default:
-        return ['normal'];
-    }
+  import type { FloorNode } from '$lib/domain/entities/floor';
+  function currentStepNodes(): FloorNode[] {
+    const layout = $gameState.floorLayout;
+    if (!layout) return [];
+    const step = layout.steps.find((s) => s.stepIndex === $gameState.stepIndex);
+    return step ? step.nodes : [];
   }
 
-  function handleChoose(kind: NodeKindDisplay) {
-    if (kind === 'normal') chooseNode($gameState, 'combat');
-    else if (kind === 'elite')
-      chooseNode($gameState, 'combat'); // createEnemy内の分岐とstate.stepIndexでelite化済
-    else if (kind === 'boss') chooseNode($gameState, 'boss');
-    else if (kind === 'event') chooseNode($gameState, 'event');
-    else if (kind === 'rest') chooseNode($gameState, 'rest');
+  function handleChoose(node: FloorNode) {
+    chooseNode($gameState, node);
+  }
+  function debug(): void {
+    debugMode = true;
+    try {
+      const snapshot = JSON.parse(JSON.stringify($gameState));
+      console.debug('[DEBUG gameState snapshot]', snapshot);
+    } catch {
+      console.debug('[DEBUG gameState raw]', $gameState);
+    }
   }
 </script>
 
 <header
   class="bg-panel rounded-lg py-2 px-4 flex flex-wrap items-center gap-4 text-sm text-gray-200"
 >
-  <div>階層: {$gameState.floorIndex} - {$gameState.stepIndex}/5</div>
+  <div>
+    階層: {$gameState.floorIndex} - {$gameState.stepIndex}
+  </div>
   <div>最高到達階層: {$gameState.highestFloor}</div>
 </header>
 
@@ -131,8 +126,8 @@
     {:else if $gameState.phase === 'progress'}
       <h2 class="mt-0 text-lg font-semibold mb-2">進行</h2>
       <div class="flex flex-wrap gap-2 mb-2">
-        {#each availableNodeKinds($gameState.stepIndex) as kind, i (i)}
-          <button class="btn-base" on:click={() => handleChoose(kind)}>{kind}</button>
+        {#each currentStepNodes() as node (node.id)}
+          <button class="btn-base" on:click={() => handleChoose(node)}>{node.kind}</button>
         {/each}
       </div>
       {#if debugMode}
@@ -140,7 +135,6 @@
           class="btn-base"
           on:click={() =>
             gameState.update((s) => {
-              s.stepIndex += 1;
               nextProgress(s);
               return { ...s };
             })}>スキップ(デバッグ)</button
@@ -200,7 +194,6 @@
         class="btn-base"
         on:click={() =>
           gameState.update((s) => {
-            s.stepIndex += 1;
             nextProgress(s);
             return { ...s };
           })}>進む</button
@@ -238,5 +231,5 @@
 
 <footer class="bg-panel rounded-lg mb-4 py-2 px-4 flex flex-row gap-2">
   <button class="btn-base" on:click={restart}>やり直し</button>
-  <button class="btn-base" on:click={() => (debugMode = !debugMode)}>デバッグ</button>
+  <button class="btn-base" on:click={debug}>デバッグ</button>
 </footer>

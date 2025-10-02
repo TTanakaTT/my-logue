@@ -13,6 +13,8 @@ import { pushLog, setLogState, resetDisplayLogs } from '$lib/presentation/utils/
 import { getRewardsForEnemy } from '$lib/data/repositories/reward_repository';
 import { tickStatusesTurnStart } from '$lib/data/consts/statuses';
 import { createCompanionRepository } from '$lib/data/repositories/companion_repository';
+import { getOrCreateFloorLayout } from '$lib/domain/services/floor_generation_service';
+import type { FloorLayout, FloorNode } from '$lib/domain/entities/floor';
 
 const STORAGE_VERSION_PREFIX = `version_${APP_VERSION}`;
 const HIGH_KEY = `${STORAGE_VERSION_PREFIX}:highest_floor`;
@@ -129,12 +131,20 @@ export function createEnemy(kind: 'normal' | 'elite' | 'boss', floorIndex: numbe
   return e;
 }
 
+function ensureFloorLayout(floorIndex: number, state?: GameState): FloorLayout {
+  const layout = getOrCreateFloorLayout(floorIndex);
+  if (state) state.floorLayout = layout;
+  return layout;
+}
+
 function initState(): GameState {
   const highest = Number(localStorage.getItem(HIGH_KEY) || '0');
   const compRepo = createCompanionRepository();
   const companions = compRepo.list();
+  const floorIndex = 1;
+  const layout = ensureFloorLayout(floorIndex);
   return {
-    floorIndex: 1,
+    floorIndex,
     stepIndex: 1,
     phase: companions.length > 0 ? 'companion_select' : 'progress',
     player: basePlayer(),
@@ -148,7 +158,8 @@ function initState(): GameState {
     actionOffer: [],
     actionUseCount: 0,
     playerUsedActions: [],
-    insightRewardActions: []
+    insightRewardActions: [],
+    floorLayout: layout
   };
 }
 
@@ -263,36 +274,67 @@ export function rollActions(state: GameState) {
 }
 
 function logProgress(state: GameState) {
-  pushLog(`進行: 階層${state.floorIndex} - ${state.stepIndex}/5`, 'system');
+  pushLog(`進行: 階層${state.floorIndex} - ${state.stepIndex}`, 'system');
 }
 
-export function nextProgress(state: GameState) {
-  if (state.stepIndex === 5) {
-    state.floorIndex += 1;
-    if (state.floorIndex >= 10) {
-      state.phase = 'victory';
-      pushLog('全階層を踏破! 勝利!', 'system');
-      // 勝利プレイヤーも仲間化
-      savePlayerAsCompanion(state);
-      if (state.highestFloor < 10) {
-        state.highestFloor = 10;
-        localStorage.setItem(HIGH_KEY, String(state.highestFloor));
-      }
-      commit(state);
-      return;
-    }
-    state.stepIndex = 1;
-    logProgress(state);
+function advanceToNextAvailableStep(state: GameState) {
+  const layout = ensureFloorLayout(state.floorIndex, state);
+  if (!layout) return;
+  const stepsWithNodes = layout.steps
+    .filter((s) => s.nodes.length > 0)
+    .map((s) => s.stepIndex)
+    .sort((a, b) => a - b);
+  if (stepsWithNodes.length === 0) {
+    // 進めるノードが無い: そのまま (階層進行は progress ノードのみ)
+    pushLog('進行可能なノードがありません', 'system');
+    commit(state);
+    return;
   }
+  // 現在より大きい stepIndex の中で最小を探し、無ければ最小にラップ
+  const next = stepsWithNodes.find((idx) => idx > state.stepIndex) ?? stepsWithNodes[0];
+  state.stepIndex = next;
   state.phase = 'progress';
   logProgress(state);
   commit(state);
 }
 
-export function chooseNode(state: GameState, kind: 'combat' | 'event' | 'rest' | 'boss') {
-  if (kind === 'combat' || kind === 'boss') {
+export function nextProgress(state: GameState) {
+  advanceToNextAvailableStep(state);
+}
+
+function handleFloorTransition(state: GameState) {
+  // Victory 条件 (仮上限 11 以降で勝利)
+  if (state.floorIndex >= 11) {
+    state.phase = 'victory';
+    pushLog('全階層を踏破! 勝利!', 'system');
+    savePlayerAsCompanion(state);
+    if (state.highestFloor < state.floorIndex) {
+      state.highestFloor = state.floorIndex;
+      localStorage.setItem(HIGH_KEY, String(state.highestFloor));
+    }
+    commit(state);
+    return;
+  }
+  state.stepIndex = 1;
+  ensureFloorLayout(state.floorIndex, state);
+  state.phase = 'progress';
+  logProgress(state);
+  commit(state);
+}
+
+export function chooseNode(state: GameState, node: FloorNode) {
+  // ノード消費: 現在ステップから削除
+  const layout = state.floorLayout;
+  if (layout) {
+    const step = layout.steps.find((s) => s.stepIndex === state.stepIndex);
+    if (step) {
+      step.nodes = step.nodes.filter((n) => n.id !== node.id);
+    }
+  }
+  const kind = node.kind;
+  if (kind === 'normal' || kind === 'elite' || kind === 'boss') {
     const enemyKind: 'normal' | 'elite' | 'boss' =
-      kind === 'boss' ? 'boss' : state.stepIndex === 4 ? 'elite' : 'normal';
+      kind === 'elite' ? 'elite' : kind === 'boss' ? 'boss' : 'normal';
     state.enemies = [createEnemy(enemyKind, state.floorIndex)];
     state.selectedEnemyIndex = 0;
     state.currentEncounterKind = enemyKind;
@@ -309,6 +351,15 @@ export function chooseNode(state: GameState, kind: 'combat' | 'event' | 'rest' |
     pushLog(`イベント: ${ev.name}`, 'event');
   } else if (kind === 'rest') {
     state.phase = 'rest';
+  } else if (kind === 'reward') {
+    // 即時報酬ノード (戦闘なし) 将来拡張用: 現状イベント扱い
+    state.phase = 'event';
+    pushLog('報酬ノード(未実装) - placeholder', 'system');
+  } else if (kind === 'progress') {
+    // 階層進行
+    state.floorIndex += 1;
+    handleFloorTransition(state);
+    return;
   }
   commit(state);
 }
@@ -445,11 +496,7 @@ function removeDeadActors(state: GameState) {
     state.selectedEnemyIndex = undefined;
     const kind = state.currentEncounterKind ?? 'normal';
     state.phase = 'progress';
-    if (kind === 'boss') prepareReward(state, 'boss');
-    else {
-      state.stepIndex += 1;
-      prepareReward(state, kind);
-    }
+    prepareReward(state, kind);
   }
   state.allies = state.allies.filter((a: Actor) => a.hp > 0);
 }
@@ -524,30 +571,11 @@ export function pickReward(state: GameState, id: string) {
   if (!opt) return;
   opt.apply(state);
   state.insightRewardActions = [];
-  if (state.rewardIsBoss) {
-    state.floorIndex += 1;
-    if (state.floorIndex >= 10) {
-      state.phase = 'victory';
-      pushLog('全階層を踏破! 勝利!', 'system');
-      // 勝利プレイヤーも仲間化
-      savePlayerAsCompanion(state);
-      if (state.highestFloor < 10) {
-        state.highestFloor = 10;
-        localStorage.setItem(HIGH_KEY, String(state.highestFloor));
-      }
-      commit(state);
-      return;
-    }
-    state.stepIndex = 1;
-    logProgress(state);
-    state.phase = 'progress';
-  } else {
-    state.phase = 'progress';
-  }
+  state.phase = 'progress';
   state.rewardOptions = undefined;
   state.rewardIsBoss = false;
-  logProgress(state);
-  commit(state);
+  // 次の利用可能ステップへ (循環 + 空ステップスキップ)
+  advanceToNextAvailableStep(state);
 }
 
 export function restChoice(state: GameState, choice: 'heal' | 'maxhp') {
@@ -567,7 +595,6 @@ export function restChoice(state: GameState, choice: 'heal' | 'maxhp') {
     state.player.hp = Math.min(newMax, Math.round(newMax * ratio));
     pushLog('休憩でCON+1', 'rest');
   }
-  state.stepIndex += 1;
-  state.phase = 'progress';
-  commit(state);
+  // rest ノードも消費済みなので次へ
+  advanceToNextAvailableStep(state);
 }
