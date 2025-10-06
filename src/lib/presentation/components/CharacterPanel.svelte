@@ -53,7 +53,7 @@
   const HP_ANIM_MAX_MS = 2000;
 
   // 数値アニメーション用（手動）
-  let displayedHp = isHpRevealed() ? 0 : '???';
+  let displayedHp = isActor(character) && isHpRevealed() ? character.hp : '???';
   let lastHp = 0;
   let hpEmphasis: 'none' | 'damage' | 'heal' = 'none';
   let hpEmphasisActive = false;
@@ -274,18 +274,11 @@
   <div class="flex flex-wrap gap-1 mb-1 min-h-4">
     {#each groupedStatuses as g (g.status.id + ':' + (g.status.remainingTurns ?? 'inf'))}
       {#if status[g.status.id]}
-        {#if status[g.status.id].badgeClass}
-          <TooltipBadge
-            badgeClass={`${status[g.status.id].badgeClass} border px-1`}
-            label={`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
-            description={status[g.status.id].description}
-          />
-        {:else}
-          <TooltipBadge
-            label={`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
-            description={status[g.status.id].description}
-          />
-        {/if}
+        <TooltipBadge
+          badgeClass={`${status[g.status.id].badgeClass} border px-1`}
+          label={`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
+          description={status[g.status.id].description}
+        />
       {:else}
         <TooltipBadge
           badgeClass="bg-gray-600/60 border border-red-400 px-1"
