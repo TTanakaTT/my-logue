@@ -54,20 +54,20 @@
   <section class="rounded-lg mt-4 mb-4 mx-2 p-0">
     <div class="flex flex-row gap-4 flex-wrap relative">
       <!-- キーに全ステータスを含め POW/DEX/APP/INT 変化時も再描画されるようにする -->
-      {#key [$gameState.player.hp, $gameState.player.STR, $gameState.player.CON, $gameState.player.POW, $gameState.player.DEX, $gameState.player.APP, $gameState.player.INT, $gameState.player.statuses
+      {#key [$gameState.player.STR, $gameState.player.CON, $gameState.player.POW, $gameState.player.DEX, $gameState.player.APP, $gameState.player.INT, $gameState.player.statuses
           .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
           .join(',')].join('|')}
         <CharacterPanel character={$gameState.player} side="player" panelKey="player" />
       {/key}
       {#each $gameState.allies as ally, i (i)}
-        {#key [ally.hp, ally.STR, ally.CON, ally.POW, ally.DEX, ally.APP, ally.INT, ally.statuses
+        {#key [ally.STR, ally.CON, ally.POW, ally.DEX, ally.APP, ally.INT, ally.statuses
             .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
             .join(',')].join('|')}
           <CharacterPanel character={ally} side="player" panelKey={`ally-${i}`} />
         {/key}
       {/each}
       {#each $gameState.enemies as enemy, i (i)}
-        {#key [enemy.hp, enemy.STR, enemy.CON, enemy.POW, enemy.DEX, enemy.APP, enemy.INT, enemy.statuses
+        {#key [enemy.STR, enemy.CON, enemy.POW, enemy.DEX, enemy.APP, enemy.INT, enemy.statuses
             .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
             .join(',')].join('|')}
           <CharacterPanel character={enemy} side="enemy" panelKey={`enemy-${i}`} />

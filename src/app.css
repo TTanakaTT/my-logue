@@ -4,8 +4,10 @@
 @theme {
   --color-panel: #1d1d1d;
   --color-logbg: oklch(0.1638 0 89.88);
-  --color-bad: oklch(0.7116 0.1812 22.84);
-  --color-good: oklch(0.869 0.1958 150.92);
+  --color-hp-dead: oklch(62.971% 0.25586 29.001);
+  --color-hp-max: oklch(86.65% 0.29439 142.555);
+  --color-mod-down: oklch(62.971% 0.25586 29.001);
+  --color-mod-up: oklch(86.65% 0.29439 142.555);
   --color-kind-system: oklch(0.3521 0.0493 262.34);
   --color-kind-combat: oklch(0.349 0.059 20.51);
   --color-kind-event: oklch(0.3638 0.0481 84.26);
