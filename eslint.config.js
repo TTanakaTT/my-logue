@@ -19,8 +19,7 @@ export default ts.config(
   {
     languageOptions: {
       globals: { ...globals.browser, ...globals.node }
-    },
-    rules: { 'no-undef': 'off' }
+    }
   },
   {
     files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
