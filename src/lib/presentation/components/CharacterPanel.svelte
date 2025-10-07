@@ -107,12 +107,6 @@
   // HP変化の検知とアニメーション
   function handleHpChange(current: number, max: number) {
     if (typeof displayedHp !== 'number') return; // ???表示時
-    // 初期化
-    if (lastHp === 0 && current >= 0 && displayedHp === 0) {
-      lastHp = current;
-      displayedHp = current;
-      return;
-    }
     if (current === lastHp) return;
 
     const delta = Math.abs(current - lastHp);
@@ -161,9 +155,13 @@
 
   // HP変更に反応（依存は character.hp, calcMaxHP(character) のみ）
   let hpInitialized = false;
+  // 直近に処理した HP を記録し、同値時の再実行を防止
+  let _lastObservedHp: number | null = null;
   $: if (!isActor(character) || !isHpRevealed()) {
     resetHpAnim();
     hpInitialized = false;
+    _lastObservedHp = null;
+    displayedHp = '???';
   }
   $: if (isActor(character) && isHpRevealed()) {
     const hp = character.hp;
@@ -172,8 +170,11 @@
       lastHp = hp;
       displayedHp = hp;
       hpInitialized = true;
+      _lastObservedHp = hp; // 初期化直後はアニメーション不要
+    } else if (_lastObservedHp !== hp) {
+      handleHpChange(hp, max);
+      _lastObservedHp = hp;
     }
-    handleHpChange(hp, max);
   }
 
   onDestroy(() => {
@@ -291,7 +292,7 @@
     {#each groupedStatuses as g (g.status.id + ':' + (g.status.remainingTurns ?? 'inf'))}
       {#if status[g.status.id]}
         <TooltipBadge
-          badgeClass={`${status[g.status.id].badgeClass} border px-1`}
+          badgeClass={`${status[g.status.id].badgeClass ?? ''} border px-1`}
           label={`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
           description={status[g.status.id].description}
         />
