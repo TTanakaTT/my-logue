@@ -153,27 +153,21 @@
     hpEmphasisActive = false;
   }
 
-  // HP変更に反応（依存は character.hp, calcMaxHP(character) のみ）
+  // HP変更に反応（依存は character のみ）
   let hpInitialized = false;
-  // 直近に処理した HP を記録し、同値時の再実行を防止
-  let _lastObservedHp: number | null = null;
-  $: if (!isActor(character) || !isHpRevealed()) {
-    resetHpAnim();
-    hpInitialized = false;
-    _lastObservedHp = null;
-    displayedHp = '???';
-  }
-  $: if (isActor(character) && isHpRevealed()) {
-    const hp = character.hp;
-    const max = Math.max(1, calcMaxHP(character));
-    if (!hpInitialized) {
-      lastHp = hp;
-      displayedHp = hp;
-      hpInitialized = true;
-      _lastObservedHp = hp; // 初期化直後はアニメーション不要
-    } else if (_lastObservedHp !== hp) {
+  $: {
+    if (!isActor(character) || !isHpRevealed()) {
+      resetHpAnim();
+      hpInitialized = false;
+    } else {
+      const hp = character.hp;
+      const max = Math.max(1, calcMaxHP(character));
+      if (!hpInitialized) {
+        lastHp = hp;
+        displayedHp = hp;
+        hpInitialized = true;
+      }
       handleHpChange(hp, max);
-      _lastObservedHp = hp;
     }
   }
 
@@ -182,15 +176,17 @@
     if (hpAnimFrame) cancelAnimationFrame(hpAnimFrame);
   });
 
-  const EPS = 0.0001;
+  const FLOAT_NONZERO_THRESHOLD = 0.0001;
   function isNonZero(v: number): boolean {
-    return Math.abs(v) > EPS;
+    return Math.abs(v) > FLOAT_NONZERO_THRESHOLD;
   }
+
   function formatSignedPercent(v: number): string {
     const p = (v * 100).toFixed(0);
     const sign = v > 0 ? '+' : '';
     return sign + p + '%';
   }
+
   function rateColorStyle(v: number): string {
     if (!isNonZero(v)) return '';
     // ある程度濃い色から始めて、|v|が大きいほど濃くする
