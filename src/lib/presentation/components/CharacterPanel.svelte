@@ -1,4 +1,11 @@
 <script lang="ts">
+  // Svelte framework imports
+  import { onDestroy } from 'svelte';
+  import { SvelteMap } from 'svelte/reactivity';
+  import { cubicOut } from 'svelte/easing';
+
+  // Project/library modules (non-component)
+  import { calcMaxHP } from '$lib/domain/services/attribute_service';
   import {
     isActor,
     isEnemy,
@@ -8,16 +15,14 @@
     type CharacterAttribute,
     type Actor
   } from '$lib/domain/entities/character';
-  import { calcMaxHP } from '$lib/domain/services/attribute_service';
-  import { SvelteMap } from 'svelte/reactivity';
-  import PanelEffectLayer from './PanelEffectLayer.svelte';
-  import FloatingNumbersLayer from './FloatingNumbersLayer.svelte';
-  import { getAction } from '$lib/data/repositories/action_repository';
-  import TooltipBadge from './TooltipBadge.svelte';
   import { status } from '$lib/data/consts/statuses';
   import type { StatusInstance } from '$lib/domain/entities/status';
-  import { cubicOut } from 'svelte/easing';
-  import { onDestroy } from 'svelte';
+  import { getAction } from '$lib/data/repositories/action_repository';
+
+  // Local component imports
+  import TooltipBadge from './TooltipBadge.svelte';
+  import PanelEffectLayer from './PanelEffectLayer.svelte';
+  import FloatingNumbersLayer from './FloatingNumbersLayer.svelte';
   import Icon from './Icon.svelte';
 
   export let character: Character;
@@ -79,6 +84,18 @@
     if (typeof displayedHp !== 'number') return false; // ???表示時
     const max = Math.max(1, calcMaxHP(character));
     return Math.round(displayedHp) >= max;
+  })();
+
+  // HPクラスを算出（読みやすさのために切り出し）
+  $: hpClass = (() => {
+    const base = ['inline-block', 'px-1', 'rounded-sm', 'transition-all'];
+    if (hpIsFull) base.push('font-black');
+    if (hpEmphasisActive) {
+      base.push('ring-1', 'scale-110');
+      if (hpEmphasis === 'damage') base.push('ring-red-400/60');
+      else base.push('ring-emerald-400/60');
+    }
+    return base.join(' ');
   })();
   // HPの公開可否（敵の未公開時は???表示）
   function isHpRevealed(): boolean {
@@ -294,10 +311,7 @@
           <span class="text-gray-400">{o.label}</span>
           {#if o.key === 'hp'}
             <!-- HPは割合に応じて色を補間し、変化時は強調 -->
-            <span
-              class={`inline-block px-1 rounded-sm transition-all ${hpIsFull ? 'font-black' : ''} ${hpEmphasisActive ? (hpEmphasis === 'damage' ? 'ring-1 ring-red-400/60 scale-110' : 'ring-1 ring-emerald-400/60 scale-110') : ''}`}
-              style={`color: ${hpColor}`}
-            >
+            <span class={hpClass} style={`color: ${hpColor}`}>
               {typeof displayedHp === 'number' ? Math.round(displayedHp) : displayedHp}
             </span>
           {:else}
