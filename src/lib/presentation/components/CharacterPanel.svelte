@@ -142,22 +142,21 @@
     hpEmphasisActive = false;
   }
 
-  // HP変更に反応（依存は character のみ）
+  // HP変更に反応（依存は character.hp, calcMaxHP(character) のみ）
   let hpInitialized = false;
-  $: {
-    if (!isActor(character) || !isHpRevealed()) {
-      resetHpAnim();
-      hpInitialized = false;
-    } else {
-      const hp = character.hp;
-      const max = Math.max(1, calcMaxHP(character));
-      if (!hpInitialized) {
-        lastHp = hp;
-        displayedHp = hp;
-        hpInitialized = true;
-      }
-      handleHpChange(hp, max);
+  $: if (!isActor(character) || !isHpRevealed()) {
+    resetHpAnim();
+    hpInitialized = false;
+  }
+  $: if (isActor(character) && isHpRevealed()) {
+    const hp = character.hp;
+    const max = Math.max(1, calcMaxHP(character));
+    if (!hpInitialized) {
+      lastHp = hp;
+      displayedHp = hp;
+      hpInitialized = true;
     }
+    handleHpChange(hp, max);
   }
 
   onDestroy(() => {
