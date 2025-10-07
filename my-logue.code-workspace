@@ -30,6 +30,9 @@
     "[yaml]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
+    "[github-actions-workflow]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
     "eslint.format.enable": true,
     "svelte.enable-ts-plugin": true
   }
