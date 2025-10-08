@@ -10,7 +10,10 @@ import { performAction } from '$lib/domain/services/action_executor';
 import { waitForAnimationsComplete } from '$lib/presentation/utils/effect_bus';
 import { randomEvent } from '$lib/domain/services/event_service';
 import { pushLog, setLogState, resetDisplayLogs } from '$lib/presentation/utils/log_util';
-import { getRewardsForEnemy } from '$lib/data/repositories/reward_repository';
+import {
+  getRewardsForEnemy,
+  getRewardsForRewardNode
+} from '$lib/data/repositories/reward_repository';
 import { tickStatusesTurnStart } from '$lib/data/consts/statuses';
 import { createCompanionRepository } from '$lib/data/repositories/companion_repository';
 import { getOrCreateFloorLayout } from '$lib/domain/services/floor_generation_service';
@@ -190,6 +193,19 @@ export function selectCompanion(state: GameState, id: string) {
     INT: target.INT,
     hp: 0,
     statuses: [],
+    heldMineralIds: [],
+    baseAttributes: {
+      id: target.id,
+      name: target.name,
+      STR: target.STR,
+      CON: target.CON,
+      POW: target.POW,
+      DEX: target.DEX,
+      APP: target.APP,
+      INT: target.INT,
+      actions: [...target.actions],
+      maxActionsPerTurn: target.maxActionsPerTurn
+    },
     physDamageCutRate: 0,
     psyDamageCutRate: 0,
     physDamageUpRate: 0,
@@ -351,9 +367,11 @@ export function chooseNode(state: GameState, node: FloorNode) {
   } else if (kind === 'rest') {
     state.phase = 'rest';
   } else if (kind === 'reward') {
-    // 即時報酬ノード (戦闘なし) 将来拡張用: 現状イベント扱い
-    state.phase = 'event';
-    pushLog('報酬ノード(未実装) - placeholder', 'system');
+    const opts = getRewardsForRewardNode(state);
+    state.rewardOptions = opts;
+    state.rewardIsBoss = false;
+    state.phase = 'reward';
+    pushLog('報酬ノード: 報酬を選択', 'system');
   } else if (kind === 'progress') {
     // 階層進行
     state.floorIndex += 1;
@@ -550,7 +568,6 @@ function prepareReward(state: GameState, defeatedKind: 'normal' | 'elite' | 'bos
     const extra: RewardOption = {
       id: `insight:${candidate}`,
       label: `洞察: ${candidate} を会得`,
-      kind: defeatedKind === 'boss' ? 'boss' : 'normal',
       apply: (s: GameState) => {
         if (!s.player.actions.includes(candidate)) s.player.actions.push(candidate);
         pushLog(`洞察報酬: 新アクション ${candidate} を会得`, 'system');
@@ -577,23 +594,14 @@ export function pickReward(state: GameState, id: string) {
   advanceToNextAvailableStep(state);
 }
 
-export function restChoice(state: GameState, choice: 'heal' | 'maxhp') {
+export function restChoice(state: GameState) {
   if (state.phase !== 'rest') return;
-  if (choice === 'heal') {
-    const max = calcMaxHP(state.player);
-    const amount = Math.max(1, Math.floor(max * 0.3));
-    const before = state.player.hp;
-    state.player.hp = Math.min(max, state.player.hp + amount);
-    pushLog(`休憩で${state.player.hp - before}回復`, 'rest');
-  } else {
-    state.player.CON += 1;
-    const prevMax = calcMaxHP(state.player) - 2;
-    const ratio = prevMax > 0 ? state.player.hp / prevMax : 1;
-    recalcPlayer(state.player);
-    const newMax = calcMaxHP(state.player);
-    state.player.hp = Math.min(newMax, Math.round(newMax * ratio));
-    pushLog('休憩でCON+1', 'rest');
-  }
+  const max = calcMaxHP(state.player);
+  const amount = Math.max(1, Math.floor(max * 0.3));
+  const before = state.player.hp;
+  state.player.hp = Math.min(max, state.player.hp + amount);
+  pushLog(`休憩で${state.player.hp - before}回復`, 'rest');
+
   // rest ノードも消費済みなので次へ
   advanceToNextAvailableStep(state);
 }

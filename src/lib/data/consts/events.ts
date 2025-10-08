@@ -1,17 +1,19 @@
 import type { EventDef } from '$lib/domain/entities/events';
 import { createEnemy, rollActions } from '$lib/domain/services/state_service';
 import { pushLog } from '$lib/presentation/utils/log_util';
+import { awardRandomMineral } from '$lib/domain/services/mineral_service';
 import { calcMaxHP } from '$lib/domain/services/attribute_service';
 
 // PascalCase キー & id 削除
 export const events = {
   RiskReward: {
     name: '血の儀式',
-    description: 'HPを10失い STR+2',
+    description: 'HPを10失い ランダムな鉱石を得る',
     apply: (state) => {
       state.player.hp -= 10;
-      state.player.STR += 2;
-      pushLog(`儀式でSTR+2 しかしHP-10`, 'event');
+      const id = awardRandomMineral(state.player);
+      if (id) pushLog(`儀式で鉱石を得た しかしHP-10`, 'event');
+      else pushLog(`儀式でHP-10 (鉱石は増えなかった)`, 'event');
       if (state.player.hp <= 0) pushLog('儀式で倒れた...', 'event');
     }
   },

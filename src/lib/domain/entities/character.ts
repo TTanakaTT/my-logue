@@ -38,6 +38,10 @@ export interface Actor extends Character {
   side: ActorSide;
   hp: number;
   statuses: StatusInstance[];
+  /** 補正前能力値 */
+  baseAttributes: Character;
+  /** 所持している鉱石のID一覧 */
+  heldMineralIds: string[];
   /** 物理ダメージカット率 (0~1) */
   physDamageCutRate: number;
   /** 精神ダメージカット率 (0~1) */
@@ -80,6 +84,15 @@ export interface Player extends Actor {
   /** 戦闘開始時に提示されるアクション選択肢数 */
   maxActionChoices: number;
 }
+
+export function isPlayer(value: Actor): value is Player {
+  if (typeof value !== 'object' || !value) {
+    return false;
+  }
+  const { maxActionChoices } = value as Record<keyof Player, unknown>;
+  return typeof maxActionChoices === 'number';
+}
+
 export interface Enemy extends Actor {
   /** 情報開示済み */
   isExposed: boolean;
@@ -98,6 +111,7 @@ export function isEnemy(value: Actor): value is Enemy {
   return typeof isExposed === 'boolean';
 }
 
+export const CHARACTER_ATTRIBUTES = ['CON', 'STR', 'POW', 'DEX', 'APP', 'INT'];
 export type CharacterAttribute = 'CON' | 'STR' | 'POW' | 'DEX' | 'APP' | 'INT';
 export type ActorAttribute = 'hp';
 export type Attribute = CharacterAttribute | ActorAttribute;

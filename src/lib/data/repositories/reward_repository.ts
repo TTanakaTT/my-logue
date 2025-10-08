@@ -3,19 +3,22 @@ import rewardDetailCsvRaw from '$lib/data/consts/reward_detail.csv?raw';
 import type { GameState, RewardOption } from '$lib/domain/entities/battle_state';
 import type { Action } from '$lib/domain/entities/action';
 import { calcMaxHP } from '$lib/domain/services/attribute_service';
-import { recalcPlayer } from '$lib/domain/services/state_service';
 import { pushLog } from '$lib/presentation/utils/log_util';
-import type { Actor } from '$lib/domain/entities/character';
 import { addStatus, findStatus, removeStatus } from '$lib/data/consts/statuses';
 import { shuffle } from '$lib/utils/array_util';
+import {
+  awardMineral,
+  awardRandomMineral,
+  awardRandomMineralByRarity
+} from '$lib/domain/services/mineral_service';
 import { parseCsv } from '$lib/data/repositories/utils/csv_util';
 
 // rewards.csv: id(number),kind,name,label,floorMin?,floorMax?
 // reward_detail.csv: rewardName,type,target,value,extra
 //   type: stat|action|dots
 
-// enemy_{actorKind} 形式を許容し、将来のkind追加にコード変更不要にする
-type RawKind = `enemy_${string}`;
+// enemy_{actorKind} / node_reward を許容
+type RawKind = `enemy_${string}` | 'node_reward';
 interface RewardRow {
   id: number; // 数値連番
   name: string; // 論理名
@@ -27,7 +30,7 @@ interface RewardRow {
 
 interface RewardDetailRow {
   rewardName: string;
-  type: 'stat' | 'action' | 'dots';
+  type: 'stat' | 'action' | 'dots' | 'mineral';
   target: string;
   value: string; // number or encoded
   extra: string; // optional
@@ -39,8 +42,10 @@ const rewardRows: RewardRow[] = parseCsv(rewardCsvRaw)
     const [idStr, kindRaw, name, label, floorMinStr, floorMaxStr] = cols;
     const id = Number(idStr);
     if (Number.isNaN(id)) throw new Error(`rewards.csv invalid numeric id: ${idStr}`);
-    if (!kindRaw.startsWith('enemy_')) {
-      throw new Error(`Invalid kind in rewards.csv (must start with enemy_): ${kindRaw}`);
+    if (!kindRaw.startsWith('enemy_') && kindRaw !== 'node_reward') {
+      throw new Error(
+        `Invalid kind in rewards.csv (must start with enemy_ or be node_reward): ${kindRaw}`
+      );
     }
     const floorMin =
       floorMinStr !== undefined && floorMinStr !== '' ? Number(floorMinStr) : undefined;
@@ -54,7 +59,7 @@ const detailRows: RewardDetailRow[] = parseCsv(rewardDetailCsvRaw)
   .map((cols) => {
     const [rewardName, type, target, value, extra = ''] = cols;
     if (!rewardName) throw new Error('reward_detail.csv: rewardName empty');
-    if (!['stat', 'action', 'dots'].includes(type)) {
+    if (!['stat', 'action', 'dots', 'mineral'].includes(type)) {
       throw new Error(`reward_detail.csv invalid type: ${type}`);
     }
     return { rewardName, type: type as RewardDetailRow['type'], target, value, extra };
@@ -62,6 +67,23 @@ const detailRows: RewardDetailRow[] = parseCsv(rewardDetailCsvRaw)
 
 function applyDetail(s: GameState, d: RewardDetailRow) {
   switch (d.type) {
+    case 'mineral': {
+      // d.target: 'rarity' | mineralId
+      if (d.target === 'rarity') {
+        const rarity = Number(d.value) as 1 | 2 | 3 | 4 | 5;
+        const id = awardRandomMineralByRarity(s.player, rarity);
+        if (id) pushLog(`${id}を獲得`, 'system');
+      } else if (d.target === 'random') {
+        const id = awardRandomMineral(s.player);
+        if (id) pushLog(`${id}を獲得`, 'system');
+      } else {
+        const ok = awardMineral(s.player, d.target);
+        if (ok) pushLog(`${d.target}を獲得`, 'system');
+      }
+      // 即時反映: 参照更新でSvelteの再計算を促す
+      s.player = { ...s.player };
+      break;
+    }
     case 'stat': {
       const amount = Number(d.value || '0');
       if (d.target === 'hp') {
@@ -69,24 +91,7 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
         s.player.hp = Math.min(max, s.player.hp + amount);
         pushLog(`HP+${Math.min(amount, max)} (<=最大HP)`, 'system');
       } else {
-        type NumericPlayerStat = Exclude<
-          keyof Actor,
-          'id' | 'name' | 'actions' | 'maxActionsPerTurn' | 'kind' | 'side' | 'hp' | 'statuses'
-        >;
-        const numericKeys: Record<string, NumericPlayerStat> = {
-          STR: 'STR',
-          CON: 'CON',
-          POW: 'POW',
-          DEX: 'DEX',
-          APP: 'APP',
-          INT: 'INT'
-        };
-        const key = numericKeys[d.target];
-        if (key) {
-          s.player[key] += amount;
-          recalcPlayer(s.player);
-          pushLog(`${key}+${amount}`, 'system');
-        } else if (d.target === 'maxActionsPerTurn') {
+        if (d.target === 'maxActionsPerTurn') {
           s.player.maxActionsPerTurn += amount;
           pushLog(`行動回数+${amount}`, 'system');
         }
@@ -169,10 +174,34 @@ export function getRewardsForEnemy(state: GameState, enemyKind: string): RewardO
   return picked.map<RewardOption>((row) => ({
     id: String(row.id),
     label: row.label,
-    // UI表示用途: normal/boss 既存型は維持。未知(kind!==normal/boss)はnormal扱い。
-    kind: (enemyKind === 'normal' || enemyKind === 'boss'
-      ? enemyKind
-      : 'normal') as RewardOption['kind'],
+    apply: (s) => {
+      const details = detailRows.filter((d) => d.rewardName === row.name);
+      for (const d of details) applyDetail(s, d);
+    }
+  }));
+}
+
+/**
+ * 報酬ノード用の報酬候補を生成する。
+ * rewards.csv の kind='node_reward' に一致し、floor範囲を満たす行から最大3件を返す。
+ */
+export function getRewardsForRewardNode(state: GameState): RewardOption[] {
+  const floor = state.floorIndex; // 0-index
+  const candidates = rewardRows.filter((r) => {
+    if (r.kind !== 'node_reward') return false;
+    if (r.floorMin !== undefined && floor < r.floorMin) return false;
+    if (r.floorMax !== undefined && floor > r.floorMax) return false;
+    return true;
+  });
+
+  const MAX_REWARDS = 3;
+  const picked = shuffle(candidates.slice())
+    .slice(0, MAX_REWARDS)
+    .sort((a, b) => a.id - b.id);
+  return picked.map<RewardOption>((row) => ({
+    id: String(row.id),
+    label: row.label,
+    kind: 'normal', // 表示用。ノード報酬は通常扱い
     apply: (s) => {
       const details = detailRows.filter((d) => d.rewardName === row.name);
       for (const d of details) applyDetail(s, d);

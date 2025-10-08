@@ -1,5 +1,5 @@
 // https://www.gsj.jp/Muse/hyohon/mineral/list.html
-import mineralCsvRaw from '$lib/data/consts/mineral.csv?raw';
+import mineralCsvRaw from '$lib/data/consts/minerals.csv?raw';
 import { parseCsv } from '$lib/data/repositories/utils/csv_util';
 
 interface MineralRow {

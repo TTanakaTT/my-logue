@@ -203,8 +203,7 @@
     {#if $gameState.phase === 'rest'}
       <h2 class="mt-0 text-lg font-semibold mb-2">休憩</h2>
       <div class="flex flex-wrap gap-2">
-        <button class="btn-base" on:click={() => restChoice($gameState, 'heal')}>HP30%回復</button>
-        <button class="btn-base" on:click={() => restChoice($gameState, 'maxhp')}>CON+1</button>
+        <button class="btn-base" on:click={() => restChoice($gameState)}>HP30%回復</button>
       </div>
     {/if}
 

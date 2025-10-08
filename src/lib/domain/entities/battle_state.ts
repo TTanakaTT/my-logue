@@ -17,7 +17,6 @@ export type Phase =
   | 'reward'
   | 'victory'
   | 'gameover';
-export type RewardKind = 'normal' | 'boss';
 
 export interface LogEntry {
   message: string;
@@ -32,7 +31,6 @@ export type LogKind = (typeof LOG_KINDS)[number];
 export interface RewardOption {
   id: string;
   label: string;
-  kind: RewardKind;
   apply(state: GameState): void;
 }
 
