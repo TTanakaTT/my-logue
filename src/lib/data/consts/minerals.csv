@@ -1,12 +1,13 @@
 mineralName_ja,mineralName_katakana,mineralName_en,category,rarity,attribute,value
 藍玉,アクアマリン,Aquamarine,シクロ(サイクロ）珪酸塩鉱物,5,maxActionsPerTurn,1
-アタカマ石,アタカマイト,Atacamite,ハロゲン化鉱物,5,maxActionChoices,1
+緑塩銅鉱,アタカマイト,Atacamite,ハロゲン化鉱物,5,maxActionChoices,1
 アダム鉱,アダマイト,Adamite,砒酸塩鉱物,5,POW,5
 曹微斜長石,アノーソクレース,Anorthoclase,テクト珪酸塩鉱物,5,CON,5
-アンケル石,アンケライト,Ankerite,炭酸塩鉱物,5,APP,5
+菱鉄灰石,アンケライト,Ankerite,炭酸塩鉱物,5,APP,5
 アントレル鉱,アントレライト,Antlerite,硫酸塩鉱物,5,DEX,5
 ウラノフェン,ウラノフェン,Uranophane,ネソ珪酸塩鉱物,5,INT,5
-ウルツ鉱,ウルツサイト,Wurtzite,硫化鉱物・硫塩鉱物,5,STR,5
+繊維亜鉛鉱,ウルツァイト,Wurtzite,硫化鉱物・硫塩鉱物,5,STR,5
+鬼御影,ペグマタイト,Pegmatite,酸化鉱物,5,DEX,5
 錐輝石,エジリン,Aegirine,イノ珪酸塩鉱物,4,maxActionChoices,1
 オリーブ銅鉱,オリヴィナイト,Olivenite,砒酸塩鉱物,4,POW,4
 カーン石,カーナイト,Kernite,硼酸塩鉱物,4,CON,4
@@ -127,7 +128,8 @@ mineralName_ja,mineralName_katakana,mineralName_en,category,rarity,attribute,val
 紅簾石,ピーモンタイト,Piemontite,ソロ珪酸塩鉱物,1,STR,1
 紅砒ニッケル鉱,,Nickeline,硫化鉱物・硫塩鉱物,1,DEX,1
 鋼玉,コランダム,Corundum,酸化鉱物,1,POW,1
-ルビー,ルビー,Ruby,酸化鉱物,1,CON,1
+紅玉,ルビー,Ruby,酸化鉱物,1,CON,1
+蒼玉,サファイア,Sapphire,酸化鉱物,1,APP,1
 轟石,,Todorokite,酸化鉱物,1,APP,1
 黒雲母,,Biotite,フィロ珪酸塩鉱物,1,DEX,1
 砂金,,Placer gold,元素鉱物,1,INT,1
@@ -251,4 +253,3 @@ mineralName_ja,mineralName_katakana,mineralName_en,category,rarity,attribute,val
 砒鉄鉱,ロリンガイト,Lollingite,硫化鉱物・硫塩鉱物,1,INT,1
 菫青石,,Cordierite,シクロ(サイクロ）珪酸塩鉱物,1,STR,1
 霰石,,Aragonite,炭酸塩鉱物,1,DEX,1
-鬼御影,ペグマタイト,Pegmatite,酸化鉱物,5,石英,石英

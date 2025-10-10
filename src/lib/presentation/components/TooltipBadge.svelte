@@ -1,6 +1,5 @@
 <script lang="ts">
-  export let label: string;
-  export let description: string;
+  export let description: string = '';
   export let badgeClass: string = '';
   export let revealed: boolean = true; // アクション未公開など
   export let autoHideMs: number = 100000;
@@ -84,13 +83,14 @@
   onmouseleave={blur}
   onclick={toggle}
 >
-  <span class={klass} data-revealed={revealed}>{label}</span>
+  <span class={klass} data-revealed={revealed}>
+    <slot />
+  </span>
   {#if open}
     <span
       class="absolute z-1000 max-w-3xs text-xs px-2 py-1 rounded bg-black/80 text-gray-100 border border-white/10 top-full -left-100 translate-x-100"
       role="tooltip"
-    >
-      {description}
+      >{description}
     </span>
   {/if}
 </button>

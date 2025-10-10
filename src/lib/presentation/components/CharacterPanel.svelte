@@ -24,6 +24,9 @@
   import PanelEffectLayer from './PanelEffectLayer.svelte';
   import FloatingNumbersLayer from './FloatingNumbersLayer.svelte';
   import Icon from './Icon.svelte';
+  import { getMineral } from '$lib/data/repositories/mineral_repository';
+  import type { Mineral } from '$lib/domain/entities/mineral';
+  import CharacterDetailModal from './CharacterDetailModal.svelte';
 
   export let character: Character;
   export let side: 'player' | 'enemy' = 'player';
@@ -273,6 +276,39 @@
   })();
   // 親から識別されるように panelKey を受け取る
   export let panelKey: string = '';
+
+  // 詳細モーダルの開閉
+  let showDetail = false;
+  function openDetail() {
+    if (!isActor(character)) return;
+    showDetail = true;
+  }
+  function closeDetail() {
+    showDetail = false;
+  }
+
+  // 所持鉱石の詳細
+  $: heldMinerals = (() => {
+    if (!isActor(character)) return [] as Mineral[];
+    const ids = (character as Actor).heldMineralIds || [];
+    const list = ids.map((id) => getMineral(id)).filter((m): m is Mineral => Boolean(m));
+    return list;
+  })();
+
+  function mineralEffectsText(m: Mineral): string {
+    const parts: string[] = [];
+    if (m.STR) parts.push(`筋力 +${m.STR}`);
+    if (m.CON) parts.push(`体力 +${m.CON}`);
+    if (m.POW) parts.push(`精神力 +${m.POW}`);
+    if (m.DEX) parts.push(`敏捷 +${m.DEX}`);
+    if (m.APP) parts.push(`魅力 +${m.APP}`);
+    if (m.INT) parts.push(`知力 +${m.INT}`);
+    if (typeof m.maxActionsPerTurn === 'number' && m.maxActionsPerTurn !== 0)
+      parts.push(`行動回数 +${m.maxActionsPerTurn}`);
+    if (typeof m.maxActionChoices === 'number' && m.maxActionChoices !== 0)
+      parts.push(`選択肢 +${m.maxActionChoices}`);
+    return parts.join(', ');
+  }
 </script>
 
 <div
@@ -283,21 +319,29 @@
   {/if}
   <div class="font-semibold mb-1 flex items-center gap-2">
     <span>{character.name}</span>
+    {#if actor}
+      <button
+        class="inline-flex items-center justify-center text-sky-300 hover:text-sky-200 border rounded p-0.5 cursor-pointer"
+        aria-label="詳細を表示"
+        on:click={openDetail}
+      >
+        <Icon icon="menu_book" size={16} />
+      </button>
+    {/if}
   </div>
   <div class="flex flex-wrap gap-1 mb-1 min-h-4">
     {#each groupedStatuses as g (g.status.id + ':' + (g.status.remainingTurns ?? 'inf'))}
       {#if status[g.status.id]}
         <TooltipBadge
           badgeClass={`${status[g.status.id].badgeClass ?? ''} border px-1`}
-          label={`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
           description={status[g.status.id].description}
-        />
+          >{`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
+        </TooltipBadge>
       {:else}
         <TooltipBadge
           badgeClass="bg-gray-600/60 border border-red-400 px-1"
-          label={g.status.id}
-          description="未定義のステータス"
-        />
+          description="未定義のステータス">{g.status.id}</TooltipBadge
+        >
       {/if}
     {/each}
   </div>
@@ -391,11 +435,23 @@
       {#each actionInfos as a (a.id)}
         <TooltipBadge
           badgeClass={`${a.isExposed ? 'bg-emerald-700/70 border border-emerald-400/50' : a.isObserved ? 'bg-sky-700/70 border border-sky-400/50' : 'bg-gray-700/60'}`}
-          label={a.name}
           description={a.description}
           revealed={a.revealed}
-        />
+          >{a.name}
+        </TooltipBadge>
       {/each}
     </div>
   </div>
 </div>
+
+{#if showDetail && actor}
+  <CharacterDetailModal
+    {character}
+    {actor}
+    {characterAttributes}
+    {heldMinerals}
+    {mineralEffectsText}
+    effectiveAttributes={characterAttributeValues}
+    onClose={closeDetail}
+  />
+{/if}

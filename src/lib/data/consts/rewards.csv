@@ -1,5 +1,4 @@
 id,kind,name,label,floorMin,floorMax
-1,enemy_normal,hp_full,HP回復,0,99
 2,enemy_normal,mineral_1,鉱石(★1),0,3
 3,enemy_normal,mineral_2,鉱石(★2),4,99
 4,enemy_elite,mineral_3,鉱石(★3),0,99
