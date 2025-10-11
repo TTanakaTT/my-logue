@@ -7,18 +7,38 @@ export default defineConfig({
   },
   testDir: 'tests/e2e',
   reporter: process.env.CI ? 'github' : 'html',
+  // Run tests for both ja/en locales across desktop and mobile profiles.
   projects: [
+    // Desktop Chrome
     {
-      name: 'chromium-hd',
+      name: 'chromium-hd-ja',
       use: {
         ...devices['Desktop Chrome'],
-        viewport: { width: 1440, height: 1080 }
+        viewport: { width: 1440, height: 1080 },
+        locale: 'ja-JP'
       }
     },
     {
-      name: 'Mobile Safari',
+      name: 'chromium-hd-en',
       use: {
-        ...devices['iPhone 13']
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1440, height: 1080 },
+        locale: 'en-US'
+      }
+    },
+    // Mobile Safari (iPhone 13)
+    {
+      name: 'mobile-safari-ja',
+      use: {
+        ...devices['iPhone 13'],
+        locale: 'ja-JP'
+      }
+    },
+    {
+      name: 'mobile-safari-en',
+      use: {
+        ...devices['iPhone 13'],
+        locale: 'en-US'
       }
     }
   ],
