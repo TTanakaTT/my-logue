@@ -27,20 +27,18 @@
   import { getMineral } from '$lib/data/repositories/mineral_repository';
   import type { Mineral } from '$lib/domain/entities/mineral';
   import CharacterDetailModal from './CharacterDetailModal.svelte';
+  import { m } from '$lib/paraglide/messages';
 
   export let character: Character;
   export let side: 'player' | 'enemy' = 'player';
 
-  const characterAttributes: {
-    key: CharacterAttribute;
-    label: string;
-  }[] = [
-    { key: 'CON', label: '体力' },
-    { key: 'STR', label: '筋力' },
-    { key: 'POW', label: '精神' },
-    { key: 'DEX', label: '器用' },
-    { key: 'APP', label: '魅力' },
-    { key: 'INT', label: '知力' }
+  const characterAttributes: { key: CharacterAttribute; label: string }[] = [
+    { key: 'CON', label: m.attr_CON() },
+    { key: 'STR', label: m.attr_STR() },
+    { key: 'POW', label: m.attr_POW() },
+    { key: 'DEX', label: m.attr_DEX() },
+    { key: 'APP', label: m.attr_APP() },
+    { key: 'INT', label: m.attr_INT() }
   ];
   const actorAttributes: {
     key: ActorAttribute;
@@ -295,18 +293,18 @@
     return list;
   })();
 
-  function mineralEffectsText(m: Mineral): string {
+  function mineralEffectsText(mineral: Mineral): string {
     const parts: string[] = [];
-    if (m.STR) parts.push(`筋力 +${m.STR}`);
-    if (m.CON) parts.push(`体力 +${m.CON}`);
-    if (m.POW) parts.push(`精神力 +${m.POW}`);
-    if (m.DEX) parts.push(`敏捷 +${m.DEX}`);
-    if (m.APP) parts.push(`魅力 +${m.APP}`);
-    if (m.INT) parts.push(`知力 +${m.INT}`);
-    if (typeof m.maxActionsPerTurn === 'number' && m.maxActionsPerTurn !== 0)
-      parts.push(`行動回数 +${m.maxActionsPerTurn}`);
-    if (typeof m.maxActionChoices === 'number' && m.maxActionChoices !== 0)
-      parts.push(`選択肢 +${m.maxActionChoices}`);
+    if (mineral.STR) parts.push(`筋力 +${mineral.STR}`);
+    if (mineral.CON) parts.push(`体力 +${mineral.CON}`);
+    if (mineral.POW) parts.push(`精神力 +${mineral.POW}`);
+    if (mineral.DEX) parts.push(`敏捷 +${mineral.DEX}`);
+    if (mineral.APP) parts.push(`魅力 +${mineral.APP}`);
+    if (mineral.INT) parts.push(`知力 +${mineral.INT}`);
+    if (typeof mineral.maxActionsPerTurn === 'number' && mineral.maxActionsPerTurn !== 0)
+      parts.push(`行動回数 +${mineral.maxActionsPerTurn}`);
+    if (typeof mineral.maxActionChoices === 'number' && mineral.maxActionChoices !== 0)
+      parts.push(`選択肢 +${mineral.maxActionChoices}`);
     return parts.join(', ');
   }
 </script>

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "attr_CON": "CON",
+  "attr_STR": "STR",
+  "attr_POW": "POW",
+  "attr_DEX": "DEX",
+  "attr_APP": "APP",
+  "attr_INT": "INT",
+  "ui_actionsPerTurn": "Actions",
+  "ui_actionChoices": "Choices",
+  "ui_unknown": "???",
+  "ui_none": "None",
+  "ui_unknownMinerals": "Unknown",
+  "ui_minerals": "Minerals",
+  "ui_details": "Details"
+}

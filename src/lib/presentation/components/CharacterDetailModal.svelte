@@ -4,6 +4,7 @@
   import type { Character, Actor, CharacterAttribute } from '$lib/domain/entities/character';
   import { isEnemy, isPlayer } from '$lib/domain/entities/character';
   import type { Mineral } from '$lib/domain/entities/mineral';
+  import { m } from '$lib/paraglide/messages';
 
   // Props
   export let character: Character;
@@ -156,7 +157,7 @@
             {/each}
             {#if actionRow}
               <div class="flex flex-col items-center">
-                <span class="text-gray-300">{actionRow.title}</span>
+                <span class="text-gray-300">{m.ui_actionsPerTurn()}</span>
                 <div class="flex items-end gap-1">
                   {#if actionRow.delta && actionRow.delta !== 0}
                     <span class="text-gray-500">{actionRow.base}</span>
@@ -178,7 +179,7 @@
             {/if}
             {#if choicesRow}
               <div class="flex flex-col items-center">
-                <span class="text-gray-300">{choicesRow.title}</span>
+                <span class="text-gray-300">{m.ui_actionChoices()}</span>
                 <div class="flex items-end gap-1">
                   {#if choicesRow.delta && choicesRow.delta !== 0}
                     <span class="text-gray-500">{choicesRow.base}</span>
@@ -204,13 +205,13 @@
 
       <!-- 所持鉱石 -->
       <div>
-        <div class="text-gray-400 mb-2">所持</div>
+        <div class="text-gray-400 mb-2">{m.ui_minerals()}</div>
         {#if !actor}
-          <div class="text-gray-500">なし</div>
+          <div class="text-gray-500">{m.ui_none()}</div>
         {:else if !canShowMinerals}
-          <div class="text-gray-500">不明</div>
+          <div class="text-gray-500">{m.ui_unknownMinerals()}</div>
         {:else if sortedMinerals.length === 0}
-          <div class="text-gray-500">なし</div>
+          <div class="text-gray-500">{m.ui_none()}</div>
         {:else}
           <div class="flex flex-wrap gap-2">
             {#each mineralItems as it (it.id)}

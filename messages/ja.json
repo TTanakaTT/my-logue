@@ -1,0 +1,16 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "attr_CON": "体力",
+  "attr_STR": "筋力",
+  "attr_POW": "精神",
+  "attr_DEX": "器用",
+  "attr_APP": "魅力",
+  "attr_INT": "知力",
+  "ui_actionsPerTurn": "行動回数",
+  "ui_actionChoices": "選択肢数",
+  "ui_unknown": "???",
+  "ui_none": "なし",
+  "ui_unknownMinerals": "不明",
+  "ui_minerals": "所持",
+  "ui_details": "詳細"
+}
