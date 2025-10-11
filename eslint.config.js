@@ -33,6 +33,6 @@ export default ts.config(
     }
   },
   {
-    ignores: ['docs/**']
+    ignores: ['src/lib/paraglide/**', 'project.inlang/cache/**', 'node_modules/**']
   }
 );

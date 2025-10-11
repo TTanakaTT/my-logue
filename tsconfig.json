@@ -6,7 +6,8 @@
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "strict": true,
+    "skipLibCheck": true,
     "types": ["svelte"]
   },
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "src/lib/paraglide", "project.inlang"]
 }
