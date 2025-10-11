@@ -94,12 +94,12 @@
   }
   // 鉱石表示用（必要情報を事前計算）
   $: mineralItems = canShowMinerals
-    ? sortedMinerals.map((m) => ({
-        id: m.id,
-        nameJa: m.nameJa,
-        rarity: m.rarity,
-        rarityColor: getRarityColor(m.rarity),
-        tooltip: mineralEffectsText(m)
+    ? sortedMinerals.map((mineral) => ({
+        id: mineral.id,
+        nameJa: mineral.nameJa,
+        rarity: mineral.rarity,
+        rarityColor: getRarityColor(mineral.rarity),
+        tooltip: mineralEffectsText(mineral)
       }))
     : [];
 </script>
@@ -137,20 +137,12 @@
                 <span class="text-gray-300">{r.label}</span>
                 {#if r.revealed}
                   <div class="flex items-end gap-1">
+                    <span>{r.base}</span>
                     {#if r.delta && r.delta !== 0}
-                      <span class="text-gray-500">{r.base}</span>
-                      <div class="flex flex-col items-center">
-                        <span class="text-xs {r.delta > 0 ? 'text-emerald-400' : 'text-red-400'}">
-                          {r.delta > 0 ? '+' : ''}{r.delta}
-                        </span>
-                        <Icon
-                          icon="arrow_right_alt"
-                          size={18}
-                          additionalClass="text-gray-500 -mt-1.5"
-                        />
-                      </div>
+                      <span class={r.delta > 0 ? 'text-emerald-400' : 'text-red-400'}>
+                        {r.delta > 0 ? '+' : ''}{r.delta}
+                      </span>
                     {/if}
-                    <span class="text-base">{r.eff}</span>
                   </div>
                 {:else}
                   <span class="text-gray-500">???</span>
@@ -161,21 +153,12 @@
               <div class="flex flex-col items-center">
                 <span class="text-gray-300">{m.ui_actionsPerTurn()}</span>
                 <div class="flex items-end gap-1">
+                  <span>{actionRow.base}</span>
                   {#if actionRow.delta && actionRow.delta !== 0}
-                    <span class="text-gray-500">{actionRow.base}</span>
-                    <div class="flex flex-col items-center">
-                      <span
-                        class="text-xs {actionRow.delta > 0 ? 'text-emerald-400' : 'text-red-400'}"
-                        >{actionRow.delta > 0 ? '+' : ''}{actionRow.delta}</span
-                      >
-                      <Icon
-                        icon="arrow_right_alt"
-                        size={18}
-                        additionalClass="text-gray-500 -mt-1.5"
-                      />
-                    </div>
+                    <span class={actionRow.delta > 0 ? 'text-emerald-400' : 'text-red-400'}
+                      >{actionRow.delta > 0 ? '+' : ''}{actionRow.delta}</span
+                    >
                   {/if}
-                  <span class="text-base">{actionRow.eff}</span>
                 </div>
               </div>
             {/if}
