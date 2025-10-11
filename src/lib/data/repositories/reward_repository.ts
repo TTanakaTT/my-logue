@@ -15,6 +15,7 @@ import { parseCsv } from '$lib/data/repositories/utils/csv_util';
 import { getMineral, listByRarity, listMinerals } from '$lib/data/repositories/mineral_repository';
 import type { Mineral } from '$lib/domain/entities/mineral';
 import { action as ACTION_DEFS } from '$lib/data/consts/actions';
+import { m } from '$lib/paraglide/messages';
 
 // rewards.csv: id(number),kind,name,label,floorMin?,floorMax?
 // reward_detail.csv: rewardName,type,target,value,extra
@@ -135,29 +136,31 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
   }
 }
 
-function formatMineralEffects(m: Mineral): string {
+function formatMineralEffects(mineral: Mineral): string {
   const parts: string[] = [];
   const mapKeyToLabel: Record<string, string> = {
-    STR: 'STR',
-    CON: 'CON',
-    POW: 'POW',
-    DEX: 'DEX',
-    APP: 'APP',
-    INT: 'INT',
-    maxActionsPerTurn: '行動数',
-    maxActionChoices: '選択肢'
+    STR: m.attr_STR(),
+    CON: m.attr_CON(),
+    POW: m.attr_POW(),
+    DEX: m.attr_DEX(),
+    APP: m.attr_APP(),
+    INT: m.attr_INT(),
+    maxActionsPerTurn: m.attr_actionsPerTurn(),
+    maxActionChoices: m.attr_actionChoices()
   };
   (['STR', 'CON', 'POW', 'DEX', 'APP', 'INT'] as const).forEach((k) => {
-    if (m[k]) parts.push(`${mapKeyToLabel[k]}+${m[k]}`);
+    if (mineral[k]) parts.push(`${mapKeyToLabel[k]}+${mineral[k]}`);
   });
-  if (m.maxActionsPerTurn) parts.push(`${mapKeyToLabel.maxActionsPerTurn}+${m.maxActionsPerTurn}`);
-  if (m.maxActionChoices) parts.push(`${mapKeyToLabel.maxActionChoices}+${m.maxActionChoices}`);
-  if (m.grantedActions && m.grantedActions.length > 0) {
-    const names = m.grantedActions
+  if (mineral.maxActionsPerTurn)
+    parts.push(`${mapKeyToLabel.maxActionsPerTurn}+${mineral.maxActionsPerTurn}`);
+  if (mineral.maxActionChoices)
+    parts.push(`${mapKeyToLabel.maxActionChoices}+${mineral.maxActionChoices}`);
+  if (mineral.grantedActions && mineral.grantedActions.length > 0) {
+    const names = mineral.grantedActions
       .map((id) => ACTION_DEFS[id]?.name || id)
       .filter(Boolean)
       .join(' / ');
-    parts.push(`アクション: ${names}`);
+    parts.push(`${m.ui_effect_actions()}: ${names}`);
   }
   return parts.join('\n');
 }

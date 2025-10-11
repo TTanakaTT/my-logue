@@ -288,22 +288,22 @@
 
   function mineralEffectsText(mineral: Mineral): string {
     const parts: string[] = [];
-    if (mineral.STR) parts.push(`筋力 +${mineral.STR}`);
-    if (mineral.CON) parts.push(`体力 +${mineral.CON}`);
-    if (mineral.POW) parts.push(`精神力 +${mineral.POW}`);
-    if (mineral.DEX) parts.push(`敏捷 +${mineral.DEX}`);
-    if (mineral.APP) parts.push(`魅力 +${mineral.APP}`);
-    if (mineral.INT) parts.push(`知力 +${mineral.INT}`);
+    if (mineral.STR) parts.push(`${m.attr_STR()} +${mineral.STR}`);
+    if (mineral.CON) parts.push(`${m.attr_CON()} +${mineral.CON}`);
+    if (mineral.POW) parts.push(`${m.attr_POW()} +${mineral.POW}`);
+    if (mineral.DEX) parts.push(`${m.attr_DEX()} +${mineral.DEX}`);
+    if (mineral.APP) parts.push(`${m.attr_APP()} +${mineral.APP}`);
+    if (mineral.INT) parts.push(`${m.attr_INT()} +${mineral.INT}`);
     if (typeof mineral.maxActionsPerTurn === 'number' && mineral.maxActionsPerTurn !== 0)
-      parts.push(`行動回数 +${mineral.maxActionsPerTurn}`);
+      parts.push(`${m.attr_actionsPerTurn()} +${mineral.maxActionsPerTurn}`);
     if (typeof mineral.maxActionChoices === 'number' && mineral.maxActionChoices !== 0)
-      parts.push(`選択肢 +${mineral.maxActionChoices}`);
+      parts.push(`${m.attr_actionChoices()} +${mineral.maxActionChoices}`);
     if (Array.isArray(mineral.grantedActions) && mineral.grantedActions.length > 0) {
       const names = mineral.grantedActions
         .map((id) => getAction(id)?.name || id)
         .filter(Boolean)
         .join(' / ');
-      parts.push(`アクション: ${names}`);
+      parts.push(`${m.ui_effect_actions()}: ${names}`);
     }
     return parts.join('\n');
   }

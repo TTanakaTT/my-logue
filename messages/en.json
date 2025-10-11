@@ -6,11 +6,11 @@
   "attr_DEX": "DEX",
   "attr_APP": "APP",
   "attr_INT": "INT",
-  "ui_actionsPerTurn": "Actions",
-  "ui_actionChoices": "Choices",
+  "attr_actionsPerTurn": "Actions/Turn",
+  "attr_actionChoices": "Choices",
   "ui_unknown": "???",
   "ui_none": "None",
   "ui_unknownMinerals": "Unknown",
   "ui_minerals": "Minerals",
-  "ui_details": "Details"
+  "ui_effect_actions": "Actions"
 }
