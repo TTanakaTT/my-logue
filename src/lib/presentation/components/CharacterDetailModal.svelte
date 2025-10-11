@@ -151,7 +151,7 @@
             {/each}
             {#if actionRow}
               <div class="flex flex-col items-center">
-                <span class="text-gray-300">{m.ui_actionsPerTurn()}</span>
+                <span class="text-gray-300">{m.attr_actionsPerTurn()}</span>
                 <div class="flex items-end gap-1">
                   <span>{actionRow.base}</span>
                   {#if actionRow.delta && actionRow.delta !== 0}
@@ -164,7 +164,7 @@
             {/if}
             {#if choicesRow}
               <div class="flex flex-col items-center">
-                <span class="text-gray-300">{m.ui_actionChoices()}</span>
+                <span class="text-gray-300">{m.attr_actionChoices()}</span>
                 <div class="flex items-end gap-1">
                   {#if choicesRow.delta && choicesRow.delta !== 0}
                     <span class="text-gray-500">{choicesRow.base}</span>
