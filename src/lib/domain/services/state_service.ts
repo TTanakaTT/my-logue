@@ -185,33 +185,21 @@ export function selectCompanion(state: GameState, id: string) {
     side: 'player',
     kind: 'player',
     name: target.name,
-    STR: target.STR,
-    CON: target.CON,
-    POW: target.POW,
-    DEX: target.DEX,
-    APP: target.APP,
-    INT: target.INT,
+    characterAttributes: target.characterAttributes,
     hp: 0,
     statuses: [],
     heldMineralIds: [],
     baseAttributes: {
       id: target.id,
       name: target.name,
-      STR: target.STR,
-      CON: target.CON,
-      POW: target.POW,
-      DEX: target.DEX,
-      APP: target.APP,
-      INT: target.INT,
-      actions: [...target.actions],
-      maxActionsPerTurn: target.maxActionsPerTurn
+      characterAttributes: target.characterAttributes,
+      actions: [...target.actions]
     },
     physDamageCutRate: 0,
     psyDamageCutRate: 0,
     physDamageUpRate: 0,
     psyDamageUpRate: 0,
-    actions: [...target.actions],
-    maxActionsPerTurn: target.maxActionsPerTurn
+    actions: [...target.actions]
   };
   ally.hp = calcMaxHP(ally);
   state.allies.push(ally);
@@ -264,13 +252,7 @@ function savePlayerAsCompanion(state: GameState) {
     const snap: Character = {
       id: String(Date.now()),
       name: state.player.name,
-      STR: state.player.STR,
-      CON: state.player.CON,
-      POW: state.player.POW,
-      DEX: state.player.DEX,
-      APP: state.player.APP,
-      INT: state.player.INT,
-      maxActionsPerTurn: state.player.maxActionsPerTurn,
+      characterAttributes: state.player.characterAttributes,
       actions: [...state.player.actions]
     };
     repo.add(snap);
@@ -387,7 +369,7 @@ export async function combatAction(state: GameState, id: Action) {
   if (state.playerUsedActions && state.playerUsedActions.includes(id)) return;
   let target = state.enemies.find((e) => e.hp > 0);
   if (
-    state.selectedEnemyIndex !== undefined &&
+    typeof state.selectedEnemyIndex === 'number' &&
     state.enemies[state.selectedEnemyIndex] &&
     state.enemies[state.selectedEnemyIndex].hp > 0
   ) {
@@ -421,7 +403,7 @@ export async function combatAction(state: GameState, id: Action) {
     }
     commit(state);
   }
-  if (state.actionUseCount >= state.player.maxActionsPerTurn) {
+  if (state.actionUseCount >= state.player.characterAttributes.maxActionsPerTurn) {
     await alliesTurn(state);
     if (state.phase !== 'combat') {
       commit(state);
@@ -445,7 +427,7 @@ export async function combatAction(state: GameState, id: Action) {
 async function alliesTurn(state: GameState) {
   for (const ally of state.allies.filter((a: Actor) => a.hp > 0)) {
     const acted: Action[] = [];
-    const maxActs = ally.maxActionsPerTurn;
+    const maxActs = ally.characterAttributes.maxActionsPerTurn;
     for (let i = 0; i < maxActs; i++) {
       const candidates = ally.actions.filter((a: Action) => !acted.includes(a));
       if (candidates.length === 0) break;
@@ -477,7 +459,7 @@ async function enemiesTurn(state: GameState) {
   }
   for (const enemy of state.enemies.filter((e: Actor) => e.hp > 0)) {
     const acted: Action[] = [];
-    const maxActs = enemy.maxActionsPerTurn;
+    const maxActs = enemy.characterAttributes.maxActionsPerTurn;
     for (let i = 0; i < maxActs; i++) {
       const candidates = enemy.actions.filter((a: Action) => !acted.includes(a));
       if (candidates.length === 0) break;

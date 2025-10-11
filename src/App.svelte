@@ -54,20 +54,20 @@
   <section class="rounded-lg mt-4 mb-4 mx-2 p-0">
     <div class="flex flex-row gap-4 flex-wrap relative">
       <!-- キーに全ステータスを含め POW/DEX/APP/INT 変化時も再描画されるようにする -->
-      {#key [$gameState.player.STR, $gameState.player.CON, $gameState.player.POW, $gameState.player.DEX, $gameState.player.APP, $gameState.player.INT, $gameState.player.statuses
+      {#key [$gameState.player.characterAttributes.STR, $gameState.player.characterAttributes.CON, $gameState.player.characterAttributes.POW, $gameState.player.characterAttributes.DEX, $gameState.player.characterAttributes.APP, $gameState.player.characterAttributes.INT, $gameState.player.statuses
           .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
           .join(',')].join('|')}
         <CharacterPanel character={$gameState.player} side="player" panelKey="player" />
       {/key}
       {#each $gameState.allies as ally, i (i)}
-        {#key [ally.STR, ally.CON, ally.POW, ally.DEX, ally.APP, ally.INT, ally.statuses
+        {#key [ally.characterAttributes.STR, ally.characterAttributes.CON, ally.characterAttributes.POW, ally.characterAttributes.DEX, ally.characterAttributes.APP, ally.characterAttributes.INT, ally.statuses
             .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
             .join(',')].join('|')}
           <CharacterPanel character={ally} side="player" panelKey={`ally-${i}`} />
         {/key}
       {/each}
       {#each $gameState.enemies as enemy, i (i)}
-        {#key [enemy.STR, enemy.CON, enemy.POW, enemy.DEX, enemy.APP, enemy.INT, enemy.statuses
+        {#key [enemy.characterAttributes, enemy.statuses
             .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
             .join(',')].join('|')}
           <CharacterPanel character={enemy} side="enemy" panelKey={`enemy-${i}`} />
@@ -144,9 +144,9 @@
 
     {#if $gameState.phase === 'combat'}
       <h2 class="mt-0 text-lg font-semibold mb-2">戦闘</h2>
-      {#if $gameState.player.maxActionsPerTurn > 1}
+      {#if $gameState.player.characterAttributes.maxActionsPerTurn > 1}
         <div class="mb-2 text-sm">
-          行動 {$gameState.actionUseCount}/{$gameState.player.maxActionsPerTurn}
+          行動 {$gameState.actionUseCount}/{$gameState.player.characterAttributes.maxActionsPerTurn}
         </div>
       {/if}
       {#if $gameState.enemies.length > 1}
@@ -176,7 +176,8 @@
               <button
                 class={`btn-base ${idx === 0 ? 'border-amber-400 border-2 shadow-lg bg-amber-600/30' : ''}`}
                 disabled={$uiAnimating ||
-                  $gameState.actionUseCount >= $gameState.player.maxActionsPerTurn}
+                  $gameState.actionUseCount >=
+                    $gameState.player.characterAttributes.maxActionsPerTurn}
                 on:click={() => combatAction($gameState, id)}
                 title={idx === 0 ? 'クリティカル (効果強化)' : getAction(id)?.description}
               >

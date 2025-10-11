@@ -24,7 +24,7 @@ export function awardMineral(actor: Actor, mineralId: string): boolean {
   });
   // 行動系の補正
   if (typeof def.maxActionsPerTurn === 'number') {
-    actor.maxActionsPerTurn += def.maxActionsPerTurn;
+    actor.characterAttributes.maxActionsPerTurn += def.maxActionsPerTurn;
   }
   if (typeof def.maxActionChoices === 'number' && isPlayer(actor)) {
     actor.maxActionChoices = actor.maxActionChoices + def.maxActionChoices;

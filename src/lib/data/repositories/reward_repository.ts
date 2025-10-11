@@ -92,7 +92,7 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
         pushLog(`HP+${Math.min(amount, max)} (<=最大HP)`, 'system');
       } else {
         if (d.target === 'maxActionsPerTurn') {
-          s.player.maxActionsPerTurn += amount;
+          s.player.characterAttributes.maxActionsPerTurn += amount;
           pushLog(`行動回数+${amount}`, 'system');
         }
       }

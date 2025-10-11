@@ -12,7 +12,7 @@
     type ActorAttribute,
     type Attribute,
     type Character,
-    type CharacterAttribute,
+    type CharacterAttributeKey,
     type Actor
   } from '$lib/domain/entities/character';
   import { status } from '$lib/data/consts/statuses';
@@ -32,7 +32,7 @@
   export let character: Character;
   export let side: 'player' | 'enemy' = 'player';
 
-  const characterAttributes: { key: CharacterAttribute; label: string }[] = [
+  const characterAttributes: { key: CharacterAttributeKey; label: string }[] = [
     { key: 'CON', label: m.attr_CON() },
     { key: 'STR', label: m.attr_STR() },
     { key: 'POW', label: m.attr_POW() },
@@ -45,14 +45,7 @@
     label: string;
   }[] = [{ key: 'hp', label: 'HP' }];
 
-  $: characterAttributeValues = {
-    CON: character.CON,
-    STR: character.STR,
-    POW: character.POW,
-    DEX: character.DEX,
-    APP: character.APP,
-    INT: character.INT
-  };
+  $: characterAttributeValues = character.characterAttributes;
 
   // --- HP 表示アニメーション設定 ---
   const HP_ANIM_MIN_MS = 1000;
@@ -427,7 +420,9 @@
   {/if}
   <div class="mt-2 flex flex-col">
     <div class="flex">
-      <span class="text-gray-400">アクション ({character.maxActionsPerTurn}回)</span>
+      <span class="text-gray-400"
+        >アクション ({character.characterAttributes.maxActionsPerTurn}回)</span
+      >
     </div>
     <div class="flex flex-wrap gap-1 mt-1">
       {#each actionInfos as a (a.id)}

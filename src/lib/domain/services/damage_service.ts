@@ -10,7 +10,7 @@ export function applyPhysicalDamage(source: Actor, target: Actor, amount: number
   applyDamage(source, target, damage);
 }
 export function applyPsychicDamage(source: Actor, target: Actor, amount: number) {
-  const base = Math.max(1, amount - target.POW * 0.5);
+  const base = Math.max(1, amount - target.characterAttributes.POW * 0.5);
   const up = source.psyDamageUpRate || 0;
   const cut = target.psyDamageCutRate || 0;
   const raw = base * (1 + up) * (1 - cut);

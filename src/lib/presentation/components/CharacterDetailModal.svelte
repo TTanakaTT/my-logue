@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from './Icon.svelte';
   import TooltipBadge from './TooltipBadge.svelte';
-  import type { Character, Actor, CharacterAttribute } from '$lib/domain/entities/character';
+  import type { Character, Actor, CharacterAttributeKey } from '$lib/domain/entities/character';
   import { isEnemy, isPlayer } from '$lib/domain/entities/character';
   import type { Mineral } from '$lib/domain/entities/mineral';
   import { m } from '$lib/paraglide/messages';
@@ -9,14 +9,14 @@
   // Props
   export let character: Character;
   export let actor: Actor | null = null;
-  export let characterAttributes: { key: CharacterAttribute; label: string }[] = [];
+  export let characterAttributes: { key: CharacterAttributeKey; label: string }[] = [];
   export let heldMinerals: Mineral[] = [];
   export let mineralEffectsText: (m: Mineral) => string;
-  export let effectiveAttributes: Record<CharacterAttribute, number> | undefined = undefined;
+  export let effectiveAttributes: Record<CharacterAttributeKey, number> | undefined = undefined;
   export let onClose: (() => void) | undefined = undefined;
 
   // 敵の公開可否（モーダルでも厳格に）
-  function isAttributeRevealed(key: CharacterAttribute): boolean {
+  function isAttributeRevealed(key: CharacterAttributeKey): boolean {
     if (!actor) return true; // アクターでなければ公開対象外（キャラ定数表示）
     if (!isEnemy(actor)) return true; // 味方は常に公開
     return actor.isExposed || Boolean(actor.revealedAttributes?.includes(key));
@@ -35,7 +35,7 @@
 
   // 表示用: 補正ステータス行（o.key/o.label ごと）
   type AttributeRow = {
-    key: CharacterAttribute;
+    key: CharacterAttributeKey;
     label: string;
     revealed: boolean;
     base?: number;
@@ -45,7 +45,7 @@
   $: attributeRows = actor
     ? characterAttributes.map((o) => {
         const revealed = isAttributeRevealed(o.key);
-        const base = revealed ? actor.baseAttributes[o.key] : undefined;
+        const base = revealed ? actor.baseAttributes.characterAttributes[o.key] : undefined;
         const eff = revealed && effectiveAttributes ? effectiveAttributes[o.key] : undefined;
         const delta = revealed && eff !== undefined && base !== undefined ? eff - base : undefined;
         return { key: o.key, label: o.label, revealed, base, eff, delta } satisfies AttributeRow;
@@ -57,9 +57,11 @@
   $: actionRow = actor
     ? ({
         title: '行動回数',
-        base: actor.baseAttributes.maxActionsPerTurn,
-        eff: character.maxActionsPerTurn,
-        delta: character.maxActionsPerTurn - actor.baseAttributes.maxActionsPerTurn
+        base: actor.baseAttributes.characterAttributes.maxActionsPerTurn,
+        eff: character.characterAttributes.maxActionsPerTurn,
+        delta:
+          character.characterAttributes.maxActionsPerTurn -
+          actor.baseAttributes.characterAttributes.maxActionsPerTurn
       } satisfies StatRow)
     : null;
 

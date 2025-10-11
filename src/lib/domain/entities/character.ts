@@ -15,18 +15,33 @@ export function isActorSide(value: unknown): value is ActorSide {
   return typeof value === 'string' && (ACTOR_SIDES as readonly string[]).includes(value);
 }
 
-export interface Character {
-  id: string;
-  name: string;
+// キャラクターの能力値キー一覧（表示/加算処理で使用）
+export const CHARACTER_ATTRIBUTES = [
+  'STR',
+  'CON',
+  'POW',
+  'DEX',
+  'APP',
+  'INT',
+  'maxActionsPerTurn'
+] as const;
+export type CharacterAttributeKey = (typeof CHARACTER_ATTRIBUTES)[number];
+
+export interface CharacterAttribute {
   STR: number;
   CON: number;
   POW: number;
   DEX: number;
   APP: number;
   INT: number;
-  actions: Action[];
   /** 1ターンに使用できる最大アクション数 */
   maxActionsPerTurn: number;
+}
+export interface Character {
+  id: string;
+  name: string;
+  characterAttributes: CharacterAttribute;
+  actions: Action[];
 }
 
 /**
@@ -111,7 +126,5 @@ export function isEnemy(value: Actor): value is Enemy {
   return typeof isExposed === 'boolean';
 }
 
-export const CHARACTER_ATTRIBUTES = ['CON', 'STR', 'POW', 'DEX', 'APP', 'INT'];
-export type CharacterAttribute = 'CON' | 'STR' | 'POW' | 'DEX' | 'APP' | 'INT';
 export type ActorAttribute = 'hp';
-export type Attribute = CharacterAttribute | ActorAttribute;
+export type Attribute = CharacterAttributeKey | ActorAttribute;

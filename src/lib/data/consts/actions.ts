@@ -10,17 +10,17 @@ export const action = {
     description: 'STRで相手に攻撃 (クリティカル: ダメージ2倍)',
     normalLog: ({ actor, target }) => {
       if (!target) return '攻撃対象はもういない...';
-      return `${target.name}に${actor.STR}の力で攻撃！`;
+      return `${target.name}に${actor.characterAttributes.STR}の力で攻撃！`;
     },
     criticalLog: ({ actor, target }) => {
       if (!target) return '攻撃対象はもういない...';
-      return `クリティカル！${target.name}に${actor.STR * 2}の力で強打！`;
+      return `クリティカル！${target.name}に${actor.characterAttributes.STR * 2}の力で強打！`;
     },
     normalAction: ({ actor, target }) => {
-      if (target) applyPhysicalDamage(actor, target, actor.STR);
+      if (target) applyPhysicalDamage(actor, target, actor.characterAttributes.STR);
     },
     criticalAction: ({ actor, target }) => {
-      if (target) applyPhysicalDamage(actor, target, actor.STR * 2);
+      if (target) applyPhysicalDamage(actor, target, actor.characterAttributes.STR * 2);
     }
   },
   Curse: {
@@ -29,17 +29,17 @@ export const action = {
     cooldownTurns: 1,
     normalLog: ({ actor, target }) => {
       if (!target) return '攻撃対象はもういない...';
-      return `${actor.POW}の精神力で呪った！${target.name}は${target.POW}÷2の精神力で抵抗した！`;
+      return `${actor.characterAttributes.POW}の精神力で呪った！${target.name}は${target.characterAttributes.POW}÷2の精神力で抵抗した！`;
     },
     criticalLog: ({ actor, target }) => {
       if (!target) return '攻撃対象はもういない...';
-      return `クリティカル呪詛！${actor.POW * 2}の精神力で${target.name}を苛んだ！`;
+      return `クリティカル呪詛！${actor.characterAttributes.POW * 2}の精神力で${target.name}を苛んだ！`;
     },
     normalAction: ({ actor, target }) => {
-      if (target) applyPsychicDamage(actor, target, actor.POW);
+      if (target) applyPsychicDamage(actor, target, actor.characterAttributes.POW);
     },
     criticalAction: ({ actor, target }) => {
-      if (target) applyPsychicDamage(actor, target, actor.POW * 2);
+      if (target) applyPsychicDamage(actor, target, actor.characterAttributes.POW * 2);
     }
   },
   Guard: {
@@ -58,13 +58,14 @@ export const action = {
   FirstAid: {
     name: '応急処置',
     description: 'DEXで自分に応急処置 (クリティカル: 回復量2倍)',
-    normalLog: ({ actor }) => `${actor.DEX}の器用さで応急処置を行なった。`,
-    criticalLog: ({ actor }) => `クリティカル応急！${actor.DEX * 2}の効果で素早く処置した。`,
+    normalLog: ({ actor }) => `${actor.characterAttributes.DEX}の器用さで応急処置を行なった。`,
+    criticalLog: ({ actor }) =>
+      `クリティカル応急！${actor.characterAttributes.DEX * 2}の効果で素早く処置した。`,
     normalAction: ({ actor }) => {
-      heal(actor, actor.DEX);
+      heal(actor, actor.characterAttributes.DEX);
     },
     criticalAction: ({ actor }) => {
-      heal(actor, actor.DEX * 2);
+      heal(actor, actor.characterAttributes.DEX * 2);
     }
   },
   Poison: {
