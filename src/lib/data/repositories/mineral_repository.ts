@@ -1,16 +1,22 @@
 import mineralsCsvRaw from '$lib/data/consts/minerals.csv?raw';
+import mineralsDetailCsvRaw from '$lib/data/consts/mineral_detail.csv?raw';
 import mineralDict from '$lib/data/consts/mineral-dict.json';
 import type { Mineral } from '$lib/domain/entities/mineral';
 import { parseCsv } from '$lib/data/repositories/utils/csv_util';
+import type { Action } from '$lib/domain/entities/action';
 
-interface RawRow {
+interface RawRowMineral {
+  nameEn: string;
   nameJa: string;
   nameKana?: string;
-  nameEn?: string;
-  category?: string;
+  category: string;
   rarity: number;
-  attribute: string;
-  value: number;
+}
+
+interface RawRowDetail {
+  mineralNameEn: string; // minerals.csv の mineralName_en と対応
+  attribute: string; // STR/CON/... or action
+  value: string; // 数値 or Action名
 }
 
 function toId(nameJa: string, nameEn?: string): string {
@@ -18,14 +24,29 @@ function toId(nameJa: string, nameEn?: string): string {
   return (idFromDict || nameJa || 'mineral').replace(/\s+/g, '_');
 }
 
-const rows: RawRow[] = parseCsv(mineralsCsvRaw)
+const mineralRows: RawRowMineral[] = parseCsv(mineralsCsvRaw)
   .slice(1)
   .map((cols) => {
-    const [nameJa, nameKana, nameEn, category, rarityStr, attribute, valueStr] = cols;
+    const [nameEn, nameJa, nameKana, category, rarityStr] = cols;
     const rarity = Number(rarityStr);
-    const value = Number(valueStr);
-    return { nameJa, nameKana, nameEn, category, rarity, attribute, value } as RawRow;
+    return { nameEn, nameJa, nameKana, category, rarity } as RawRowMineral;
   });
+
+const detailRows: RawRowDetail[] = (() => {
+  const parsed = parseCsv(mineralsDetailCsvRaw);
+  const header = parsed[0];
+  const body = parsed.slice(1);
+  const idxName = header.indexOf('mineralName');
+  const idxAttr = header.indexOf('attribute');
+  const idxVal = header.indexOf('value');
+  return body
+    .map((cols) => ({
+      mineralNameEn: cols[idxName] || '',
+      attribute: cols[idxAttr] || '',
+      value: cols[idxVal] || ''
+    }))
+    .filter((r) => r.mineralNameEn);
+})();
 
 const ATTRIBUTES_KEYS = [
   'STR',
@@ -43,9 +64,20 @@ function isMineralAttributeKey(k: string): k is MineralAttributeKey {
   return (ATTRIBUTES_KEYS as readonly string[]).includes(k);
 }
 
-const all: Mineral[] = rows.map((r) => {
+// mineralName_en -> details の索引
+const detailsByEnName: Record<string, RawRowDetail[]> = detailRows.reduce(
+  (acc, row) => {
+    const key = row.mineralNameEn.trim();
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(row);
+    return acc;
+  },
+  {} as Record<string, RawRowDetail[]>
+);
+
+const all: Mineral[] = mineralRows.map((r) => {
   const id = toId(r.nameJa, r.nameEn);
-  const bonus: Mineral = {
+  const m: Mineral = {
     id,
     nameJa: r.nameJa,
     nameEn: r.nameEn,
@@ -62,15 +94,24 @@ const all: Mineral[] = rows.map((r) => {
     APP: 0,
     INT: 0,
     maxActionsPerTurn: 0,
-    maxActionChoices: 0
+    maxActionChoices: 0,
+    grantedActions: []
   };
 
-  const key = r.attribute || '';
-  const scalar = Number.isFinite(r.value) ? r.value : 0;
-  if (isMineralAttributeKey(key)) {
-    bonus[key] = scalar;
+  const details = detailsByEnName[r.nameEn || ''] || [];
+  for (const d of details) {
+    if (d.attribute === 'action') {
+      // Action ID は value に英語キーを想定（例: Insight）
+      const actionId = d.value as unknown as Action;
+      m.grantedActions.push(actionId);
+    } else if (isMineralAttributeKey(d.attribute)) {
+      const scalar = Number(d.value);
+      if (Number.isFinite(scalar)) {
+        m[d.attribute] = scalar;
+      }
+    }
   }
-  return bonus;
+  return m;
 });
 
 export function listMinerals(): Mineral[] {

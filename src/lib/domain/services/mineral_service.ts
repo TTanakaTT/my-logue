@@ -4,6 +4,7 @@ import { isPlayer } from '$lib/domain/entities/character';
 import { getMineral, listMinerals } from '$lib/data/repositories/mineral_repository';
 import { listByRarity } from '$lib/data/repositories/mineral_repository';
 import { pushLog } from '$lib/presentation/utils/log_util';
+import type { Action } from '$lib/domain/entities/action';
 
 export function awardMineral(actor: Actor, mineralId: string): boolean {
   const def = getMineral(mineralId);
@@ -28,6 +29,17 @@ export function awardMineral(actor: Actor, mineralId: string): boolean {
   }
   if (typeof def.maxActionChoices === 'number' && isPlayer(actor)) {
     actor.maxActionChoices = actor.maxActionChoices + def.maxActionChoices;
+  }
+  // アクション付与
+  if (Array.isArray(def.grantedActions) && def.grantedActions.length > 0) {
+    const newActions: Action[] = [];
+    for (const a of def.grantedActions) {
+      if (!actor.actions.includes(a)) newActions.push(a);
+    }
+    if (newActions.length > 0) {
+      actor.actions = [...actor.actions, ...newActions];
+      pushLog(`新しいアクションを習得: ${newActions.join(', ')}`, 'system');
+    }
   }
   // CON上昇などで最大HPが変わる場合に備え再計算
   const newMax = calcMaxHP(actor);

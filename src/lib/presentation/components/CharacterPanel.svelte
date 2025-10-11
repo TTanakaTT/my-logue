@@ -298,7 +298,14 @@
       parts.push(`行動回数 +${mineral.maxActionsPerTurn}`);
     if (typeof mineral.maxActionChoices === 'number' && mineral.maxActionChoices !== 0)
       parts.push(`選択肢 +${mineral.maxActionChoices}`);
-    return parts.join(', ');
+    if (Array.isArray(mineral.grantedActions) && mineral.grantedActions.length > 0) {
+      const names = mineral.grantedActions
+        .map((id) => getAction(id)?.name || id)
+        .filter(Boolean)
+        .join(' / ');
+      parts.push(`アクション: ${names}`);
+    }
+    return parts.join('\n');
   }
 </script>
 

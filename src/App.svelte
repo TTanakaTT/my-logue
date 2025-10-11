@@ -222,7 +222,10 @@
       </h2>
       <div class="flex flex-wrap gap-2">
         {#each $gameState.rewardOptions || [] as r (r.id)}
-          <button class="btn-base" on:click={() => pickReward($gameState, r.id)}>{r.label}</button>
+          <button
+            class="btn-base whitespace-pre-line text-left"
+            on:click={() => pickReward($gameState, r.id)}>{r.label}</button
+          >
         {/each}
       </div>
     {/if}

@@ -1,9 +1,10 @@
+import type { Action } from '$lib/domain/entities/action';
 export type MineralRarity = 1 | 2 | 3 | 4 | 5;
 
 export interface Mineral {
   id: string;
+  nameEn: string;
   nameJa: string;
-  nameEn?: string;
   rarity: MineralRarity;
   STR: number;
   CON: number;
@@ -13,6 +14,8 @@ export interface Mineral {
   INT: number;
   maxActionsPerTurn: number;
   maxActionChoices: number;
+  /** この鉱石の獲得により解放されるアクション一覧 */
+  grantedActions: Action[];
 }
 
 export function isMineral(v: unknown): v is Mineral {

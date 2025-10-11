@@ -12,6 +12,9 @@ import {
   awardRandomMineralByRarity
 } from '$lib/domain/services/mineral_service';
 import { parseCsv } from '$lib/data/repositories/utils/csv_util';
+import { getMineral, listByRarity, listMinerals } from '$lib/data/repositories/mineral_repository';
+import type { Mineral } from '$lib/domain/entities/mineral';
+import { action as ACTION_DEFS } from '$lib/data/consts/actions';
 
 // rewards.csv: id(number),kind,name,label,floorMin?,floorMax?
 // reward_detail.csv: rewardName,type,target,value,extra
@@ -132,6 +135,52 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
   }
 }
 
+function formatMineralEffects(m: Mineral): string {
+  const parts: string[] = [];
+  const mapKeyToLabel: Record<string, string> = {
+    STR: 'STR',
+    CON: 'CON',
+    POW: 'POW',
+    DEX: 'DEX',
+    APP: 'APP',
+    INT: 'INT',
+    maxActionsPerTurn: '行動数',
+    maxActionChoices: '選択肢'
+  };
+  (['STR', 'CON', 'POW', 'DEX', 'APP', 'INT'] as const).forEach((k) => {
+    if (m[k]) parts.push(`${mapKeyToLabel[k]}+${m[k]}`);
+  });
+  if (m.maxActionsPerTurn) parts.push(`${mapKeyToLabel.maxActionsPerTurn}+${m.maxActionsPerTurn}`);
+  if (m.maxActionChoices) parts.push(`${mapKeyToLabel.maxActionChoices}+${m.maxActionChoices}`);
+  if (m.grantedActions && m.grantedActions.length > 0) {
+    const names = m.grantedActions
+      .map((id) => ACTION_DEFS[id]?.name || id)
+      .filter(Boolean)
+      .join(' / ');
+    parts.push(`アクション: ${names}`);
+  }
+  return parts.join('\n');
+}
+
+function pickMineralForDetail(state: GameState, d: RewardDetailRow): Mineral | undefined {
+  if (d.type !== 'mineral') return undefined;
+  const held = state.player.heldMineralIds || [];
+  if (d.target === 'rarity') {
+    const rarity = Number(d.value) as 1 | 2 | 3 | 4 | 5;
+    const pool = listByRarity(rarity).filter((m) => !held.includes(m.id));
+    const picked = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : undefined;
+    return picked;
+  }
+  if (d.target === 'random') {
+    const pool = listMinerals().filter((m) => !held.includes(m.id));
+    const picked = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : undefined;
+    return picked;
+  }
+  // target が特定IDの場合
+  const byId = getMineral(d.target);
+  return byId;
+}
+
 /**
  * 指定の敵種別に対する報酬候補を生成する。
  * 1. rewards.csv から kind (= enemy_*) に一致し、floor 範囲 (floorMin/floorMax) を満たす行を抽出
@@ -171,14 +220,34 @@ export function getRewardsForEnemy(state: GameState, enemyKind: string): RewardO
   const pickedRandom = shuffle(restPool.slice()).slice(0, Math.max(0, 3 - limited.length));
   const picked = [...limited, ...pickedRandom].sort((a, b) => a.id - b.id);
 
-  return picked.map<RewardOption>((row) => ({
-    id: String(row.id),
-    label: row.label,
-    apply: (s) => {
-      const details = detailRows.filter((d) => d.rewardName === row.name);
-      for (const d of details) applyDetail(s, d);
+  return picked.map<RewardOption>((row) => {
+    const details = detailRows.filter((d) => d.rewardName === row.name);
+    const mineralDetail = details.find((d) => d.type === 'mineral');
+    if (mineralDetail) {
+      const pickedMineral = pickMineralForDetail(state, mineralDetail);
+      if (pickedMineral) {
+        const effects = formatMineralEffects(pickedMineral);
+        const label = `${pickedMineral.nameJa} (★${pickedMineral.rarity})\n${effects}`;
+        return {
+          id: String(row.id),
+          label,
+          apply: (s) => {
+            // 先に抽選した鉱石を付与
+            awardMineral(s.player, pickedMineral.id);
+          }
+        } satisfies RewardOption;
+      }
     }
-  }));
+    // フォールバック: 既存の仕組み
+    return {
+      id: String(row.id),
+      label: row.label,
+      apply: (s) => {
+        const ds = detailRows.filter((d) => d.rewardName === row.name);
+        for (const d of ds) applyDetail(s, d);
+      }
+    } satisfies RewardOption;
+  });
 }
 
 /**
@@ -198,13 +267,30 @@ export function getRewardsForRewardNode(state: GameState): RewardOption[] {
   const picked = shuffle(candidates.slice())
     .slice(0, MAX_REWARDS)
     .sort((a, b) => a.id - b.id);
-  return picked.map<RewardOption>((row) => ({
-    id: String(row.id),
-    label: row.label,
-    kind: 'normal', // 表示用。ノード報酬は通常扱い
-    apply: (s) => {
-      const details = detailRows.filter((d) => d.rewardName === row.name);
-      for (const d of details) applyDetail(s, d);
+  return picked.map<RewardOption>((row) => {
+    const details = detailRows.filter((d) => d.rewardName === row.name);
+    const mineralDetail = details.find((d) => d.type === 'mineral');
+    if (mineralDetail) {
+      const pickedMineral = pickMineralForDetail(state, mineralDetail);
+      if (pickedMineral) {
+        const effects = formatMineralEffects(pickedMineral);
+        const label = `${pickedMineral.nameJa} (★${pickedMineral.rarity})\n${effects}`;
+        return {
+          id: String(row.id),
+          label,
+          apply: (s) => {
+            awardMineral(s.player, pickedMineral.id);
+          }
+        } satisfies RewardOption;
+      }
     }
-  }));
+    return {
+      id: String(row.id),
+      label: row.label,
+      apply: (s) => {
+        const ds = detailRows.filter((d) => d.rewardName === row.name);
+        for (const d of ds) applyDetail(s, d);
+      }
+    } satisfies RewardOption;
+  });
 }

@@ -88,7 +88,7 @@
   </span>
   {#if open}
     <span
-      class="absolute z-1000 max-w-3xs text-xs px-2 py-1 rounded bg-black/80 text-gray-100 border border-white/10 top-full -left-100 translate-x-100"
+      class="absolute z-1000 max-w-3xs text-xs px-2 py-1 rounded bg-black/80 text-gray-100 border border-white/10 top-full -left-100 translate-x-100 whitespace-pre-line"
       role="tooltip"
       >{description}
     </span>
