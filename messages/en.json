@@ -1,0 +1,19 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "attr_CON": "CON",
+  "attr_STR": "STR",
+  "attr_POW": "POW",
+  "attr_DEX": "DEX",
+  "attr_APP": "APP",
+  "attr_INT": "INT",
+  "attr_actionsPerTurn": "Actions/Turn",
+  "attr_actionChoices": "Choices",
+  "ui_unknown": "???",
+  "ui_none": "None",
+  "ui_unknownMinerals": "Unknown",
+  "ui_minerals": "Minerals",
+  "ui_effect_actions": "Actions",
+  "log_mineral_alreadyOwned": "Already owned: {name}",
+  "log_learned_new_actions": "Learned new actions: {actions}",
+  "log_got_mineral": "Obtained {name} (★{rarity})"
+}

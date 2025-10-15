@@ -1,4 +1,8 @@
-# Checkbox
+# Summary
+
+[Copilot is generating a summary...]
+
+# Check
 
 - [ ] `pnpm update`
 - [ ] `pnpm outdated`

@@ -15,18 +15,33 @@ export function isActorSide(value: unknown): value is ActorSide {
   return typeof value === 'string' && (ACTOR_SIDES as readonly string[]).includes(value);
 }
 
-export interface Character {
-  id: string;
-  name: string;
+// キャラクターの能力値キー一覧（表示/加算処理で使用）
+export const CHARACTER_ATTRIBUTES = [
+  'STR',
+  'CON',
+  'POW',
+  'DEX',
+  'APP',
+  'INT',
+  'maxActionsPerTurn'
+] as const;
+export type CharacterAttributeKey = (typeof CHARACTER_ATTRIBUTES)[number];
+
+export interface CharacterAttribute {
   STR: number;
   CON: number;
   POW: number;
   DEX: number;
   APP: number;
   INT: number;
-  actions: Action[];
   /** 1ターンに使用できる最大アクション数 */
   maxActionsPerTurn: number;
+}
+export interface Character {
+  id: string;
+  name: string;
+  characterAttributes: CharacterAttribute;
+  actions: Action[];
 }
 
 /**
@@ -38,6 +53,10 @@ export interface Actor extends Character {
   side: ActorSide;
   hp: number;
   statuses: StatusInstance[];
+  /** 補正前能力値 */
+  baseAttributes: Character;
+  /** 所持している鉱石のID一覧 */
+  heldMineralIds: string[];
   /** 物理ダメージカット率 (0~1) */
   physDamageCutRate: number;
   /** 精神ダメージカット率 (0~1) */
@@ -49,9 +68,8 @@ export interface Actor extends Character {
 }
 
 export function isActor(value: Character): value is Enemy {
-  if (typeof value !== 'object' || !value) {
-    return false;
-  }
+  if (typeof value !== 'object' || !value) return false;
+
   const {
     kind,
     side,
@@ -80,6 +98,15 @@ export interface Player extends Actor {
   /** 戦闘開始時に提示されるアクション選択肢数 */
   maxActionChoices: number;
 }
+
+export function isPlayer(value: Actor): value is Player {
+  if (typeof value !== 'object' || !value) {
+    return false;
+  }
+  const { maxActionChoices } = value as Record<keyof Player, unknown>;
+  return typeof maxActionChoices === 'number';
+}
+
 export interface Enemy extends Actor {
   /** 情報開示済み */
   isExposed: boolean;
@@ -98,6 +125,5 @@ export function isEnemy(value: Actor): value is Enemy {
   return typeof isExposed === 'boolean';
 }
 
-export type CharacterAttribute = 'CON' | 'STR' | 'POW' | 'DEX' | 'APP' | 'INT';
 export type ActorAttribute = 'hp';
-export type Attribute = CharacterAttribute | ActorAttribute;
+export type Attribute = CharacterAttributeKey | ActorAttribute;

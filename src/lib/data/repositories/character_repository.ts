@@ -78,21 +78,38 @@ export function buildPlayerFromCsv(): Player {
     side: 'player',
     kind: row.kind,
     name: row.name,
-    STR: row.STR,
-    CON: row.CON,
-    POW: row.POW,
-    DEX: row.DEX,
-    APP: row.APP,
-    INT: row.INT,
+    characterAttributes: {
+      STR: row.STR,
+      CON: row.CON,
+      POW: row.POW,
+      DEX: row.DEX,
+      APP: row.APP,
+      INT: row.INT,
+      maxActionsPerTurn: row.maxActionsPerTurn
+    },
     hp: 0,
     statuses: [],
+    baseAttributes: {
+      id: row.id,
+      name: row.name,
+      characterAttributes: {
+        STR: row.STR,
+        CON: row.CON,
+        POW: row.POW,
+        DEX: row.DEX,
+        APP: row.APP,
+        INT: row.INT,
+        maxActionsPerTurn: row.maxActionsPerTurn
+      },
+      actions: [...row.actions]
+    },
+    heldMineralIds: [],
     physDamageCutRate: 0,
     psyDamageCutRate: 0,
     physDamageUpRate: 0,
     psyDamageUpRate: 0,
     // row.actions は再起動間で共有されるためコピーして破壊的変更の伝播を防ぐ
     actions: [...row.actions],
-    maxActionsPerTurn: row.maxActionsPerTurn,
     maxActionChoices: row.maxActionChoices
   };
   return base;
@@ -120,21 +137,38 @@ export function buildEnemyFromCsv(kind: 'normal' | 'elite' | 'boss', floorIndex:
     side: 'enemy',
     kind: row.kind,
     name: row.name,
-    STR: row.STR,
-    CON: row.CON,
-    POW: row.POW,
-    DEX: row.DEX,
-    APP: row.APP,
-    INT: row.INT,
+    characterAttributes: {
+      STR: row.STR,
+      CON: row.CON,
+      POW: row.POW,
+      DEX: row.DEX,
+      APP: row.APP,
+      INT: row.INT,
+      maxActionsPerTurn: row.maxActionsPerTurn
+    },
     hp: 0,
     statuses: [],
+    baseAttributes: {
+      id: row.id,
+      name: row.name,
+      characterAttributes: {
+        STR: row.STR,
+        CON: row.CON,
+        POW: row.POW,
+        DEX: row.DEX,
+        APP: row.APP,
+        INT: row.INT,
+        maxActionsPerTurn: row.maxActionsPerTurn
+      },
+      actions: [...row.actions]
+    },
+    heldMineralIds: [],
     physDamageCutRate: 0,
     psyDamageCutRate: 0,
     physDamageUpRate: 0,
     psyDamageUpRate: 0,
     actions: [...row.actions],
     revealedAttributes: row.revealed.map((k) => k as Attribute) as Attribute[],
-    maxActionsPerTurn: row.maxActionsPerTurn,
     isExposed: false
   };
   return enemy;

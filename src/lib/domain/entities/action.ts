@@ -1,29 +1,40 @@
 import type { GameState } from '$lib/domain/entities/battle_state';
 import type { Actor } from '$lib/domain/entities/character';
-import type { action } from '$lib/data/consts/actions';
+import { action } from '$lib/data/consts/actions';
 
 /**
- * アクション定義。
- * クリティカル導入により normal/critical で挙動とログを分岐可能にする。
+ * Action definition.
+ * With critical hits introduced, behavior and logs can branch between normal and critical.
  */
 export interface ActionDef {
-  /** 表示名 */
+  /** Display name */
   name: string;
-  /** 説明文 */
+  /** Description */
   description: string;
-  /** 通常時の処理 */
+  /** Behavior when normal */
   normalAction: (ctx: { actor: Actor; target?: Actor }) => void;
-  /** クリティカル時の処理 (未指定時は normalAction を再利用) */
+  /** Behavior when critical (defaults to normalAction if not specified) */
   criticalAction: (ctx: { actor: Actor; target?: Actor }) => void;
-  /** 戦闘中での使用可否 (未指定時 true) */
+  /** Whether usable during combat (true by default) */
   allowInCombat?: boolean;
-  /** クールダウンターン数 */
+  /** Cooldown turns */
   cooldownTurns?: number;
-  /** 通常ログ */
+  /** Normal log */
   normalLog: (ctx: { actor: Actor; target?: Actor; state?: GameState }) => string;
-  /** クリティカルログ */
+  /** Critical log */
   criticalLog: (ctx: { actor: Actor; target?: Actor; state?: GameState }) => string;
 }
 
-/** アクションID (actions 定義キー) */
+/** Action ID (keys of the actions definition) */
 export type Action = keyof typeof action;
+
+/**
+ * Type guard that checks whether a string corresponds to a known Action identifier.
+ *
+ * @param value - The candidate action identifier (whitespace will be trimmed).
+ * @returns True if the trimmed string matches an own property key on the `action` object;
+ *          when true, TypeScript will narrow the type of `value` to `Action`.
+ */
+export function isActionId(value: unknown): value is Action {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(action, value.trim());
+}

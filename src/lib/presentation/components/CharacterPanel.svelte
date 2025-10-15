@@ -12,7 +12,7 @@
     type ActorAttribute,
     type Attribute,
     type Character,
-    type CharacterAttribute,
+    type CharacterAttributeKey,
     type Actor
   } from '$lib/domain/entities/character';
   import { status } from '$lib/data/consts/statuses';
@@ -24,34 +24,28 @@
   import PanelEffectLayer from './PanelEffectLayer.svelte';
   import FloatingNumbersLayer from './FloatingNumbersLayer.svelte';
   import Icon from './Icon.svelte';
+  import { getMineral } from '$lib/data/repositories/mineral_repository';
+  import type { Mineral } from '$lib/domain/entities/mineral';
+  import CharacterDetailModal from './CharacterDetailModal.svelte';
+  import { m } from '$lib/paraglide/messages';
 
   export let character: Character;
   export let side: 'player' | 'enemy' = 'player';
 
-  const characterAttributes: {
-    key: CharacterAttribute;
-    label: string;
-  }[] = [
-    { key: 'CON', label: '体力' },
-    { key: 'STR', label: '筋力' },
-    { key: 'POW', label: '精神' },
-    { key: 'DEX', label: '器用' },
-    { key: 'APP', label: '魅力' },
-    { key: 'INT', label: '知力' }
+  const characterAttributes: { key: CharacterAttributeKey; label: string }[] = [
+    { key: 'CON', label: m.attr_CON() },
+    { key: 'STR', label: m.attr_STR() },
+    { key: 'POW', label: m.attr_POW() },
+    { key: 'DEX', label: m.attr_DEX() },
+    { key: 'APP', label: m.attr_APP() },
+    { key: 'INT', label: m.attr_INT() }
   ];
   const actorAttributes: {
     key: ActorAttribute;
     label: string;
   }[] = [{ key: 'hp', label: 'HP' }];
 
-  $: characterAttributeValues = {
-    CON: character.CON,
-    STR: character.STR,
-    POW: character.POW,
-    DEX: character.DEX,
-    APP: character.APP,
-    INT: character.INT
-  };
+  $: characterAttributeValues = character.characterAttributes;
 
   // --- HP 表示アニメーション設定 ---
   const HP_ANIM_MIN_MS = 1000;
@@ -273,6 +267,45 @@
   })();
   // 親から識別されるように panelKey を受け取る
   export let panelKey: string = '';
+
+  // 詳細モーダルの開閉
+  let showDetail = false;
+  function openDetail() {
+    if (!isActor(character)) return;
+    showDetail = true;
+  }
+  function closeDetail() {
+    showDetail = false;
+  }
+
+  $: heldMinerals = (() => {
+    if (!isActor(character)) return [] as Mineral[];
+    const ids = character.heldMineralIds || [];
+    const list = ids.map((id) => getMineral(id)).filter((m): m is Mineral => Boolean(m));
+    return list;
+  })();
+
+  function mineralEffectsText(mineral: Mineral): string {
+    const parts: string[] = [];
+    if (mineral.STR) parts.push(`${m.attr_STR()} +${mineral.STR}`);
+    if (mineral.CON) parts.push(`${m.attr_CON()} +${mineral.CON}`);
+    if (mineral.POW) parts.push(`${m.attr_POW()} +${mineral.POW}`);
+    if (mineral.DEX) parts.push(`${m.attr_DEX()} +${mineral.DEX}`);
+    if (mineral.APP) parts.push(`${m.attr_APP()} +${mineral.APP}`);
+    if (mineral.INT) parts.push(`${m.attr_INT()} +${mineral.INT}`);
+    if (typeof mineral.maxActionsPerTurn === 'number' && mineral.maxActionsPerTurn !== 0)
+      parts.push(`${m.attr_actionsPerTurn()} +${mineral.maxActionsPerTurn}`);
+    if (typeof mineral.maxActionChoices === 'number' && mineral.maxActionChoices !== 0)
+      parts.push(`${m.attr_actionChoices()} +${mineral.maxActionChoices}`);
+    if (Array.isArray(mineral.grantedActions) && mineral.grantedActions.length > 0) {
+      const names = mineral.grantedActions
+        .map((id) => getAction(id)?.name || id)
+        .filter(Boolean)
+        .join(' / ');
+      parts.push(`${m.ui_effect_actions()}: ${names}`);
+    }
+    return parts.join('\n');
+  }
 </script>
 
 <div
@@ -283,21 +316,29 @@
   {/if}
   <div class="font-semibold mb-1 flex items-center gap-2">
     <span>{character.name}</span>
+    {#if actor}
+      <button
+        class="inline-flex items-center justify-center text-sky-300 hover:text-sky-200 border rounded p-0.5 cursor-pointer"
+        aria-label="詳細を表示"
+        on:click={openDetail}
+      >
+        <Icon icon="menu_book" size={16} />
+      </button>
+    {/if}
   </div>
   <div class="flex flex-wrap gap-1 mb-1 min-h-4">
     {#each groupedStatuses as g (g.status.id + ':' + (g.status.remainingTurns ?? 'inf'))}
       {#if status[g.status.id]}
         <TooltipBadge
           badgeClass={`${status[g.status.id].badgeClass ?? ''} border px-1`}
-          label={`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
           description={status[g.status.id].description}
-        />
+          >{`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
+        </TooltipBadge>
       {:else}
         <TooltipBadge
           badgeClass="bg-gray-600/60 border border-red-400 px-1"
-          label={g.status.id}
-          description="未定義のステータス"
-        />
+          description="未定義のステータス">{g.status.id}</TooltipBadge
+        >
       {/if}
     {/each}
   </div>
@@ -385,17 +426,31 @@
   {/if}
   <div class="mt-2 flex flex-col">
     <div class="flex">
-      <span class="text-gray-400">アクション ({character.maxActionsPerTurn}回)</span>
+      <span class="text-gray-400"
+        >アクション ({character.characterAttributes.maxActionsPerTurn}回)</span
+      >
     </div>
     <div class="flex flex-wrap gap-1 mt-1">
       {#each actionInfos as a (a.id)}
         <TooltipBadge
           badgeClass={`${a.isExposed ? 'bg-emerald-700/70 border border-emerald-400/50' : a.isObserved ? 'bg-sky-700/70 border border-sky-400/50' : 'bg-gray-700/60'}`}
-          label={a.name}
           description={a.description}
           revealed={a.revealed}
-        />
+          >{a.name}
+        </TooltipBadge>
       {/each}
     </div>
   </div>
 </div>
+
+{#if showDetail && actor}
+  <CharacterDetailModal
+    {character}
+    {actor}
+    {characterAttributes}
+    {heldMinerals}
+    {mineralEffectsText}
+    effectiveAttributes={characterAttributeValues}
+    onClose={closeDetail}
+  />
+{/if}

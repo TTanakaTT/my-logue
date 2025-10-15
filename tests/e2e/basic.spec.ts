@@ -9,5 +9,13 @@ base.runTest(async ({ page }) => {
 
   await base.compareScreenshot(page, '1-0.png');
 
-  await page.getByRole('button', { name: '開始' }).click();
+  await page
+    .locator('div')
+    .filter({ hasText: /^テスト menu_book$/ })
+    .getByLabel('詳細を表示')
+    .click();
+  await base.compareScreenshot(page, '1-1.png');
+
+  await page.getByRole('button', { name: '閉じる' }).click();
+  await base.compareScreenshot(page, '1-2.png');
 });
