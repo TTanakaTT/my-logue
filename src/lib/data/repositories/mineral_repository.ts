@@ -1,6 +1,5 @@
 import mineralsCsvRaw from '$lib/data/consts/minerals.csv?raw';
 import mineralsDetailCsvRaw from '$lib/data/consts/mineral_detail.csv?raw';
-import mineralDict from '$lib/data/consts/mineral-dict.json';
 import type { Mineral } from '$lib/domain/entities/mineral';
 import { parseCsv } from '$lib/data/repositories/utils/csv_util';
 import type { Action } from '$lib/domain/entities/action';
@@ -11,6 +10,7 @@ interface RawRowMineral {
   nameKana?: string;
   category: string;
   rarity: number;
+  disabled: boolean;
 }
 
 interface RawRowDetail {
@@ -19,18 +19,15 @@ interface RawRowDetail {
   value: string; // 数値 or Action名
 }
 
-function toId(nameJa: string, nameEn?: string): string {
-  const idFromDict = (mineralDict as Record<string, string>)[nameJa?.trim?.()] || nameEn;
-  return (idFromDict || nameJa || 'mineral').replace(/\s+/g, '_');
-}
-
 const mineralRows: RawRowMineral[] = parseCsv(mineralsCsvRaw)
   .slice(1)
   .map((cols) => {
-    const [nameEn, nameJa, nameKana, category, rarityStr] = cols;
+    const [nameEn, nameJa, nameKana, category, rarityStr, disabledStr] = cols;
     const rarity = Number(rarityStr);
-    return { nameEn, nameJa, nameKana, category, rarity } as RawRowMineral;
-  });
+    const disabled = disabledStr.toLowerCase() === 'true' || disabledStr === '1';
+    return { nameEn, nameJa, nameKana, category, rarity, disabled } as RawRowMineral;
+  })
+  .filter((r) => !r.disabled);
 
 const detailRows: RawRowDetail[] = (() => {
   const parsed = parseCsv(mineralsDetailCsvRaw);
@@ -76,7 +73,7 @@ const detailsByEnName: Record<string, RawRowDetail[]> = detailRows.reduce(
 );
 
 const all: Mineral[] = mineralRows.map((r) => {
-  const id = toId(r.nameJa, r.nameEn);
+  const id = r.nameEn;
   const m: Mineral = {
     id,
     nameJa: r.nameJa,
