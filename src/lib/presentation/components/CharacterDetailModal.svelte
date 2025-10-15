@@ -28,9 +28,8 @@
     return actor.isExposed === true;
   })();
 
-  // 鉱石はレア度の降順で並べる（名前で安定化）
   $: sortedMinerals = [...heldMinerals].sort(
-    (a, b) => b.rarity - a.rarity || a.nameJa.localeCompare(b.nameJa)
+    (a, b) => b.rarity - a.rarity || a.id.localeCompare(b.id)
   );
 
   // 表示用: 補正ステータス行（o.key/o.label ごと）

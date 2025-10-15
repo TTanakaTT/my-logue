@@ -1,6 +1,6 @@
 import mineralsCsvRaw from '$lib/data/consts/minerals.csv?raw';
 import mineralsDetailCsvRaw from '$lib/data/consts/mineral_detail.csv?raw';
-import type { Mineral } from '$lib/domain/entities/mineral';
+import type { Mineral, MineralRarity } from '$lib/domain/entities/mineral';
 import { parseCsv } from '$lib/data/repositories/utils/csv_util';
 import type { Action } from '$lib/domain/entities/action';
 
@@ -45,6 +45,11 @@ const detailRows: RawRowDetail[] = (() => {
     .filter((r) => r.mineralNameEn);
 })();
 
+function clampRarity(value: number): MineralRarity {
+  // Clamp to 1..5; treat non-finite values (NaN/Infinity) as 1
+  return Math.max(1, Math.min(5, Number.isFinite(value) ? value : 1)) as MineralRarity;
+}
+
 const ATTRIBUTES_KEYS = [
   'STR',
   'CON',
@@ -78,12 +83,7 @@ const all: Mineral[] = mineralRows.map((r) => {
     id,
     nameJa: r.nameJa,
     nameEn: r.nameEn,
-    rarity: Math.max(1, Math.min(5, Number.isFinite(r.rarity) ? (r.rarity as number) : 1)) as
-      | 1
-      | 2
-      | 3
-      | 4
-      | 5,
+    rarity: clampRarity(r.rarity),
     STR: 0,
     CON: 0,
     POW: 0,
