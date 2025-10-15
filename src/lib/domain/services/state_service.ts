@@ -370,6 +370,7 @@ export async function combatAction(state: GameState, id: Action) {
   let target = state.enemies.find((e) => e.hp > 0);
   if (
     typeof state.selectedEnemyIndex === 'number' &&
+    Number.isInteger(state.selectedEnemyIndex) &&
     state.enemies[state.selectedEnemyIndex] &&
     state.enemies[state.selectedEnemyIndex].hp > 0
   ) {

@@ -235,7 +235,7 @@ export function getRewardsForEnemy(state: GameState, enemyKind: string): RewardO
           id: String(row.id),
           label,
           apply: (s) => {
-            // 先に抽選した鉱石を付与
+            // Award the pre-selected mineral to the player
             awardMineral(s.player, pickedMineral.id);
           }
         } satisfies RewardOption;

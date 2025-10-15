@@ -2,7 +2,7 @@ import mineralsCsvRaw from '$lib/data/consts/minerals.csv?raw';
 import mineralsDetailCsvRaw from '$lib/data/consts/mineral_detail.csv?raw';
 import type { Mineral, MineralRarity } from '$lib/domain/entities/mineral';
 import { parseCsv } from '$lib/data/repositories/utils/csv_util';
-import type { Action } from '$lib/domain/entities/action';
+import { isActionId } from '$lib/domain/entities/action';
 
 interface RawRowMineral {
   nameEn: string;
@@ -79,7 +79,7 @@ const detailsByEnName: Record<string, RawRowDetail[]> = detailRows.reduce(
 
 const all: Mineral[] = mineralRows.map((r) => {
   const id = r.nameEn;
-  const m: Mineral = {
+  const mineral: Mineral = {
     id,
     nameJa: r.nameJa,
     nameEn: r.nameEn,
@@ -98,17 +98,18 @@ const all: Mineral[] = mineralRows.map((r) => {
   const details = detailsByEnName[r.nameEn || ''] || [];
   for (const d of details) {
     if (d.attribute === 'action') {
-      // Action ID は value に英語キーを想定（例: Insight）
-      const actionId = d.value as unknown as Action;
-      m.grantedActions.push(actionId);
+      const key = d.value?.trim();
+      if (isActionId(key)) {
+        mineral.grantedActions.push(key);
+      }
     } else if (isMineralAttributeKey(d.attribute)) {
       const scalar = Number(d.value);
       if (Number.isFinite(scalar)) {
-        m[d.attribute] = scalar;
+        mineral[d.attribute] = scalar;
       }
     }
   }
-  return m;
+  return mineral;
 });
 
 export function listMinerals(): Mineral[] {

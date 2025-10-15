@@ -278,10 +278,9 @@
     showDetail = false;
   }
 
-  // 所持鉱石の詳細
   $: heldMinerals = (() => {
     if (!isActor(character)) return [] as Mineral[];
-    const ids = (character as Actor).heldMineralIds || [];
+    const ids = character.heldMineralIds || [];
     const list = ids.map((id) => getMineral(id)).filter((m): m is Mineral => Boolean(m));
     return list;
   })();
