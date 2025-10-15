@@ -12,5 +12,8 @@
   "ui_none": "なし",
   "ui_unknownMinerals": "不明",
   "ui_minerals": "所持",
-  "ui_effect_actions": "アクション"
+  "ui_effect_actions": "アクション",
+  "log_mineral_alreadyOwned": "既に所持: {name}",
+  "log_learned_new_actions": "新しいアクションを習得: {actions}",
+  "log_got_mineral": "{name} (★{rarity})を獲得"
 }

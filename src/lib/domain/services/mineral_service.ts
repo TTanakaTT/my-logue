@@ -5,13 +5,14 @@ import { getMineral, listMinerals } from '$lib/data/repositories/mineral_reposit
 import { listByRarity } from '$lib/data/repositories/mineral_repository';
 import { pushLog } from '$lib/presentation/utils/log_util';
 import type { Action } from '$lib/domain/entities/action';
+import { m } from '$lib/paraglide/messages';
 
 export function awardMineral(actor: Actor, mineralId: string): boolean {
   const def = getMineral(mineralId);
   if (!def) return false;
   if (!actor.heldMineralIds) actor.heldMineralIds = [];
   if (actor.heldMineralIds.includes(def.id)) {
-    pushLog(`既に所持: ${def.nameJa}`, 'system');
+    pushLog(m.log_mineral_alreadyOwned({ name: def.nameJa }), 'system');
     return false;
   }
   actor.heldMineralIds.push(def.id);
@@ -38,13 +39,13 @@ export function awardMineral(actor: Actor, mineralId: string): boolean {
     }
     if (newActions.length > 0) {
       actor.actions = [...actor.actions, ...newActions];
-      pushLog(`新しいアクションを習得: ${newActions.join(', ')}`, 'system');
+      pushLog(m.log_learned_new_actions({ actions: newActions.join(', ') }), 'system');
     }
   }
   // CON上昇などで最大HPが変わる場合に備え再計算
   const newMax = calcMaxHP(actor);
   if (actor.hp > newMax) actor.hp = newMax;
-  pushLog(`${def.nameJa} (★${def.rarity})を獲得`, 'system');
+  pushLog(m.log_got_mineral({ name: def.nameJa, rarity: String(def.rarity) }), 'system');
   return true;
 }
 

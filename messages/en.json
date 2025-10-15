@@ -12,5 +12,8 @@
   "ui_none": "None",
   "ui_unknownMinerals": "Unknown",
   "ui_minerals": "Minerals",
-  "ui_effect_actions": "Actions"
+  "ui_effect_actions": "Actions",
+  "log_mineral_alreadyOwned": "Already owned: {name}",
+  "log_learned_new_actions": "Learned new actions: {actions}",
+  "log_got_mineral": "Obtained {name} (★{rarity})"
 }
