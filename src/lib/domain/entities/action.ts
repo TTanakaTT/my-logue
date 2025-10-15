@@ -35,7 +35,6 @@ export type Action = keyof typeof action;
  * @returns True if the trimmed string matches an own property key on the `action` object;
  *          when true, TypeScript will narrow the type of `value` to `Action`.
  */
-export function isActionId(value: string): value is Action {
-  const key = value.trim();
-  return Object.prototype.hasOwnProperty.call(action, key);
+export function isActionId(value: unknown): value is Action {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(action, value.trim());
 }

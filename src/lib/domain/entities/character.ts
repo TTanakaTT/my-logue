@@ -68,9 +68,8 @@ export interface Actor extends Character {
 }
 
 export function isActor(value: Character): value is Enemy {
-  if (typeof value !== 'object' || !value) {
-    return false;
-  }
+  if (typeof value !== 'object' || !value) return false;
+
   const {
     kind,
     side,

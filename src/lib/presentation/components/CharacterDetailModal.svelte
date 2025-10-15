@@ -91,11 +91,11 @@
         return 'text-stone-400';
     }
   }
-  // 鉱石表示用（必要情報を事前計算）
+
   $: mineralItems = canShowMinerals
     ? sortedMinerals.map((mineral) => ({
         id: mineral.id,
-        nameJa: mineral.nameJa,
+        name: mineral.name,
         rarity: mineral.rarity,
         rarityColor: getRarityColor(mineral.rarity),
         tooltip: mineralEffectsText(mineral)
@@ -204,7 +204,7 @@
                 description={it.tooltip}
               >
                 <span class="inline-flex items-center gap-1">
-                  <span class="font-medium {it.rarityColor}">{it.nameJa}</span>
+                  <span class="font-medium {it.rarityColor}">{it.name}</span>
                   <span class="relative inline-flex items-center justify-center h-5 rounded">
                     <span class="absolute top-[5px] text-[8px] font-semibold">{it.rarity}</span>
                     <Icon icon="star" size={24} fill={true} additionalClass={it.rarityColor} />

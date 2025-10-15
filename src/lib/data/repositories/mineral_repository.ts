@@ -3,6 +3,7 @@ import mineralsDetailCsvRaw from '$lib/data/consts/mineral_detail.csv?raw';
 import type { Mineral, MineralRarity } from '$lib/domain/entities/mineral';
 import { parseCsv } from '$lib/data/repositories/utils/csv_util';
 import { isActionId } from '$lib/domain/entities/action';
+import { getLocale } from '$lib/paraglide/runtime';
 
 interface RawRowMineral {
   nameEn: string;
@@ -81,8 +82,7 @@ const all: Mineral[] = mineralRows.map((r) => {
   const id = r.nameEn;
   const mineral: Mineral = {
     id,
-    nameJa: r.nameJa,
-    nameEn: r.nameEn,
+    name: getLocale() === 'ja' ? r.nameJa : r.nameEn,
     rarity: clampRarity(r.rarity),
     STR: 0,
     CON: 0,

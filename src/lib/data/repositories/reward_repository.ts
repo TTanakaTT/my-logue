@@ -230,7 +230,7 @@ export function getRewardsForEnemy(state: GameState, enemyKind: string): RewardO
       const pickedMineral = pickMineralForDetail(state, mineralDetail);
       if (pickedMineral) {
         const effects = formatMineralEffects(pickedMineral);
-        const label = `${pickedMineral.nameJa} (★${pickedMineral.rarity})\n${effects}`;
+        const label = `${pickedMineral.name} (★${pickedMineral.rarity})\n${effects}`;
         return {
           id: String(row.id),
           label,
@@ -277,7 +277,7 @@ export function getRewardsForRewardNode(state: GameState): RewardOption[] {
       const pickedMineral = pickMineralForDetail(state, mineralDetail);
       if (pickedMineral) {
         const effects = formatMineralEffects(pickedMineral);
-        const label = `${pickedMineral.nameJa} (★${pickedMineral.rarity})\n${effects}`;
+        const label = `${pickedMineral.name} (★${pickedMineral.rarity})\n${effects}`;
         return {
           id: String(row.id),
           label,

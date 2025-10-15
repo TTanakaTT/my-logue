@@ -12,7 +12,7 @@ export function awardMineral(actor: Actor, mineralId: string): boolean {
   if (!def) return false;
   if (!actor.heldMineralIds) actor.heldMineralIds = [];
   if (actor.heldMineralIds.includes(def.id)) {
-    pushLog(m.log_mineral_alreadyOwned({ name: def.nameJa }), 'system');
+    pushLog(m.log_mineral_alreadyOwned({ name: def.name }), 'system');
     return false;
   }
   actor.heldMineralIds.push(def.id);
@@ -45,7 +45,7 @@ export function awardMineral(actor: Actor, mineralId: string): boolean {
   // CON上昇などで最大HPが変わる場合に備え再計算
   const newMax = calcMaxHP(actor);
   if (actor.hp > newMax) actor.hp = newMax;
-  pushLog(m.log_got_mineral({ name: def.nameJa, rarity: String(def.rarity) }), 'system');
+  pushLog(m.log_got_mineral({ name: def.name, rarity: String(def.rarity) }), 'system');
   return true;
 }
 
