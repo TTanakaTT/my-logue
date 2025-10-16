@@ -15,18 +15,15 @@
   import CharacterPanel from '$lib/presentation/components/CharacterPanel.svelte';
   import LogViewer from '$lib/presentation/components/LogViewer.svelte';
   import { uiAnimating } from '$lib/presentation/utils/effect_bus';
+  import GraphView from '$lib/presentation/components/GraphView.svelte';
 
   let debugMode = false;
 
-  import type { FloorNode } from '$lib/domain/entities/floor';
-  function currentStepNodes(): FloorNode[] {
+  function handleGraphSelect(id: number) {
     const layout = $gameState.floorLayout;
-    if (!layout) return [];
-    const step = layout.steps.find((s) => s.stepIndex === $gameState.stepIndex);
-    return step ? step.nodes : [];
-  }
-
-  function handleChoose(node: FloorNode) {
+    if (!layout) return;
+    const node = layout.nodes.find((n) => n.id === id);
+    if (!node) return;
     chooseNode($gameState, node);
   }
   function debug(): void {
@@ -43,9 +40,7 @@
 <header
   class="bg-panel rounded-lg py-2 px-4 flex flex-wrap items-center gap-4 text-sm text-gray-200"
 >
-  <div>
-    階層: {$gameState.floorIndex} - {$gameState.stepIndex}
-  </div>
+  <div>階層: {$gameState.floorIndex}</div>
   <div>最高到達階層: {$gameState.highestFloor}</div>
 </header>
 
@@ -125,11 +120,18 @@
       </div>
     {:else if $gameState.phase === 'progress'}
       <h2 class="mt-0 text-lg font-semibold mb-2">進行</h2>
-      <div class="flex flex-wrap gap-2 mb-2">
-        {#each currentStepNodes() as node (node.id)}
-          <button class="btn-base" on:click={() => handleChoose(node)}>{node.kind}</button>
-        {/each}
-      </div>
+      {#if $gameState.floorLayout}
+        <div class="mb-4">
+          <GraphView
+            layout={$gameState.floorLayout}
+            currentNodeId={$gameState.currentNodeId}
+            consumedNodeIds={$gameState.consumedNodeIds || []}
+            startNodeId={$gameState.floorLayout?.startNodeId}
+            onSelectNode={handleGraphSelect}
+          />
+        </div>
+      {/if}
+
       {#if debugMode}
         <button
           class="btn-base"

@@ -15,8 +15,11 @@
     "lint": "prettier --check . && eslint ."
   },
   "dependencies": {
+    "graphology": "^0.26.0",
+    "graphology-layout-forceatlas2": "^0.10.1",
     "material-symbols": "^0.36.4",
-    "svelte": "^5.40.0"
+    "sigma": "^3.0.2",
+    "svelte": "^5.40.1"
   },
   "devDependencies": {
     "@eslint/compat": "^1.4.0",
@@ -24,7 +27,7 @@
     "@inlang/paraglide-js": "^2.4.0",
     "@playwright/test": "^1.56.0",
     "@sveltejs/adapter-static": "^3.0.10",
-    "@sveltejs/kit": "^2.46.5",
+    "@sveltejs/kit": "^2.47.0",
     "@tailwindcss/vite": "^4.1.14",
     "@types/node": "^24.7.2",
     "eslint": "^9.37.0",

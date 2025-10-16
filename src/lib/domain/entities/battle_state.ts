@@ -36,11 +36,14 @@ export interface RewardOption {
 
 export interface GameState {
   floorIndex: number;
-  stepIndex: number;
+  /** Current node id on the floor graph */
+  currentNodeId: number;
   phase: Phase;
   player: Player;
   /** 現在の階層レイアウト (必要に応じて遅延生成) */
   floorLayout?: import('$lib/domain/entities/floor').FloorLayout;
+  /** Already consumed (visited) node ids on this floor */
+  consumedNodeIds?: number[];
   /** 前周回から引き継いだ仲間候補 (ゲーム開始直後 companion_select フェーズで表示) */
   companionCandidates?: Character[];
   /** プレイヤー名確定済みか */

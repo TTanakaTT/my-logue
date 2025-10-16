@@ -1,7 +1,3 @@
-// Floor / Node layout domain entities
-// NodeType は進行に利用する種類 (combat系, reward, rest, progress, boss, event)
-// combat は normal / elite を encounterKind で区別
-
 export const NODE_TYPES = [
   'normal',
   'elite',
@@ -9,7 +5,8 @@ export const NODE_TYPES = [
   'rest',
   'progress',
   'boss',
-  'event'
+  'event',
+  'start'
 ] as const;
 export type NodeType = (typeof NODE_TYPES)[number];
 
@@ -20,12 +17,25 @@ export interface FloorNode {
   encounterKind?: 'normal' | 'elite' | 'boss';
 }
 
-export interface FloorStep {
-  stepIndex: number; // 1-based
-  nodes: FloorNode[]; // ユーザーが選択可能なノード群
+/** Undirected edge between two nodes (no self-loop, no multi-edge) */
+export interface FloorEdge {
+  source: number; // node id
+  target: number; // node id
 }
+
+/**
+ * Degree constraints for each node. Keep them here as constants for reuse in services.
+ * Note: These are inclusive bounds.
+ */
+export const MIN_EDGES_PER_NODE = 1 as const;
+export const MAX_EDGES_PER_NODE = 4 as const;
 
 export interface FloorLayout {
   floorIndex: number; // 1-based
-  steps: FloorStep[]; // 配列長 = floor_structure.csv の steps
+  /** All nodes existing in this floor */
+  nodes: FloorNode[];
+  /** Undirected edges among nodes */
+  edges: FloorEdge[];
+  /** Starting node id where player spawns on this floor */
+  startNodeId: number;
 }

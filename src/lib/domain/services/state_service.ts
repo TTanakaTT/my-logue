@@ -148,7 +148,7 @@ function initState(): GameState {
   const layout = ensureFloorLayout(floorIndex);
   return {
     floorIndex,
-    stepIndex: 1,
+    currentNodeId: layout.startNodeId,
     phase: companions.length > 0 ? 'companion_select' : 'progress',
     player: basePlayer(),
     playerNameCommitted: false,
@@ -162,7 +162,8 @@ function initState(): GameState {
     actionUseCount: 0,
     playerUsedActions: [],
     insightRewardActions: [],
-    floorLayout: layout
+    floorLayout: layout,
+    consumedNodeIds: []
   };
 }
 
@@ -272,24 +273,39 @@ export function rollActions(state: GameState) {
 }
 
 function logProgress(state: GameState) {
-  pushLog(`進行: 階層${state.floorIndex} - ${state.stepIndex}`, 'system');
+  pushLog(`進行: 階層${state.floorIndex} - node:${state.currentNodeId}`, 'system');
+}
+
+function visitedSet(state: GameState): Set<number> {
+  const set = new Set<number>(state.consumedNodeIds || []);
+  // Always include current position as explored
+  set.add(state.currentNodeId);
+  // Start node is considered explored by default
+  const layout = ensureFloorLayout(state.floorIndex, state);
+  if (typeof layout.startNodeId === 'number') set.add(layout.startNodeId);
+  return set;
+}
+
+function frontierOfVisited(layout: FloorLayout, visited: Set<number>): number[] {
+  const out = new Set<number>();
+  for (const e of layout.edges) {
+    const a = e.source;
+    const b = e.target;
+    if (visited.has(a) && !visited.has(b)) out.add(b);
+    if (visited.has(b) && !visited.has(a)) out.add(a);
+  }
+  return Array.from(out);
 }
 
 function advanceToNextAvailableStep(state: GameState) {
   const layout = ensureFloorLayout(state.floorIndex, state);
-  const stepsWithNodes = layout.steps
-    .filter((s) => s.nodes.length > 0)
-    .map((s) => s.stepIndex)
-    .sort((a, b) => a - b);
-  if (stepsWithNodes.length === 0) {
-    // 進めるノードが無い場合、階層進行する
+  const visited = visitedSet(state);
+  const frontier = frontierOfVisited(layout, visited);
+  if (frontier.length === 0) {
     state.floorIndex += 1;
     handleFloorTransition(state);
     return;
   }
-  // 現在より大きい stepIndex の中で最小を探し、無ければ最小にラップ
-  const next = stepsWithNodes.find((idx) => idx > state.stepIndex) ?? stepsWithNodes[0];
-  state.stepIndex = next;
   state.phase = 'progress';
   logProgress(state);
   commit(state);
@@ -312,22 +328,23 @@ function handleFloorTransition(state: GameState) {
     commit(state);
     return;
   }
-  state.stepIndex = 1;
   ensureFloorLayout(state.floorIndex, state);
+  state.currentNodeId = state.floorLayout!.startNodeId;
+  state.consumedNodeIds = [];
   state.phase = 'progress';
   logProgress(state);
   commit(state);
 }
 
 export function chooseNode(state: GameState, node: FloorNode) {
-  // ノード消費: 現在ステップから削除
-  const layout = state.floorLayout;
-  if (layout) {
-    const step = layout.steps.find((s) => s.stepIndex === state.stepIndex);
-    if (step) {
-      step.nodes = step.nodes.filter((n) => n.id !== node.id);
-    }
-  }
+  const layout = ensureFloorLayout(state.floorIndex, state);
+  if (node.kind === 'start' || node.id === layout.startNodeId) return;
+  const visited = visitedSet(state);
+  const frontier = new Set(frontierOfVisited(layout, visited));
+  if (!frontier.has(node.id)) return;
+
+  state.consumedNodeIds = Array.from(new Set([...(state.consumedNodeIds || []), node.id]));
+  state.currentNodeId = node.id;
   const kind = node.kind;
   if (kind === 'normal' || kind === 'elite' || kind === 'boss') {
     const enemyKind: 'normal' | 'elite' | 'boss' =
