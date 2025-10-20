@@ -117,6 +117,7 @@
     <div class="flex items-center justify-between px-4 py-3 border-b border-neutral-700 shrink-0">
       <div class="font-semibold">{character.name}</div>
       <button
+        id="close-detail"
         class="text-gray-300 hover:text-white"
         aria-label="閉じる"
         on:click={() => onClose?.()}

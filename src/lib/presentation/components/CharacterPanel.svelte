@@ -299,6 +299,7 @@
     <span>{character.name}</span>
     {#if actor}
       <button
+        name="open-detail"
         class="inline-flex items-center justify-center text-sky-300 hover:text-sky-200 border rounded p-0.5 cursor-pointer"
         aria-label={m.aria_show_detail()}
         on:click={openDetail}
