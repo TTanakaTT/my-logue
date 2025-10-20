@@ -372,9 +372,8 @@
     </div>
   {/if}
   <div class="flex flex-col space-y-1">
-    <div class="flex items-center gap-1">
-      <span class="text-gray-400">{m.ui_actions_label()}</span>
-      <span>(</span>
+    <div class="flex">
+      <span class="text-gray-400">{m.ui_actions_label()} (</span>
       <span>{character.characterAttributes.maxActionsPerTurn}</span>
       <span class="text-gray-400">{m.ui_times()}</span>
       {#if isActor(character) && isPlayer(character)}
@@ -382,7 +381,7 @@
         <span>{character.maxActionChoices}</span>
         <span class="text-gray-400">{m.ui_choices()}</span>
       {/if}
-      <span>)</span>
+      <span class="text-gray-400">)</span>
     </div>
     <div class="flex flex-wrap gap-1">
       {#each actionInfos as a (a.id)}
