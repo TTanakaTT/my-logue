@@ -13,7 +13,8 @@
     type Attribute,
     type Character,
     type CharacterAttributeKey,
-    type Actor
+    type Actor,
+    isPlayer
   } from '$lib/domain/entities/character';
   import { status } from '$lib/data/consts/statuses';
   import type { StatusInstance } from '$lib/domain/entities/status';
@@ -170,20 +171,13 @@
     if (hpAnimFrame) cancelAnimationFrame(hpAnimFrame);
   });
 
-  const FLOAT_NONZERO_THRESHOLD = 0.0001;
-  function isNonZero(v: number): boolean {
-    return Math.abs(v) > FLOAT_NONZERO_THRESHOLD;
-  }
-
   function formatSignedPercent(v: number): string {
     const p = (v * 100).toFixed(0);
-    const sign = v > 0 ? '+' : '';
+    const sign = v >= 0 ? '+' : '';
     return sign + p + '%';
   }
 
   function rateColorStyle(v: number): string {
-    if (!isNonZero(v)) return '';
-    // ある程度濃い色から始めて、|v|が大きいほど濃くする
     const mag = Math.min(1, Math.abs(v));
     const pct = Math.round(100 * mag);
     const colorVar = v >= 0 ? 'var(--color-mod-up)' : 'var(--color-mod-down)';
@@ -309,12 +303,12 @@
 </script>
 
 <div
-  class={`relative rounded-lg p-3 text-xs space-y-1 bg-neutral-800/40 border-2 shadow-sm w-3xs panel-side-${side}`}
+  class={`rounded-lg px-2 py-1 text-xs space-y-1 bg-neutral-800/40 border-2 shadow-sm w-[170px] panel-side-${side}`}
 >
   {#if panelKey}
     <PanelEffectLayer {panelKey} />
   {/if}
-  <div class="font-semibold mb-1 flex items-center gap-2">
+  <div class="font-semibold flex items-center gap-2">
     <span>{character.name}</span>
     {#if actor}
       <button
@@ -326,26 +320,11 @@
       </button>
     {/if}
   </div>
-  <div class="flex flex-wrap gap-1 mb-1 min-h-4">
-    {#each groupedStatuses as g (g.status.id + ':' + (g.status.remainingTurns ?? 'inf'))}
-      {#if status[g.status.id]}
-        <TooltipBadge
-          badgeClass={`${status[g.status.id].badgeClass ?? ''} border px-1`}
-          description={status[g.status.id].description}
-          >{`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
-        </TooltipBadge>
-      {:else}
-        <TooltipBadge
-          badgeClass="bg-gray-600/60 border border-red-400 px-1"
-          description="未定義のステータス">{g.status.id}</TooltipBadge
-        >
-      {/if}
-    {/each}
-  </div>
-  <div class="flex flex-row flex-wrap gap-2">
+
+  <div class="grid grid-flow-col grid-rows-2 gap-1">
     {#if actor}
       {#each actorAttributes as o (o.key)}
-        <div class="flex flex-col items-center relative">
+        <div class="row-span-2 mt-1 flex flex-col items-center">
           <span class="text-gray-400">{o.label}</span>
           {#if o.key === 'hp'}
             <!-- HPは割合に応じて色を補間し、変化時は強調 -->
@@ -362,7 +341,7 @@
       {/each}
     {/if}
     {#each characterAttributes as o (o.key)}
-      <div class="flex flex-col items-center relative">
+      <div class="flex flex-col items-center">
         <span class="text-gray-400">{o.label}</span>
         <span>{getDisplayedAttribute(o.key)}</span>
       </div>
@@ -370,67 +349,56 @@
   </div>
   {#if actor}
     <div class="w-full flex flex-col gap-1">
-      {#if isNonZero(actor.physDamageUpRate) || isNonZero(actor.physDamageCutRate)}
-        <div class="flex items-center gap-2">
-          <span class="text-gray-400">物理補正</span>
-          {#if isNonZero(actor.physDamageUpRate)}
-            <span
-              style={rateColorStyle(actor.physDamageUpRate)}
-              class="inline-flex items-center gap-1"
-            >
-              <Icon icon="swords" size={14} />
-              {formatSignedPercent(actor.physDamageUpRate)}
-            </span>
-          {/if}
-          {#if isNonZero(actor.physDamageUpRate) && isNonZero(actor.physDamageCutRate)}
-            <span class="text-gray-400">|</span>
-          {/if}
-          {#if isNonZero(actor.physDamageCutRate)}
-            <span
-              style={rateColorStyle(actor.physDamageCutRate)}
-              class="inline-flex items-center gap-1"
-            >
-              <Icon icon="shield" size={14} />
-              {formatSignedPercent(actor.physDamageCutRate)}
-            </span>
-          {/if}
+      <div class="flex items-center gap-2 text-orange-200">
+        <span>物理</span>
+        <div class="inline-flex items-center gap-1">
+          <Icon icon="swords" size={14} />
+          <span style={rateColorStyle(actor.physDamageUpRate)}>
+            {formatSignedPercent(actor.physDamageUpRate)}
+          </span>
         </div>
-      {/if}
-      {#if isNonZero(actor.psyDamageUpRate) || isNonZero(actor.psyDamageCutRate)}
-        <div class="flex items-center gap-2">
-          <span class="text-gray-400">精神補正</span>
-          {#if isNonZero(actor.psyDamageUpRate)}
-            <span
-              style={rateColorStyle(actor.psyDamageUpRate)}
-              class="inline-flex items-center gap-1"
-            >
-              <Icon icon="swords" size={14} />
-              {formatSignedPercent(actor.psyDamageUpRate)}
-            </span>
-          {/if}
-          {#if isNonZero(actor.psyDamageUpRate) && isNonZero(actor.psyDamageCutRate)}
-            <span class="text-gray-400">|</span>
-          {/if}
-          {#if isNonZero(actor.psyDamageCutRate)}
-            <span
-              style={rateColorStyle(actor.psyDamageCutRate)}
-              class="inline-flex items-center gap-1"
-            >
-              <Icon icon="shield" size={14} />
-              {formatSignedPercent(actor.psyDamageCutRate)}
-            </span>
-          {/if}
+        <span>|</span>
+        <div class="inline-flex items-center gap-1">
+          <Icon icon="shield" size={14} />
+          <span style={rateColorStyle(actor.physDamageCutRate)}>
+            {formatSignedPercent(actor.physDamageCutRate)}
+          </span>
         </div>
-      {/if}
+      </div>
+
+      <div class="flex items-center gap-2 text-purple-300">
+        <span>精神</span>
+        <div class="inline-flex items-center gap-1">
+          <Icon icon="swords" size={14} />
+          <span style={rateColorStyle(actor.psyDamageUpRate)}>
+            {formatSignedPercent(actor.psyDamageUpRate)}
+          </span>
+        </div>
+        <span>|</span>
+
+        <div class="inline-flex items-center gap-1">
+          <Icon icon="shield" size={14} />
+          <span style={rateColorStyle(actor.psyDamageCutRate)}>
+            {formatSignedPercent(actor.psyDamageCutRate)}
+          </span>
+        </div>
+      </div>
     </div>
   {/if}
-  <div class="mt-2 flex flex-col">
+  <div class="flex flex-col space-y-1">
     <div class="flex">
-      <span class="text-gray-400"
-        >アクション ({character.characterAttributes.maxActionsPerTurn}回)</span
-      >
+      <!-- TODO:i18n -->
+      <span class="text-gray-400">アクション (</span>
+      <span class="">{character.characterAttributes.maxActionsPerTurn}</span>
+      <span class="text-gray-400"> 回</span>
+      {#if isActor(character) && isPlayer(character)}
+        <span class="text-gray-400"> / </span>
+        <span class="">{character.maxActionChoices}</span>
+        <span class="text-gray-400"> 選択肢</span>
+      {/if}
+      <span class="text-gray-400">)</span>
     </div>
-    <div class="flex flex-wrap gap-1 mt-1">
+    <div class="flex flex-wrap gap-1">
       {#each actionInfos as a (a.id)}
         <TooltipBadge
           badgeClass={`${a.isExposed ? 'bg-emerald-700/70 border border-emerald-400/50' : a.isObserved ? 'bg-sky-700/70 border border-sky-400/50' : 'bg-gray-700/60'}`}
@@ -440,6 +408,22 @@
         </TooltipBadge>
       {/each}
     </div>
+  </div>
+  <div class="flex flex-wrap gap-1">
+    {#each groupedStatuses as g (g.status.id + ':' + (g.status.remainingTurns ?? 'inf'))}
+      {#if status[g.status.id]}
+        <TooltipBadge
+          badgeClass={`${status[g.status.id].badgeClass ?? ''} border px-1`}
+          description={status[g.status.id].description}
+          >{`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
+        </TooltipBadge>
+      {:else}
+        <TooltipBadge
+          badgeClass="bg-gray-600/60 border border-red-400 px-1"
+          description="未定義のステータス">{g.status.id}</TooltipBadge
+        >
+      {/if}
+    {/each}
   </div>
 </div>
 
