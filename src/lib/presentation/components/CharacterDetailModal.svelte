@@ -189,7 +189,7 @@
 
       <!-- 所持鉱石 -->
       <div>
-        <div class="text-gray-400 mb-2">{m.ui_minerals()}</div>
+        <div class="text-gray-400 mb-2">{m.ui_items()}</div>
         {#if !actor}
           <div class="text-gray-500">{m.ui_none()}</div>
         {:else if !canShowMinerals}

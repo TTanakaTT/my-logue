@@ -44,27 +44,24 @@
   const actorAttributes: {
     key: ActorAttribute;
     label: string;
-  }[] = [{ key: 'hp', label: 'HP' }];
+  }[] = [{ key: 'hp', label: m.ui_hp() }];
 
   $: characterAttributeValues = character.characterAttributes;
 
-  // --- HP 表示アニメーション設定 ---
   const HP_ANIM_MIN_MS = 1000;
   const HP_ANIM_MAX_MS = 2000;
 
-  // 数値アニメーション用（手動）
-  let displayedHp = isActor(character) && isHpRevealed() ? character.hp : '???';
+  let displayedHp = isActor(character) && isHpRevealed() ? character.hp : m.ui_unknown();
   let lastHp = 0;
   let hpEmphasis: 'none' | 'damage' | 'heal' = 'none';
   let hpEmphasisActive = false;
   let hpEmphasisTimer: ReturnType<typeof setTimeout> | null = null;
   let hpAnimFrame: number | null = null;
 
-  // HPの色（リアクティブに算出）: 赤(0%) ↔ 緑(100%)
   let hpColor = '';
   $: hpColor = (() => {
     if (!isActor(character)) return '';
-    if (typeof displayedHp !== 'number') return ''; // ???表示時
+    if (typeof displayedHp !== 'number') return '';
     const max = Math.max(1, calcMaxHP(character));
     const ratio = Math.max(0, Math.min(1, displayedHp / max));
     const g = Math.round(ratio * 100);
@@ -72,16 +69,14 @@
     return `color-mix(in oklab, var(--color-hp-max) ${g}%, var(--color-hp-dead) ${r}%)`;
   })();
 
-  // 最大HPかどうか（小数→四捨五入後に比較）
   let hpIsFull = false;
   $: hpIsFull = (() => {
     if (!isActor(character)) return false;
-    if (typeof displayedHp !== 'number') return false; // ???表示時
+    if (typeof displayedHp !== 'number') return false;
     const max = Math.max(1, calcMaxHP(character));
     return Math.round(displayedHp) >= max;
   })();
 
-  // HPクラスを算出（読みやすさのために切り出し）
   $: hpClass = (() => {
     const base = ['inline-block', 'px-1', 'rounded-sm', 'transition-all'];
     if (hpIsFull) base.push('font-black');
@@ -92,23 +87,21 @@
     }
     return base.join(' ');
   })();
-  // HPの公開可否（敵の未公開時は???表示）
+
   function isHpRevealed(): boolean {
     if (!isActor(character)) return false;
     if (!isEnemy(character)) return true;
     return character.isExposed || Boolean(character.revealedAttributes?.includes('hp'));
   }
 
-  // HP変化の検知とアニメーション
   function handleHpChange(current: number, max: number) {
-    if (typeof displayedHp !== 'number') return; // ???表示時
+    if (typeof displayedHp !== 'number') return;
     if (current === lastHp) return;
 
     const delta = Math.abs(current - lastHp);
     const ratioDelta = Math.min(1, delta / max);
     const duration = Math.round(HP_ANIM_MIN_MS + (HP_ANIM_MAX_MS - HP_ANIM_MIN_MS) * ratioDelta);
 
-    // 強調表示（回復/被ダメージ）
     hpEmphasis = current < lastHp ? 'damage' : 'heal';
     hpEmphasisActive = true;
     if (hpEmphasisTimer) clearTimeout(hpEmphasisTimer);
@@ -148,7 +141,6 @@
     hpEmphasisActive = false;
   }
 
-  // HP変更に反応（依存は character のみ）
   let hpInitialized = false;
   $: {
     if (!isActor(character) || !isHpRevealed()) {
@@ -187,24 +179,21 @@
   $: actor = isActor(character) ? (character as Actor) : null;
 
   function getDisplayedAttribute(key: Attribute): string | number {
-    // アクター以外の表示制御
     if (!isActor(character)) {
       return key === 'hp' ? '' : characterAttributeValues[key];
     }
 
     if (!isEnemy(character)) {
-      // 自分および味方は常に公開
       return key === 'hp' ? displayedHp : characterAttributeValues[key];
     }
 
-    // 敵の表示制御
     if (
       character.isExposed ||
       (character.revealedAttributes && character.revealedAttributes.includes(key))
     ) {
       return key === 'hp' ? displayedHp : characterAttributeValues[key];
     } else {
-      return '???';
+      return m.ui_unknown();
     }
   }
 
@@ -221,8 +210,8 @@
       isExposed = character.isExposed;
       revealed = isExposed || isObserved;
       if (!revealed) {
-        name = '???';
-        description = '???';
+        name = m.ui_unknown();
+        description = m.ui_unknown();
       }
     }
     return {
@@ -235,7 +224,6 @@
     };
   });
 
-  // ステータス表示用グルーピング: id + 残ターン一致のみスタック数をまとめる
   interface GroupedStatus {
     status: StatusInstance;
     count: number;
@@ -259,10 +247,9 @@
       return a.status.id.localeCompare(b.status.id);
     });
   })();
-  // 親から識別されるように panelKey を受け取る
+
   export let panelKey: string = '';
 
-  // 詳細モーダルの開閉
   let showDetail = false;
   function openDetail() {
     if (!isActor(character)) return;
@@ -313,7 +300,7 @@
     {#if actor}
       <button
         class="inline-flex items-center justify-center text-sky-300 hover:text-sky-200 border rounded p-0.5 cursor-pointer"
-        aria-label="詳細を表示"
+        aria-label={m.aria_show_detail()}
         on:click={openDetail}
       >
         <Icon icon="menu_book" size={16} />
@@ -327,7 +314,6 @@
         <div class="row-span-2 mt-1 flex flex-col items-center">
           <span class="text-gray-400">{o.label}</span>
           {#if o.key === 'hp'}
-            <!-- HPは割合に応じて色を補間し、変化時は強調 -->
             <span class={hpClass} style={`color: ${hpColor}`}>
               {typeof displayedHp === 'number' ? Math.round(displayedHp) : displayedHp}
             </span>
@@ -350,14 +336,14 @@
   {#if actor}
     <div class="w-full flex flex-col gap-1">
       <div class="flex items-center gap-2 text-orange-200">
-        <span>物理</span>
+        <span>{m.ui_phys()}</span>
         <div class="inline-flex items-center gap-1">
           <Icon icon="swords" size={14} />
           <span style={rateColorStyle(actor.physDamageUpRate)}>
             {formatSignedPercent(actor.physDamageUpRate)}
           </span>
         </div>
-        <span>|</span>
+        <span>{m.ui_divider()}</span>
         <div class="inline-flex items-center gap-1">
           <Icon icon="shield" size={14} />
           <span style={rateColorStyle(actor.physDamageCutRate)}>
@@ -367,14 +353,14 @@
       </div>
 
       <div class="flex items-center gap-2 text-purple-300">
-        <span>精神</span>
+        <span>{m.ui_psy()}</span>
         <div class="inline-flex items-center gap-1">
           <Icon icon="swords" size={14} />
           <span style={rateColorStyle(actor.psyDamageUpRate)}>
             {formatSignedPercent(actor.psyDamageUpRate)}
           </span>
         </div>
-        <span>|</span>
+        <span>{m.ui_divider()}</span>
 
         <div class="inline-flex items-center gap-1">
           <Icon icon="shield" size={14} />
@@ -386,17 +372,17 @@
     </div>
   {/if}
   <div class="flex flex-col space-y-1">
-    <div class="flex">
-      <!-- TODO:i18n -->
-      <span class="text-gray-400">アクション (</span>
-      <span class="">{character.characterAttributes.maxActionsPerTurn}</span>
-      <span class="text-gray-400"> 回</span>
+    <div class="flex items-center gap-1">
+      <span class="text-gray-400">{m.ui_actions_label()}</span>
+      <span>(</span>
+      <span>{character.characterAttributes.maxActionsPerTurn}</span>
+      <span class="text-gray-400">{m.ui_times()}</span>
       {#if isActor(character) && isPlayer(character)}
         <span class="text-gray-400"> / </span>
-        <span class="">{character.maxActionChoices}</span>
-        <span class="text-gray-400"> 選択肢</span>
+        <span>{character.maxActionChoices}</span>
+        <span class="text-gray-400">{m.ui_choices()}</span>
       {/if}
-      <span class="text-gray-400">)</span>
+      <span>)</span>
     </div>
     <div class="flex flex-wrap gap-1">
       {#each actionInfos as a (a.id)}
@@ -420,7 +406,7 @@
       {:else}
         <TooltipBadge
           badgeClass="bg-gray-600/60 border border-red-400 px-1"
-          description="未定義のステータス">{g.status.id}</TooltipBadge
+          description={m.ui_undefined_status()}>{g.status.id}</TooltipBadge
         >
       {/if}
     {/each}
