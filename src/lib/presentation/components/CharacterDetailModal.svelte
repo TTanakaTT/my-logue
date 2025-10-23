@@ -117,6 +117,7 @@
     <div class="flex items-center justify-between px-4 py-3 border-b border-neutral-700 shrink-0">
       <div class="font-semibold">{character.name}</div>
       <button
+        id="close-detail"
         class="text-gray-300 hover:text-white"
         aria-label="閉じる"
         on:click={() => onClose?.()}
@@ -189,7 +190,7 @@
 
       <!-- 所持鉱石 -->
       <div>
-        <div class="text-gray-400 mb-2">{m.ui_minerals()}</div>
+        <div class="text-gray-400 mb-2">{m.ui_items()}</div>
         {#if !actor}
           <div class="text-gray-500">{m.ui_none()}</div>
         {:else if !canShowMinerals}

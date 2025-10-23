@@ -13,7 +13,8 @@
     type Attribute,
     type Character,
     type CharacterAttributeKey,
-    type Actor
+    type Actor,
+    isPlayer
   } from '$lib/domain/entities/character';
   import { status } from '$lib/data/consts/statuses';
   import type { StatusInstance } from '$lib/domain/entities/status';
@@ -43,27 +44,24 @@
   const actorAttributes: {
     key: ActorAttribute;
     label: string;
-  }[] = [{ key: 'hp', label: 'HP' }];
+  }[] = [{ key: 'hp', label: m.ui_hp() }];
 
   $: characterAttributeValues = character.characterAttributes;
 
-  // --- HP 表示アニメーション設定 ---
   const HP_ANIM_MIN_MS = 1000;
   const HP_ANIM_MAX_MS = 2000;
 
-  // 数値アニメーション用（手動）
-  let displayedHp = isActor(character) && isHpRevealed() ? character.hp : '???';
+  let displayedHp = isActor(character) && isHpRevealed() ? character.hp : m.ui_unknown();
   let lastHp = 0;
   let hpEmphasis: 'none' | 'damage' | 'heal' = 'none';
   let hpEmphasisActive = false;
   let hpEmphasisTimer: ReturnType<typeof setTimeout> | null = null;
   let hpAnimFrame: number | null = null;
 
-  // HPの色（リアクティブに算出）: 赤(0%) ↔ 緑(100%)
   let hpColor = '';
   $: hpColor = (() => {
     if (!isActor(character)) return '';
-    if (typeof displayedHp !== 'number') return ''; // ???表示時
+    if (typeof displayedHp !== 'number') return '';
     const max = Math.max(1, calcMaxHP(character));
     const ratio = Math.max(0, Math.min(1, displayedHp / max));
     const g = Math.round(ratio * 100);
@@ -71,16 +69,14 @@
     return `color-mix(in oklab, var(--color-hp-max) ${g}%, var(--color-hp-dead) ${r}%)`;
   })();
 
-  // 最大HPかどうか（小数→四捨五入後に比較）
   let hpIsFull = false;
   $: hpIsFull = (() => {
     if (!isActor(character)) return false;
-    if (typeof displayedHp !== 'number') return false; // ???表示時
+    if (typeof displayedHp !== 'number') return false;
     const max = Math.max(1, calcMaxHP(character));
     return Math.round(displayedHp) >= max;
   })();
 
-  // HPクラスを算出（読みやすさのために切り出し）
   $: hpClass = (() => {
     const base = ['inline-block', 'px-1', 'rounded-sm', 'transition-all'];
     if (hpIsFull) base.push('font-black');
@@ -91,23 +87,21 @@
     }
     return base.join(' ');
   })();
-  // HPの公開可否（敵の未公開時は???表示）
+
   function isHpRevealed(): boolean {
     if (!isActor(character)) return false;
     if (!isEnemy(character)) return true;
     return character.isExposed || Boolean(character.revealedAttributes?.includes('hp'));
   }
 
-  // HP変化の検知とアニメーション
   function handleHpChange(current: number, max: number) {
-    if (typeof displayedHp !== 'number') return; // ???表示時
+    if (typeof displayedHp !== 'number') return;
     if (current === lastHp) return;
 
     const delta = Math.abs(current - lastHp);
     const ratioDelta = Math.min(1, delta / max);
     const duration = Math.round(HP_ANIM_MIN_MS + (HP_ANIM_MAX_MS - HP_ANIM_MIN_MS) * ratioDelta);
 
-    // 強調表示（回復/被ダメージ）
     hpEmphasis = current < lastHp ? 'damage' : 'heal';
     hpEmphasisActive = true;
     if (hpEmphasisTimer) clearTimeout(hpEmphasisTimer);
@@ -147,7 +141,6 @@
     hpEmphasisActive = false;
   }
 
-  // HP変更に反応（依存は character のみ）
   let hpInitialized = false;
   $: {
     if (!isActor(character) || !isHpRevealed()) {
@@ -170,20 +163,13 @@
     if (hpAnimFrame) cancelAnimationFrame(hpAnimFrame);
   });
 
-  const FLOAT_NONZERO_THRESHOLD = 0.0001;
-  function isNonZero(v: number): boolean {
-    return Math.abs(v) > FLOAT_NONZERO_THRESHOLD;
-  }
-
   function formatSignedPercent(v: number): string {
     const p = (v * 100).toFixed(0);
-    const sign = v > 0 ? '+' : '';
+    const sign = v >= 0 ? '+' : '';
     return sign + p + '%';
   }
 
   function rateColorStyle(v: number): string {
-    if (!isNonZero(v)) return '';
-    // ある程度濃い色から始めて、|v|が大きいほど濃くする
     const mag = Math.min(1, Math.abs(v));
     const pct = Math.round(100 * mag);
     const colorVar = v >= 0 ? 'var(--color-mod-up)' : 'var(--color-mod-down)';
@@ -193,24 +179,21 @@
   $: actor = isActor(character) ? (character as Actor) : null;
 
   function getDisplayedAttribute(key: Attribute): string | number {
-    // アクター以外の表示制御
     if (!isActor(character)) {
       return key === 'hp' ? '' : characterAttributeValues[key];
     }
 
     if (!isEnemy(character)) {
-      // 自分および味方は常に公開
       return key === 'hp' ? displayedHp : characterAttributeValues[key];
     }
 
-    // 敵の表示制御
     if (
       character.isExposed ||
       (character.revealedAttributes && character.revealedAttributes.includes(key))
     ) {
       return key === 'hp' ? displayedHp : characterAttributeValues[key];
     } else {
-      return '???';
+      return m.ui_unknown();
     }
   }
 
@@ -227,8 +210,8 @@
       isExposed = character.isExposed;
       revealed = isExposed || isObserved;
       if (!revealed) {
-        name = '???';
-        description = '???';
+        name = m.ui_unknown();
+        description = m.ui_unknown();
       }
     }
     return {
@@ -241,7 +224,6 @@
     };
   });
 
-  // ステータス表示用グルーピング: id + 残ターン一致のみスタック数をまとめる
   interface GroupedStatus {
     status: StatusInstance;
     count: number;
@@ -265,10 +247,9 @@
       return a.status.id.localeCompare(b.status.id);
     });
   })();
-  // 親から識別されるように panelKey を受け取る
+
   export let panelKey: string = '';
 
-  // 詳細モーダルの開閉
   let showDetail = false;
   function openDetail() {
     if (!isActor(character)) return;
@@ -309,46 +290,31 @@
 </script>
 
 <div
-  class={`relative rounded-lg p-3 text-xs space-y-1 bg-neutral-800/40 border-2 shadow-sm w-3xs panel-side-${side}`}
+  class={`rounded-lg px-2 py-1 text-xs space-y-1 bg-neutral-800/40 border-2 shadow-sm w-[170px] panel-side-${side}`}
 >
   {#if panelKey}
     <PanelEffectLayer {panelKey} />
   {/if}
-  <div class="font-semibold mb-1 flex items-center gap-2">
+  <div class="font-semibold flex items-center gap-2">
     <span>{character.name}</span>
     {#if actor}
       <button
+        name="open-detail"
         class="inline-flex items-center justify-center text-sky-300 hover:text-sky-200 border rounded p-0.5 cursor-pointer"
-        aria-label="詳細を表示"
+        aria-label={m.aria_show_detail()}
         on:click={openDetail}
       >
         <Icon icon="menu_book" size={16} />
       </button>
     {/if}
   </div>
-  <div class="flex flex-wrap gap-1 mb-1 min-h-4">
-    {#each groupedStatuses as g (g.status.id + ':' + (g.status.remainingTurns ?? 'inf'))}
-      {#if status[g.status.id]}
-        <TooltipBadge
-          badgeClass={`${status[g.status.id].badgeClass ?? ''} border px-1`}
-          description={status[g.status.id].description}
-          >{`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
-        </TooltipBadge>
-      {:else}
-        <TooltipBadge
-          badgeClass="bg-gray-600/60 border border-red-400 px-1"
-          description="未定義のステータス">{g.status.id}</TooltipBadge
-        >
-      {/if}
-    {/each}
-  </div>
-  <div class="flex flex-row flex-wrap gap-2">
+
+  <div class="grid grid-flow-col grid-rows-2 gap-1">
     {#if actor}
       {#each actorAttributes as o (o.key)}
-        <div class="flex flex-col items-center relative">
+        <div class="row-span-2 mt-1 flex flex-col items-center">
           <span class="text-gray-400">{o.label}</span>
           {#if o.key === 'hp'}
-            <!-- HPは割合に応じて色を補間し、変化時は強調 -->
             <span class={hpClass} style={`color: ${hpColor}`}>
               {typeof displayedHp === 'number' ? Math.round(displayedHp) : displayedHp}
             </span>
@@ -362,7 +328,7 @@
       {/each}
     {/if}
     {#each characterAttributes as o (o.key)}
-      <div class="flex flex-col items-center relative">
+      <div class="flex flex-col items-center">
         <span class="text-gray-400">{o.label}</span>
         <span>{getDisplayedAttribute(o.key)}</span>
       </div>
@@ -370,67 +336,55 @@
   </div>
   {#if actor}
     <div class="w-full flex flex-col gap-1">
-      {#if isNonZero(actor.physDamageUpRate) || isNonZero(actor.physDamageCutRate)}
-        <div class="flex items-center gap-2">
-          <span class="text-gray-400">物理補正</span>
-          {#if isNonZero(actor.physDamageUpRate)}
-            <span
-              style={rateColorStyle(actor.physDamageUpRate)}
-              class="inline-flex items-center gap-1"
-            >
-              <Icon icon="swords" size={14} />
-              {formatSignedPercent(actor.physDamageUpRate)}
-            </span>
-          {/if}
-          {#if isNonZero(actor.physDamageUpRate) && isNonZero(actor.physDamageCutRate)}
-            <span class="text-gray-400">|</span>
-          {/if}
-          {#if isNonZero(actor.physDamageCutRate)}
-            <span
-              style={rateColorStyle(actor.physDamageCutRate)}
-              class="inline-flex items-center gap-1"
-            >
-              <Icon icon="shield" size={14} />
-              {formatSignedPercent(actor.physDamageCutRate)}
-            </span>
-          {/if}
+      <div class="flex items-center gap-2 text-orange-200">
+        <span>{m.ui_phys()}</span>
+        <div class="inline-flex items-center gap-1">
+          <Icon icon="swords" size={14} />
+          <span style={rateColorStyle(actor.physDamageUpRate)}>
+            {formatSignedPercent(actor.physDamageUpRate)}
+          </span>
         </div>
-      {/if}
-      {#if isNonZero(actor.psyDamageUpRate) || isNonZero(actor.psyDamageCutRate)}
-        <div class="flex items-center gap-2">
-          <span class="text-gray-400">精神補正</span>
-          {#if isNonZero(actor.psyDamageUpRate)}
-            <span
-              style={rateColorStyle(actor.psyDamageUpRate)}
-              class="inline-flex items-center gap-1"
-            >
-              <Icon icon="swords" size={14} />
-              {formatSignedPercent(actor.psyDamageUpRate)}
-            </span>
-          {/if}
-          {#if isNonZero(actor.psyDamageUpRate) && isNonZero(actor.psyDamageCutRate)}
-            <span class="text-gray-400">|</span>
-          {/if}
-          {#if isNonZero(actor.psyDamageCutRate)}
-            <span
-              style={rateColorStyle(actor.psyDamageCutRate)}
-              class="inline-flex items-center gap-1"
-            >
-              <Icon icon="shield" size={14} />
-              {formatSignedPercent(actor.psyDamageCutRate)}
-            </span>
-          {/if}
+        <span>{m.ui_divider()}</span>
+        <div class="inline-flex items-center gap-1">
+          <Icon icon="shield" size={14} />
+          <span style={rateColorStyle(actor.physDamageCutRate)}>
+            {formatSignedPercent(actor.physDamageCutRate)}
+          </span>
         </div>
-      {/if}
+      </div>
+
+      <div class="flex items-center gap-2 text-purple-300">
+        <span>{m.ui_psy()}</span>
+        <div class="inline-flex items-center gap-1">
+          <Icon icon="swords" size={14} />
+          <span style={rateColorStyle(actor.psyDamageUpRate)}>
+            {formatSignedPercent(actor.psyDamageUpRate)}
+          </span>
+        </div>
+        <span>{m.ui_divider()}</span>
+
+        <div class="inline-flex items-center gap-1">
+          <Icon icon="shield" size={14} />
+          <span style={rateColorStyle(actor.psyDamageCutRate)}>
+            {formatSignedPercent(actor.psyDamageCutRate)}
+          </span>
+        </div>
+      </div>
     </div>
   {/if}
-  <div class="mt-2 flex flex-col">
+  <div class="flex flex-col space-y-1">
     <div class="flex">
-      <span class="text-gray-400"
-        >アクション ({character.characterAttributes.maxActionsPerTurn}回)</span
-      >
+      <span class="text-gray-400">{m.ui_actions_label()} (</span>
+      <span>{character.characterAttributes.maxActionsPerTurn}</span>
+      <span class="text-gray-400">{m.ui_times()}</span>
+      {#if isActor(character) && isPlayer(character)}
+        <span class="text-gray-400"> / </span>
+        <span>{character.maxActionChoices}</span>
+        <span class="text-gray-400">{m.ui_choices()}</span>
+      {/if}
+      <span class="text-gray-400">)</span>
     </div>
-    <div class="flex flex-wrap gap-1 mt-1">
+    <div class="flex flex-wrap gap-1">
       {#each actionInfos as a (a.id)}
         <TooltipBadge
           badgeClass={`${a.isExposed ? 'bg-emerald-700/70 border border-emerald-400/50' : a.isObserved ? 'bg-sky-700/70 border border-sky-400/50' : 'bg-gray-700/60'}`}
@@ -440,6 +394,22 @@
         </TooltipBadge>
       {/each}
     </div>
+  </div>
+  <div class="flex flex-wrap gap-1">
+    {#each groupedStatuses as g (g.status.id + ':' + (g.status.remainingTurns ?? 'inf'))}
+      {#if status[g.status.id]}
+        <TooltipBadge
+          badgeClass={`${status[g.status.id].badgeClass ?? ''} border px-1`}
+          description={status[g.status.id].description}
+          >{`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
+        </TooltipBadge>
+      {:else}
+        <TooltipBadge
+          badgeClass="bg-gray-600/60 border border-red-400 px-1"
+          description={m.ui_undefined_status()}>{g.status.id}</TooltipBadge
+        >
+      {/if}
+    {/each}
   </div>
 </div>
 
