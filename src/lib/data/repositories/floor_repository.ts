@@ -200,7 +200,8 @@ function generateEdges(nodeCount: number, floorIndex: number) {
     adj.get(b)!.add(a);
   };
 
-  const order = shuffle(Array.from({ length: nodeCount }, (_, i) => i + 1));
+  const order = Array.from({ length: nodeCount }, (_, i) => i + 1);
+  shuffle(order);
   const connected: number[] = [];
   for (const id of order) {
     if (connected.length === 0) {
