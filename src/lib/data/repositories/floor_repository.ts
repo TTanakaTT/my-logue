@@ -175,12 +175,29 @@ function buildPickedKindsByRules(floorIndex: number, totalNodes: number): NodeTy
   return picked;
 }
 
+/**
+ * Compute the target average degree (number of edges per node) for a given floor.
+ *
+ * This produces a steadily increasing target average degree for higher floors,
+ * with explicit lower/upper bounds provided by MIN_EDGES_PER_NODE and
+ * MAX_EDGES_PER_NODE * 0.8 respectively.
+ *
+ * @param floorIndex - Index of the floor for which to compute the target average degree.
+ *                     Values <= 1 will receive no incremental increase above the base.
+ * @returns The target average degree for nodes on the specified floor, constrained
+ *          to the configured minimum and capped at 80% of the configured maximum.
+ */
 function targetAvgDegreeForFloor(floorIndex: number): number {
   const base = 1.8;
   const inc = 0.2 * Math.max(0, floorIndex - 1);
   const cap = Math.min(MAX_EDGES_PER_NODE * 0.8, base + inc);
   return Math.max(MIN_EDGES_PER_NODE, cap);
 }
+
+/**
+ * Number of edge-addition attempts performed per node when densifying the graph.
+ */
+const EDGE_ADDITION_ATTEMPTS_PER_NODE = 8;
 
 function generateEdges(nodeCount: number, floorIndex: number) {
   const adj: Map<number, Set<number>> = new Map();
@@ -264,7 +281,7 @@ function generateEdges(nodeCount: number, floorIndex: number) {
   const targetAvg = targetAvgDegreeForFloor(floorIndex);
   const currentEdges = () => Array.from(adj.values()).reduce((sum, s) => sum + s.size, 0) / 2;
   let attempts = 0;
-  const maxAttempts = nodeCount * 8;
+  const maxAttempts = nodeCount * EDGE_ADDITION_ATTEMPTS_PER_NODE;
   while (attempts < maxAttempts) {
     attempts++;
     const a = 1 + Math.floor(Math.random() * nodeCount);
