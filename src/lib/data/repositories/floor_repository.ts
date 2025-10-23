@@ -304,6 +304,22 @@ function satisfiesMinDistance(
   return best >= minReq;
 }
 
+/**
+ * Compute shortest-path distances (in number of edges) from a start node to every reachable node
+ * in a graph using breadth-first search (BFS).
+ *
+ * The graph is represented as an adjacency map where each key is a node id (number) and the value
+ * is an array of neighbor node ids. The function treats edges as directed according to the
+ * adjacency map; for undirected graphs, adjacent entries should be present in both directions.
+ *
+ * @param adj - A Map<number, number[]> representing the adjacency list of the graph.
+ *              Each key is a node id and the corresponding value is an array of neighbor ids.
+ * @param start - The id of the start node from which distances are measured.
+ *
+ * @returns A Map<number, number> that maps each reachable node id to its distance from `start`
+ *          (the number of edges in the shortest path). The `start` node maps to 0. Nodes that
+ *          are not reachable from `start` will not appear in the returned map.
+ */
 function shortestPathBFS(adj: Map<number, number[]>, start: number): Map<number, number> {
   const dist = new Map<number, number>();
   const q: number[] = [start];
