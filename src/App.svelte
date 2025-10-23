@@ -46,35 +46,33 @@
 </header>
 
 <main class="flex-1">
-  <div style="display: contents">
-    <section class="rounded-lg my-3 mx-2">
-      <div class="flex flex-row gap-2 flex-wrap">
-        {#key [$gameState.player.characterAttributes.STR, $gameState.player.characterAttributes.CON, $gameState.player.characterAttributes.POW, $gameState.player.characterAttributes.DEX, $gameState.player.characterAttributes.APP, $gameState.player.characterAttributes.INT, $gameState.player.statuses
+  <section class="rounded-lg my-3 mx-2">
+    <div class="flex flex-row gap-2 flex-wrap">
+      {#key [$gameState.player.characterAttributes.STR, $gameState.player.characterAttributes.CON, $gameState.player.characterAttributes.POW, $gameState.player.characterAttributes.DEX, $gameState.player.characterAttributes.APP, $gameState.player.characterAttributes.INT, $gameState.player.statuses
+          .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
+          .join(',')].join('|')}
+        <CharacterPanel character={$gameState.player} side="player" panelKey="player" />
+      {/key}
+      {#each $gameState.allies as ally, i (i)}
+        {#key [ally.characterAttributes.STR, ally.characterAttributes.CON, ally.characterAttributes.POW, ally.characterAttributes.DEX, ally.characterAttributes.APP, ally.characterAttributes.INT, ally.statuses
             .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
             .join(',')].join('|')}
-          <CharacterPanel character={$gameState.player} side="player" panelKey="player" />
+          <CharacterPanel character={ally} side="player" panelKey={`ally-${i}`} />
         {/key}
-        {#each $gameState.allies as ally, i (i)}
-          {#key [ally.characterAttributes.STR, ally.characterAttributes.CON, ally.characterAttributes.POW, ally.characterAttributes.DEX, ally.characterAttributes.APP, ally.characterAttributes.INT, ally.statuses
-              .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
-              .join(',')].join('|')}
-            <CharacterPanel character={ally} side="player" panelKey={`ally-${i}`} />
-          {/key}
-        {/each}
-        {#each $gameState.enemies as enemy, i (i)}
-          {#key [enemy.characterAttributes, enemy.statuses
-              .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
-              .join(',')].join('|')}
-            <CharacterPanel character={enemy} side="enemy" panelKey={`enemy-${i}`} />
-          {/key}
-        {/each}
-      </div>
-    </section>
-    <section class="bg-panel rounded-lg mb-4 py-2 px-4">
-      <h3 class="mt-0 font-semibold mb-2">{m.ui_log()}</h3>
-      <LogViewer />
-    </section>
-  </div>
+      {/each}
+      {#each $gameState.enemies as enemy, i (i)}
+        {#key [enemy.characterAttributes, enemy.statuses
+            .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
+            .join(',')].join('|')}
+          <CharacterPanel character={enemy} side="enemy" panelKey={`enemy-${i}`} />
+        {/key}
+      {/each}
+    </div>
+  </section>
+  <section class="bg-panel rounded-lg mb-4 py-2 px-4">
+    <h3 class="mt-0 font-semibold mb-2">{m.ui_log()}</h3>
+    <LogViewer />
+  </section>
 </main>
 <footer class="sticky bottom-0 bg-panel border-t border-gray-700 rounded-t-xl py-2 px-4">
   {#if !$gameState.playerNameCommitted}
