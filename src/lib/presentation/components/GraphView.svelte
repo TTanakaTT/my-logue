@@ -17,6 +17,17 @@
   import { onMount, onDestroy } from 'svelte';
   import type { FloorLayout } from '$lib/domain/entities/floor';
   import forceAtlas2 from 'graphology-layout-forceatlas2';
+  import { SvelteSet } from 'svelte/reactivity';
+
+  // Minimal attribute shape stored on graph nodes for our use
+  type NodeAttrs = {
+    hidden?: boolean;
+    label?: string;
+    x?: number;
+    y?: number;
+    size?: number;
+    color?: string;
+  };
 
   export let layout: FloorLayout;
   export let currentNodeId: number;
@@ -29,6 +40,67 @@
   let fullGraph: Graph | undefined; // Graph containing ALL nodes/edges of the floor
   let lastLayoutSignature: string | undefined; // To detect layout changes
   let cameraState: { x: number; y: number; angle: number; ratio: number } | undefined; // preserve view
+  // Screen-space labels overlaid above Sigma canvas (always visible, no hover needed)
+  let labels: { id: string; x: number; y: number; text: string }[] = [];
+  // Nodes for which overlay labels are temporarily hidden (to avoid duplication with Sigma hover labels)
+  const suppressOverlayForNodes = new SvelteSet<string>();
+
+  // Select the nearest visible node under a viewport coordinate (px) and invoke callback
+  function selectNodeAtViewportPoint(vpx: number, vpy: number) {
+    if (!renderer || !fullGraph) return;
+    const r: Sigma = renderer;
+    const g: Graph = fullGraph;
+
+    // Converter from graph -> viewport, reused from label computation logic
+    const convert: (p: { x: number; y: number }) => { x: number; y: number } = (() => {
+      const asGraphToViewport = (
+        r as unknown as {
+          graphToViewport?: (c: { x: number; y: number }) => { x: number; y: number };
+        }
+      ).graphToViewport;
+      if (asGraphToViewport) return asGraphToViewport.bind(r);
+      const asFramedToViewport = (
+        r as unknown as {
+          framedGraphToViewport?: (c: { x: number; y: number }) => { x: number; y: number };
+        }
+      ).framedGraphToViewport;
+      if (asFramedToViewport) return asFramedToViewport.bind(r);
+      // Fallback using camera
+      return (c: { x: number; y: number }) => {
+        const cam = r.getCamera();
+        const rect = container.getBoundingClientRect();
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const vx = (c.x - cam.x) / cam.ratio + cx;
+        const vy = (c.y - cam.y) / cam.ratio + cy;
+        return { x: vx, y: vy };
+      };
+    })();
+
+    let bestId: string | null = null;
+    let bestD2 = Infinity;
+    const hitRadiusPx = 12; // clickable radius in viewport px
+    const hitR2 = hitRadiusPx * hitRadiusPx;
+    g.forEachNode((node, attrs) => {
+      if (attrs.hidden) return;
+      const x = g.getNodeAttribute(node, 'x') as number | undefined;
+      const y = g.getNodeAttribute(node, 'y') as number | undefined;
+      if (x == null || y == null) return;
+      const vp = convert({ x, y });
+      const dx = vp.x - vpx;
+      const dy = vp.y - vpy;
+      const d2 = dx * dx + dy * dy;
+      if (d2 <= hitR2 && d2 < bestD2) {
+        bestD2 = d2;
+        bestId = node;
+      }
+    });
+
+    if (bestId != null) {
+      const id = Number(bestId);
+      if (Number.isFinite(id)) onSelectNode?.(id);
+    }
+  }
 
   function nodeColor(id: number): string {
     const visitedCol = 'gray';
@@ -184,6 +256,55 @@
     renderer?.refresh();
   }
 
+  /** Update screen-space label positions and texts from current renderer state */
+  function updateLabels() {
+    const r = renderer;
+    const g = fullGraph;
+    if (!r || !g) return;
+    const arr: { id: string; x: number; y: number; text: string }[] = [];
+    // Prepare converter: graph coords -> viewport (CSS px)
+    const convert: (p: { x: number; y: number }) => { x: number; y: number } = (() => {
+      const asGraphToViewport = (
+        r as unknown as {
+          graphToViewport?: (c: { x: number; y: number }) => { x: number; y: number };
+        }
+      ).graphToViewport;
+      if (asGraphToViewport) return asGraphToViewport.bind(r);
+      const asFramedToViewport = (
+        r as unknown as {
+          framedGraphToViewport?: (c: { x: number; y: number }) => { x: number; y: number };
+        }
+      ).framedGraphToViewport;
+      if (asFramedToViewport) return asFramedToViewport.bind(r);
+      // Fallback using camera state
+      return (c: { x: number; y: number }) => {
+        const cam = r.getCamera();
+        const rect = container.getBoundingClientRect();
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const vx = (c.x - cam.x) / cam.ratio + cx;
+        const vy = (c.y - cam.y) / cam.ratio + cy;
+        return { x: vx, y: vy };
+      };
+    })();
+
+    g.forEachNode((node: string, attrs: NodeAttrs) => {
+      // Skip hidden nodes based on graph attribute
+      const hidden = Boolean(attrs.hidden as boolean | undefined);
+      if (hidden) return;
+      // Suppress overlay label while node is hovered/pressed (Sigma draws its own focus label)
+      if (suppressOverlayForNodes.has(node)) return;
+      const x = g.getNodeAttribute(node, 'x') as number | undefined;
+      const y = g.getNodeAttribute(node, 'y') as number | undefined;
+      if (x == null || y == null) return;
+      const vp = convert({ x, y });
+      const labelAttr = (g.getNodeAttribute(node, 'label') as string | undefined) ?? String(node);
+      const text: string = labelAttr;
+      arr.push({ id: String(node), x: vp.x, y: vp.y, text });
+    });
+    labels = arr;
+  }
+
   function render(..._deps: unknown[]) {
     // mark deps as used to satisfy lint while leveraging Svelte change tracking via args
     void _deps;
@@ -211,50 +332,74 @@
       lastLayoutSignature = sig;
 
       // create renderer for the full graph
-      renderer = new Sigma(fullGraph, container, {
-        renderEdgeLabels: false,
-        allowInvalidContainer: true,
-        labelColor: { color: 'gray' }
-      });
-
-      // Disable camera interactions (zoom/pan) from user input while keeping click events
+      // Temporarily force passive listeners for wheel/touch during Sigma initialization
+      const needsPassive = new Set<string>([
+        'wheel',
+        'mousewheel',
+        'touchstart',
+        'touchmove',
+        'touchend',
+        'touchcancel'
+      ]);
+      type AddEventListener = (
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        options?: boolean | AddEventListenerOptions
+      ) => void;
+      const proto = EventTarget.prototype as unknown as { addEventListener: AddEventListener };
+      const originalProtoAdd = proto.addEventListener;
+      proto.addEventListener = function (
+        this: EventTarget,
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        options?: boolean | AddEventListenerOptions
+      ) {
+        let patchedOptions = options;
+        if (needsPassive.has(type)) {
+          if (patchedOptions == null) patchedOptions = { passive: true };
+          else if (typeof patchedOptions === 'boolean')
+            patchedOptions = { capture: patchedOptions, passive: true };
+          else patchedOptions = { ...patchedOptions, passive: true };
+        }
+        return originalProtoAdd.call(this, type, listener, patchedOptions);
+      } as AddEventListener;
       try {
-        const mouseCaptor = renderer.getMouseCaptor?.();
-        mouseCaptor.on('wheel', (e) => e.preventSigmaDefault?.());
-        mouseCaptor.on('mousedown', (e) => e.preventSigmaDefault?.());
-        mouseCaptor.on('mousemove', (e) => e.preventSigmaDefault?.());
-
-        const touchCaptor = renderer.getTouchCaptor?.();
-        // Different Sigma versions expose different touch event names; guard with optional chaining
-        touchCaptor.on('touchmove', (e) => e.preventSigmaDefault?.());
-      } catch (err) {
-        console.warn('Failed to disable sigma interactions', err);
+        renderer = new Sigma(fullGraph, container, {
+          renderEdgeLabels: false,
+          renderLabels: false, // Disable Sigma labels; we draw our own HTML overlay labels
+          allowInvalidContainer: true,
+          labelColor: { color: 'gray' }
+        });
+      } finally {
+        (
+          EventTarget.prototype as unknown as { addEventListener: AddEventListener }
+        ).addEventListener = originalProtoAdd;
       }
 
+      // Note: We handle clicks/taps ourselves below with passive listeners.
+
       // restore camera if we had one
-      if (cameraState) {
+      if (renderer && cameraState) {
         const cam = renderer.getCamera();
         cam.setState({ ...cameraState });
       }
 
       // Lock camera zoom level to disable pinch/scroll zoom regardless of input source
-      {
+      if (renderer) {
         const cam = renderer.getCamera();
         const lockedRatio = cameraState?.ratio ?? cam.ratio;
         // Clamp zoom by setting min/max to the same value
         renderer.setSetting('minCameraRatio', lockedRatio);
         renderer.setSetting('maxCameraRatio', lockedRatio);
       }
-
-      // Click to select node
-      renderer.on('clickNode', (payload: { node: string }) => {
-        const id = Number(payload.node);
-        if (Number.isFinite(id)) onSelectNode?.(id);
-      });
+      // Keep overlay labels in sync with canvas drawing
+      renderer?.on('afterRender', updateLabels);
     }
 
     // Apply current visibility & colors without touching positions
     applyVisibility(layout);
+    // Update labels once after applying visibility
+    updateLabels();
   }
 
   onMount(() => {
@@ -264,8 +409,52 @@
   $: render(layout, currentNodeId, consumedNodeIds, startNodeId);
 
   onDestroy(() => {
+    // Detach listeners and dispose
+    renderer?.off('afterRender', updateLabels);
     renderer?.kill();
   });
 </script>
 
-<div bind:this={container} class="w-full h-64 rounded bg-gray-800"></div>
+<div class="relative w-full h-64 rounded bg-gray-800 touch-manipulation">
+  <!-- Sigma mounts canvases in this container (pointer events disabled to prevent drag/pan) -->
+  <div bind:this={container} class="absolute inset-0 pointer-events-none"></div>
+  <!-- Interaction layer above canvas: handles click/tap/keyboard with passive listeners -->
+  <div
+    class="absolute inset-0"
+    role="button"
+    tabindex="0"
+    on:click|passive={(e) => {
+      const rect = container.getBoundingClientRect();
+      selectNodeAtViewportPoint(e.clientX - rect.left, e.clientY - rect.top);
+    }}
+    on:touchstart|passive={(e) => {
+      if (e.touches && e.touches.length > 0) {
+        const t = e.touches[0];
+        const rect = container.getBoundingClientRect();
+        selectNodeAtViewportPoint(t.clientX - rect.left, t.clientY - rect.top);
+      }
+    }}
+    on:keydown={(e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        const rect = container.getBoundingClientRect();
+        // select nearest node around the center when using keyboard
+        selectNodeAtViewportPoint(rect.width / 2, rect.height / 2);
+      }
+    }}
+  ></div>
+  <!-- HTML overlay labels (always visible, pointer-events disabled so clicks go to canvas) -->
+  <div class="pointer-events-none absolute inset-0">
+    {#each labels as l (l.id)}
+      <div
+        class="absolute -translate-x-1/2"
+        style={`left:${l.x}px;top:${l.y}px;transform: translate(50%, -50%);`}
+      >
+        <span
+          class="px-1 py-0.5 rounded bg-gray-900/60 text-gray-100 text-[10px] leading-none whitespace-nowrap shadow"
+        >
+          {l.text}
+        </span>
+      </div>
+    {/each}
+  </div>
+</div>
