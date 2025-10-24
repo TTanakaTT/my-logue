@@ -11,6 +11,8 @@ export interface ActionDef {
   name: string;
   /** Description */
   description: string;
+  /** Material Symbols icon name for UI (outlined set). */
+  icon?: string;
   /** Behavior when normal */
   normalAction: (ctx: { actor: Actor; target?: Actor }) => void;
   /** Behavior when critical (defaults to normalAction if not specified) */

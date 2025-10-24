@@ -22,6 +22,7 @@
 
   // Local component imports
   import TooltipBadge from './TooltipBadge.svelte';
+  import TooltipBadgeGroup from './TooltipBadgeGroup.svelte';
   import PanelEffectLayer from './PanelEffectLayer.svelte';
   import FloatingNumbersLayer from './FloatingNumbersLayer.svelte';
   import Icon from './Icon.svelte';
@@ -384,33 +385,36 @@
       {/if}
       <span class="text-gray-400">)</span>
     </div>
-    <div class="flex flex-wrap gap-1">
+    <TooltipBadgeGroup>
       {#each actionInfos as a (a.id)}
         <TooltipBadge
           badgeClass={`${a.isExposed ? 'bg-emerald-700/70 border border-emerald-400/50' : a.isObserved ? 'bg-sky-700/70 border border-sky-400/50' : 'bg-gray-700/60'}`}
           description={a.description}
           revealed={a.revealed}
-          >{a.name}
-        </TooltipBadge>
+          icon={getAction(a.id)?.icon}
+          title={a.name}
+        />
       {/each}
-    </div>
+    </TooltipBadgeGroup>
   </div>
-  <div class="flex flex-wrap gap-1">
+  <TooltipBadgeGroup>
     {#each groupedStatuses as g (g.status.id + ':' + (g.status.remainingTurns ?? 'inf'))}
       {#if status[g.status.id]}
         <TooltipBadge
           badgeClass={`${status[g.status.id].badgeClass ?? ''} border px-1`}
           description={status[g.status.id].description}
-          >{`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
-        </TooltipBadge>
+          icon={status[g.status.id].icon}
+          title={`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
+        />
       {:else}
         <TooltipBadge
           badgeClass="bg-gray-600/60 border border-red-400 px-1"
-          description={m.ui_undefined_status()}>{g.status.id}</TooltipBadge
-        >
+          description={m.ui_undefined_status()}
+          title={g.status.id}
+        />
       {/if}
     {/each}
-  </div>
+  </TooltipBadgeGroup>
 </div>
 
 {#if showDetail && actor}
