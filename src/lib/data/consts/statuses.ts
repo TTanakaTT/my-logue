@@ -10,6 +10,7 @@ import { playEffectOnActor } from '$lib/presentation/utils/effect_bus';
 export const status = {
   Guard: {
     name: 'ガード',
+    icon: 'shield',
     description: '物理ダメージ50%カット',
     ContinuousTurns: 1,
     apply: (actor) => {
@@ -22,6 +23,7 @@ export const status = {
   },
   Mikiri: {
     name: '見切り',
+    icon: 'visibility',
     description: '物理与ダメージ30%低下',
     ContinuousTurns: 2,
     // 与ダメージ減少。攻撃上昇(正)と同一の合成式を使うため負値を掛け合わせる形で蓄積
@@ -38,6 +40,7 @@ export const status = {
   },
   Poison: {
     name: '毒',
+    icon: 'dew_point',
     description: 'ターン開始時に3ダメージ (3ターン)',
     ContinuousTurns: 3,
     // 毒は多重化: 残ターンが異なる個別インスタンスとして保持
@@ -53,6 +56,7 @@ export const status = {
   },
   AttackUp: {
     name: '攻撃力上昇',
+    icon: 'trending_up',
     description: '物理ダメージ30%アップ',
     ContinuousTurns: 3,
     // 攻撃上昇も個別インスタンス化 (1インスタンス=+20%)

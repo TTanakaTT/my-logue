@@ -22,6 +22,7 @@
 
   // Local component imports
   import TooltipBadge from './TooltipBadge.svelte';
+  import TooltipBadgeGroup from './TooltipBadgeGroup.svelte';
   import PanelEffectLayer from './PanelEffectLayer.svelte';
   import FloatingNumbersLayer from './FloatingNumbersLayer.svelte';
   import Icon from './Icon.svelte';
@@ -290,7 +291,7 @@
 </script>
 
 <div
-  class={`rounded-lg px-2 py-1 text-xs space-y-1 bg-neutral-800/40 border-2 shadow-sm w-[170px] panel-side-${side}`}
+  class={`relative rounded-lg px-2 py-1 text-xs space-y-1 bg-neutral-800/40 border-2 shadow-sm w-[170px] panel-side-${side}`}
 >
   {#if panelKey}
     <PanelEffectLayer {panelKey} />
@@ -315,15 +316,17 @@
         <div class="row-span-2 mt-1 flex flex-col items-center">
           <span class="text-gray-400">{o.label}</span>
           {#if o.key === 'hp'}
-            <span class={hpClass} style={`color: ${hpColor}`}>
-              {typeof displayedHp === 'number' ? Math.round(displayedHp) : displayedHp}
-            </span>
+            <div class="relative inline-flex items-center justify-center">
+              <span class={hpClass} style={`color: ${hpColor}`}>
+                {typeof displayedHp === 'number' ? Math.round(displayedHp) : displayedHp}
+              </span>
+              <div class="pointer-events-none absolute -translate-y-2 z-60">
+                <FloatingNumbersLayer {panelKey} />
+              </div>
+            </div>
           {:else}
             <span>{getDisplayedAttribute(o.key)}</span>
           {/if}
-          <div class="pointer-events-none absolute left-1/2 -top-1 z-60">
-            <FloatingNumbersLayer {panelKey} />
-          </div>
         </div>
       {/each}
     {/if}
@@ -334,6 +337,7 @@
       </div>
     {/each}
   </div>
+
   {#if actor}
     <div class="w-full flex flex-col gap-1">
       <div class="flex items-center gap-2 text-orange-200">
@@ -384,33 +388,50 @@
       {/if}
       <span class="text-gray-400">)</span>
     </div>
-    <div class="flex flex-wrap gap-1">
+    <TooltipBadgeGroup let:compact>
       {#each actionInfos as a (a.id)}
-        <TooltipBadge
-          badgeClass={`${a.isExposed ? 'bg-emerald-700/70 border border-emerald-400/50' : a.isObserved ? 'bg-sky-700/70 border border-sky-400/50' : 'bg-gray-700/60'}`}
-          description={a.description}
-          revealed={a.revealed}
-          >{a.name}
-        </TooltipBadge>
+        {#key a.id}
+          <TooltipBadge
+            badgeClass={`${a.isExposed ? 'bg-emerald-700/70 border border-emerald-400/50' : a.isObserved ? 'bg-sky-700/70 border border-sky-400/50' : 'bg-gray-700/60'}`}
+            description={compact && a.name && a.description
+              ? `${a.name}\n${a.description}`
+              : a.description}
+            revealed={a.revealed}
+          >
+            <Icon icon={getAction(a.id)?.icon || ''} size={16} />
+            <span class="ml-0.5 group-aria-[expanded=false]:hidden">{a.name}</span>
+          </TooltipBadge>
+        {/key}
       {/each}
-    </div>
+    </TooltipBadgeGroup>
   </div>
-  <div class="flex flex-wrap gap-1">
+  <TooltipBadgeGroup let:compact>
     {#each groupedStatuses as g (g.status.id + ':' + (g.status.remainingTurns ?? 'inf'))}
       {#if status[g.status.id]}
-        <TooltipBadge
-          badgeClass={`${status[g.status.id].badgeClass ?? ''} border px-1`}
-          description={status[g.status.id].description}
-          >{`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
-        </TooltipBadge>
+        {#key g.status.id + ':' + (g.status.remainingTurns ?? 'inf')}
+          <TooltipBadge
+            badgeClass={`${status[g.status.id].badgeClass ?? ''} border px-1`}
+            description={compact
+              ? `${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}\n${status[g.status.id].description}`
+              : status[g.status.id].description}
+          >
+            <Icon icon={status[g.status.id].icon || ''} size={16} />
+            <span class="ml-0.5 group-aria-[expanded=false]:hidden">
+              {`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
+            </span>
+          </TooltipBadge>
+        {/key}
       {:else}
         <TooltipBadge
           badgeClass="bg-gray-600/60 border border-red-400 px-1"
-          description={m.ui_undefined_status()}>{g.status.id}</TooltipBadge
+          description={m.ui_undefined_status()}
         >
+          <Icon icon="help" size={16} />
+          <span class="ml-0.5 group-aria-[expanded=false]:hidden">{g.status.id}</span>
+        </TooltipBadge>
       {/if}
     {/each}
-  </div>
+  </TooltipBadgeGroup>
 </div>
 
 {#if showDetail && actor}

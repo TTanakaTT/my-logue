@@ -15,10 +15,9 @@
   export let effectiveAttributes: Record<CharacterAttributeKey, number> | undefined = undefined;
   export let onClose: (() => void) | undefined = undefined;
 
-  // 敵の公開可否（モーダルでも厳格に）
   function isAttributeRevealed(key: CharacterAttributeKey): boolean {
-    if (!actor) return true; // アクターでなければ公開対象外（キャラ定数表示）
-    if (!isEnemy(actor)) return true; // 味方は常に公開
+    if (!actor) return true;
+    if (!isEnemy(actor)) return true;
     return actor.isExposed || Boolean(actor.revealedAttributes?.includes(key));
   }
 
@@ -32,7 +31,6 @@
     (a, b) => b.rarity - a.rarity || a.id.localeCompare(b.id)
   );
 
-  // 表示用: 補正ステータス行（o.key/o.label ごと）
   type AttributeRow = {
     key: CharacterAttributeKey;
     label: string;
@@ -51,7 +49,6 @@
       })
     : ([] as AttributeRow[]);
 
-  // 行動回数（base -> eff (+/-delta)）
   type StatRow = { title: string; base?: number; eff: number; delta?: number };
   $: actionRow = actor
     ? ({
@@ -64,7 +61,6 @@
       } satisfies StatRow)
     : null;
 
-  // 選択肢数（プレイヤーのみ表示）
   $: choicesRow =
     actor && isPlayer(actor)
       ? (() => {
@@ -103,17 +99,14 @@
     : [];
 </script>
 
-<!-- モーダル: 背景 -->
 <div
-  class="fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4"
+  class="fixed inset-0 z-1000 bg-black/60 flex items-center justify-center p-4"
   role="dialog"
   aria-modal="true"
 >
-  <!-- モーダル: 本体（高さは画面内に収めて中身をスクロール） -->
   <div
     class="bg-neutral-800 text-sm rounded-lg shadow-lg border border-neutral-600 w-full max-w-xl max-h-[90vh] flex flex-col"
   >
-    <!-- ヘッダ -->
     <div class="flex items-center justify-between px-4 py-3 border-b border-neutral-700 shrink-0">
       <div class="font-semibold">{character.name}</div>
       <button
@@ -126,9 +119,7 @@
       </button>
     </div>
 
-    <!-- 本文: スクロール領域 -->
     <div class="px-4 pt-2 pb-7 space-y-4 overflow-y-auto">
-      <!-- 補正ステータス -->
       <div>
         <div class="grid gap-x-4 gap-y-1 grid-cols-3 sm:grid-cols-6">
           {#if actor}
@@ -188,7 +179,6 @@
         </div>
       </div>
 
-      <!-- 所持鉱石 -->
       <div>
         <div class="text-gray-400 mb-2">{m.ui_items()}</div>
         {#if !actor}
