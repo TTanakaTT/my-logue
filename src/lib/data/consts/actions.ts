@@ -7,6 +7,7 @@ import { isEnemy } from '$lib/domain/entities/character';
 export const action = {
   Strike: {
     name: 'ストライク',
+    icon: 'destruction',
     description: 'STRで相手に攻撃 (クリティカル: ダメージ2倍)',
     normalLog: ({ actor, target }) => {
       if (!target) return '攻撃対象はもういない...';
@@ -25,6 +26,7 @@ export const action = {
   },
   Curse: {
     name: '呪う',
+    icon: 'skull',
     description: 'POWで相手に攻撃 (クリティカル: ダメージ2倍)',
     cooldownTurns: 1,
     normalLog: ({ actor, target }) => {
@@ -44,6 +46,7 @@ export const action = {
   },
   Guard: {
     name: 'ガード',
+    icon: 'shield',
     description: '次のターンまでダメージ半減 (クリティカル: 75%カット)',
     normalLog: () => '防御態勢を取った！',
     criticalLog: () => 'クリティカル防御！完璧な構えで身を固めた！',
@@ -57,6 +60,7 @@ export const action = {
   },
   FirstAid: {
     name: '応急処置',
+    icon: 'healing',
     description: 'DEXで自分に応急処置 (クリティカル: 回復量2倍)',
     normalLog: ({ actor }) => `${actor.characterAttributes.DEX}の器用さで応急処置を行なった。`,
     criticalLog: ({ actor }) =>
@@ -70,6 +74,7 @@ export const action = {
   },
   Poison: {
     name: 'ポイズンダート',
+    icon: 'dew_point',
     description: '敵に毒 (3ターン) を付与 (クリティカル: 2スタック付与)',
     normalLog: () => '毒を投げた',
     criticalLog: () => 'クリティカルヒット！濃い毒を浴びせた！',
@@ -85,6 +90,7 @@ export const action = {
   },
   Insight: {
     name: '洞察',
+    icon: 'insights',
     description: '相手を洞察し見切りを付与(物理/精神与ダメ-30%) (クリティカル: 物理/精神与ダメ-51%',
     normalLog: ({ target }) => {
       if (!target) return '対象はもういない...';

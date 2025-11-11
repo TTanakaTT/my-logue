@@ -4,6 +4,8 @@ import type { status } from '$lib/data/consts/statuses';
 export interface StatusDef {
   name: string; // UI表示
   description: string;
+  /** Material Symbols icon name for UI (outlined set). */
+  icon?: string;
   /** ターン開始時に呼ばれる継続効果 */
   apply?: (actor: Actor) => void;
   /** 継続ターン (undefined: 永続) */

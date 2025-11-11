@@ -1,7 +1,7 @@
 <script lang="ts">
   export let description: string = '';
   export let badgeClass: string = '';
-  export let revealed: boolean = true; // アクション未公開など
+  export let revealed: boolean = true;
   export let autoHideMs: number = 100000;
 
   let open = false;

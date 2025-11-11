@@ -11,7 +11,7 @@
     <Icon
       icon={e.effect.icon}
       size={EFFECT_SIZE}
-      additionalClass="{e.effect.effectClass} opacity-90 select-none"
+      additionalClass={`${e.effect.effectClass} opacity-90 select-none`}
     />
   {/each}
 </div>
