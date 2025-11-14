@@ -1,11 +1,10 @@
 <script lang="ts">
   import type { DisplayLogEntry } from '$lib/presentation/utils/log_util';
   import { displayLogs } from '$lib/presentation/utils/log_util';
-  // Svelteの$store構文
   $: logs = $displayLogs as DisplayLogEntry[];
 </script>
 
-<div class="text-sm leading-tight h-30 overflow-auto bg-logbg p-2 rounded-md flex flex-col gap-1">
+<div class="text-sm leading-tight h-30 overflow-auto bg-panel p-2 rounded-md flex flex-col gap-1">
   {#each logs as entry (entry.id)}
     <div class="flex items-center flex-wrap gap-1">
       <span
