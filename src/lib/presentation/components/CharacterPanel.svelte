@@ -291,7 +291,7 @@
 </script>
 
 <div
-  class={`relative rounded-lg px-2 py-1 text-xs space-y-1 bg-neutral-800/40 border-2 shadow-sm w-[170px] panel-side-${side}`}
+  class={`relative rounded-lg p-2 text-xs space-y-1 bg-neutral-800/40 border-2 shadow-sm w-[170px] panel-side-${side}`}
 >
   {#if panelKey}
     <PanelEffectLayer {panelKey} />
@@ -309,6 +309,38 @@
       </button>
     {/if}
   </div>
+
+  {#if actor}
+    <div class="absolute left-1/2 -translate-x-1/2 -top-3 z-20 w-full">
+      <TooltipBadgeGroup let:compact>
+        {#each groupedStatuses as g (g.status.id + ':' + (g.status.remainingTurns ?? 'inf'))}
+          {#if status[g.status.id]}
+            {#key g.status.id + ':' + (g.status.remainingTurns ?? 'inf')}
+              <TooltipBadge
+                badgeClass={`${status[g.status.id].badgeClass ?? ''} border px-1`}
+                description={compact
+                  ? `${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}\n${status[g.status.id].description}`
+                  : status[g.status.id].description}
+              >
+                <Icon icon={status[g.status.id].icon || ''} size={16} />
+                <span class="ml-0.5 group-aria-[expanded=false]:hidden">
+                  {`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
+                </span>
+              </TooltipBadge>
+            {/key}
+          {:else}
+            <TooltipBadge
+              badgeClass="bg-gray-600/60 border border-red-400 px-1"
+              description={m.ui_undefined_status()}
+            >
+              <Icon icon="help" size={16} />
+              <span class="ml-0.5 group-aria-[expanded=false]:hidden">{g.status.id}</span>
+            </TooltipBadge>
+          {/if}
+        {/each}
+      </TooltipBadgeGroup>
+    </div>
+  {/if}
 
   <div class="grid grid-flow-col grid-rows-2 gap-1">
     {#if actor}
@@ -405,33 +437,6 @@
       {/each}
     </TooltipBadgeGroup>
   </div>
-  <TooltipBadgeGroup let:compact>
-    {#each groupedStatuses as g (g.status.id + ':' + (g.status.remainingTurns ?? 'inf'))}
-      {#if status[g.status.id]}
-        {#key g.status.id + ':' + (g.status.remainingTurns ?? 'inf')}
-          <TooltipBadge
-            badgeClass={`${status[g.status.id].badgeClass ?? ''} border px-1`}
-            description={compact
-              ? `${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}\n${status[g.status.id].description}`
-              : status[g.status.id].description}
-          >
-            <Icon icon={status[g.status.id].icon || ''} size={16} />
-            <span class="ml-0.5 group-aria-[expanded=false]:hidden">
-              {`${status[g.status.id].name}${g.count > 1 ? `x${g.count}` : ''}${g.status.remainingTurns !== undefined ? `(${g.status.remainingTurns})` : ''}`}
-            </span>
-          </TooltipBadge>
-        {/key}
-      {:else}
-        <TooltipBadge
-          badgeClass="bg-gray-600/60 border border-red-400 px-1"
-          description={m.ui_undefined_status()}
-        >
-          <Icon icon="help" size={16} />
-          <span class="ml-0.5 group-aria-[expanded=false]:hidden">{g.status.id}</span>
-        </TooltipBadge>
-      {/if}
-    {/each}
-  </TooltipBadgeGroup>
 </div>
 
 {#if showDetail && actor}
