@@ -14,7 +14,7 @@ import {
   getRewardsForEnemy,
   getRewardsForRewardNode
 } from '$lib/data/repositories/reward_repository';
-import { tickStatusesTurnStart } from '$lib/data/consts/statuses';
+import { tickStatusesTurnEnd, tickStatusesTurnStart, onBattleEnd } from '$lib/data/consts/statuses';
 import { createCompanionRepository } from '$lib/data/repositories/companion_repository';
 import { getOrCreateFloorLayout } from '$lib/domain/services/floor_generation_service';
 import type { FloorLayout, FloorNode } from '$lib/domain/entities/floor';
@@ -107,12 +107,16 @@ export function createEnemy(kind: 'normal' | 'elite' | 'boss', floorIndex: numbe
   e.hp = calcMaxHP(e);
   /**
    * Scenario (documentation):
-   * 1. 初回遭遇: observed_charactor_actions に該当名が無ければ actions は全て不明扱い (exposedActions 空)。
-   * 2. 敵が行動 → action_executor で個別に addObservedActions し観測済みアクションが徐々に増える。
-   * 3. プレイヤーが "Observed" 実行 → markCharactorExposed + 全アクション addObservedActions → 次回以降
-   *    createEnemy 時点で全能力値 & 全アクション公開。
-   * 4. バージョンが上がると別バージョン用キーになるため、旧バージョン情報は新バージョンでは参照されない
-   *    (ゲームバランス変更に伴う再収集を許容)。必要ならマイグレーションを将来実装可能。
+   * 1. First encounter: if the character name is not present in observed_charactor_actions,
+   *    all actions are considered unknown (exposedActions is empty).
+   * 2. When an enemy performs an action, action_executor calls addObservedActions for that
+   *    enemy, gradually increasing the set of observed actions.
+   * 3. When the player uses "Insight" (Observed), markCharactorExposed is called and all
+   *    actions are added via addObservedActions, so subsequent createEnemy calls will
+   *    reveal all stats and actions for that enemy.
+   * 4. When the application version increases, storage keys include the version prefix,
+   *    so data from older versions will not be read by the new version. This permits
+   *    re-collection after game-balance changes. Implement migration later if needed.
    */
   const exposedIds = loadExposedCharactors();
   const observedMap = loadObservedActionsMap();
@@ -196,10 +200,10 @@ export function selectCompanion(state: GameState, id: string) {
       characterAttributes: target.characterAttributes,
       actions: [...target.actions]
     },
-    physDamageCutRate: 0,
-    psyDamageCutRate: 0,
     physDamageUpRate: 0,
+    physDefenseUpRate: 0,
     psyDamageUpRate: 0,
+    psyDefenseUpRate: 0,
     actions: [...target.actions]
   };
   ally.hp = calcMaxHP(ally);
@@ -243,9 +247,9 @@ function resyncFromStore(state: GameState) {
 }
 
 /**
- * プレイヤー現在値を CompanionRepository へ保存する共通処理。
- * ゲームオーバー/勝利双方で呼び出し。
- * 失敗してもゲーム進行へ影響しない。
+ * Common routine to save the player's current snapshot to the CompanionRepository.
+ * Invoked on both game over and victory.
+ * Failure is non-fatal and does not affect game progression.
  */
 function savePlayerAsCompanion(state: GameState) {
   try {
@@ -407,24 +411,16 @@ export async function combatAction(state: GameState, id: Action) {
     commit(state);
     return;
   }
-  if (id === 'Insight') {
-    const enemy0 = state.enemies[0];
-    if (enemy0) {
-      const allActs = enemy0.actions.slice();
-      enemy0.observedActions = allActs.slice();
-      enemy0.isExposed = true;
-      markCharactorExposed(enemy0.id);
-      addObservedActions(enemy0.id, allActs);
-      state.insightRewardActions = Array.from(
-        new Set([...(state.insightRewardActions || []), ...allActs])
-      );
-    }
-    commit(state);
-  }
+
   if (state.actionUseCount >= state.player.characterAttributes.maxActionsPerTurn) {
     await alliesTurn(state);
     if (state.phase !== 'combat') {
       commit(state);
+      return;
+    }
+    const playerSideAlive = handlePlayerSideTurnEnd(state);
+    commit(state);
+    if (!playerSideAlive) {
       return;
     }
     await enemiesTurn(state);
@@ -463,8 +459,31 @@ async function alliesTurn(state: GameState) {
   }
 }
 
+function handlePlayerSideTurnEnd(state: GameState): boolean {
+  const actors: Actor[] = [state.player, ...state.allies];
+  let playerDead = false;
+  for (const actor of actors) {
+    if (actor.hp <= 0) continue;
+    tickStatusesTurnEnd(actor);
+    if (actor.hp <= 0) {
+      if (actor === state.player) {
+        playerDead = true;
+        state.phase = 'gameover';
+        pushLog('状態異常で倒れた...', 'system');
+        savePlayerAsCompanion(state);
+      } else {
+        pushLog('味方が状態異常で倒れた...', 'combat');
+      }
+    }
+  }
+  state.allies = state.allies.filter((a: Actor) => a.hp > 0).map((a) => ({ ...a }));
+  state.player = { ...state.player };
+  return !playerDead;
+}
+
 async function enemiesTurn(state: GameState) {
-  for (const enemy of state.enemies.filter((e: Actor) => e.hp > 0)) {
+  for (const enemy of [...state.enemies]) {
+    if (enemy.hp <= 0) continue;
     tickStatusesTurnStart(enemy);
     if (enemy.hp <= 0) {
       pushLog('敵を継続ダメージで倒した!', 'combat');
@@ -473,9 +492,9 @@ async function enemiesTurn(state: GameState) {
         commit(state);
         return;
       }
+      continue;
     }
-  }
-  for (const enemy of state.enemies.filter((e: Actor) => e.hp > 0)) {
+
     const acted: Action[] = [];
     const maxActs = enemy.characterAttributes.maxActionsPerTurn;
     for (let i = 0; i < maxActs; i++) {
@@ -484,15 +503,29 @@ async function enemiesTurn(state: GameState) {
       const act = candidates[Math.floor(Math.random() * candidates.length)];
       acted.push(act);
       const livingAllies: Actor[] = [state.player, ...state.allies].filter((a) => a.hp > 0);
+      if (livingAllies.length === 0) break;
       const target = livingAllies[Math.floor(Math.random() * livingAllies.length)];
       performAction(state, enemy, target, act);
       commit(state);
       await waitForAnimationsComplete();
       resyncFromStore(state);
-      if (state.player.hp <= 0) break;
+      if (state.phase !== 'combat' || state.player.hp <= 0) break;
     }
-    if (state.player.hp <= 0) break;
+
+    if (enemy.hp > 0) {
+      tickStatusesTurnEnd(enemy);
+      if (enemy.hp <= 0) {
+        pushLog('敵が状態異常で倒れた!', 'combat');
+        removeDeadActors(state);
+        if (state.phase !== 'combat') {
+          commit(state);
+          return;
+        }
+      }
+    }
+    if (state.phase !== 'combat' || state.player.hp <= 0) break;
   }
+
   state.player = { ...state.player };
   if (state.player.hp <= 0) {
     state.phase = 'gameover';
@@ -501,7 +534,6 @@ async function enemiesTurn(state: GameState) {
       state.highestFloor = state.floorIndex + 1;
       localStorage.setItem(HIGH_KEY, String(state.highestFloor));
     }
-    // プレイヤーを仲間候補として保存
     savePlayerAsCompanion(state);
   }
 }
@@ -510,6 +542,8 @@ function removeDeadActors(state: GameState) {
   const before = state.enemies.length;
   state.enemies = state.enemies.filter((e: Actor) => e.hp > 0);
   if (before > 0 && state.enemies.length === 0) {
+    onBattleEnd(state.player);
+    state.allies.forEach((ally) => onBattleEnd(ally));
     state.selectedEnemyIndex = undefined;
     const kind = state.currentEncounterKind ?? 'normal';
     state.phase = 'progress';
@@ -519,8 +553,8 @@ function removeDeadActors(state: GameState) {
 }
 
 /**
- * プレイヤーターン開始処理。
- * @returns boolean プレイヤーが行動可能なら true / ゲームオーバーなら false
+ * Start processing for the player's turn.
+ * @returns boolean true if the player can act; false if the game is over.
  */
 function startTurn(state: GameState) {
   const actors: Actor[] = [state.player, ...state.allies];
@@ -532,17 +566,14 @@ function startTurn(state: GameState) {
         playerDead = true;
         state.phase = 'gameover';
         pushLog('毒で倒れた...', 'system');
-        // ゲームオーバー時プレイヤーを仲間候補として保存
         savePlayerAsCompanion(state);
-        break; // 以降の味方 tick は不要
+        break;
       } else {
-        // 味方死亡: ログのみ。ループは続行し他の味方やプレイヤーを処理。
         pushLog('味方が継続ダメージで倒れた...', 'combat');
       }
     }
   }
 
-  // 死亡味方の除去 (ループ後にまとめて反映)
   state.allies = state.allies.filter((a: Actor) => a.hp > 0);
 
   if (playerDead) {
@@ -590,7 +621,7 @@ export function pickReward(state: GameState, id: string) {
   state.phase = 'progress';
   state.rewardOptions = undefined;
   state.rewardIsBoss = false;
-  // 次の利用可能ステップへ (循環 + 空ステップスキップ)
+
   advanceToNextAvailableStep(state);
 }
 
@@ -602,6 +633,5 @@ export function restChoice(state: GameState) {
   state.player.hp = Math.min(max, state.player.hp + amount);
   pushLog(`休憩で${state.player.hp - before}回復`, 'rest');
 
-  // rest ノードも消費済みなので次へ
   advanceToNextAvailableStep(state);
 }
