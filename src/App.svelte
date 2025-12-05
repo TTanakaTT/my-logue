@@ -63,7 +63,7 @@
 </main>
 
 <footer class="sticky z-0 bottom-0 py-1 px-4">
-  <section class="w-full max-w-5xl mb-4 px-2 z-10 flex justify-center">
+  <section class="mx-auto w-full max-w-5xl mb-4 px-2 z-10 flex justify-center">
     <ControlPanel
       gameStateValue={$gameState}
       uiAnimatingValue={$uiAnimating}

@@ -3,7 +3,6 @@
   import {
     gameState,
     combatAction,
-    commitPlayerName,
     selectCompanion,
     skipCompanionSelection
   } from '$lib/domain/services/state_service';
@@ -16,7 +15,6 @@
   import { getAction } from '$lib/data/repositories/action_repository';
   import GraphView from '$lib/presentation/components/GraphView.svelte';
   import CharacterPanel from '$lib/presentation/components/CharacterPanel.svelte';
-  import Icon from '$lib/presentation/components/Icon.svelte';
   import type { GameState } from '$lib/domain/entities/battle_state';
 
   export let gameStateValue: GameState;
@@ -26,7 +24,7 @@
 </script>
 
 <section
-  class={`mt-4 bg-panel/80 border border-gray-700 rounded-xl p-4 shadow-inner mx-auto transition-[width,max-width] duration-500 ease-out ${gameStateValue.phase === 'progress' ? 'w-full max-w-5xl' : 'inline-flex flex-col items-stretch max-w-3xl'}`}
+  class={`mt-4 bg-panel/80 border border-gray-700 rounded-xl p-4 shadow-inner  transition-[width,max-width] duration-500 ease-out ${gameStateValue.phase === 'progress' ? 'w-full max-w-5xl' : 'inline-flex flex-col items-stretch max-w-3xl'}`}
 >
   {#if gameStateValue.phase === 'companion_select'}
     <h2 class="mt-0 text-lg font-semibold mb-2">{m.companion_select_title()}</h2>
