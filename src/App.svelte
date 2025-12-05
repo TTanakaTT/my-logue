@@ -37,13 +37,13 @@
     <div class="flex flex-row gap-4 flex-nowrap items-stretch">
       <div class="flex-1 flex flex-row-reverse gap-2 flex-wrap justify-start">
         {#key [$gameState.player.characterAttributes.STR, $gameState.player.characterAttributes.CON, $gameState.player.characterAttributes.POW, $gameState.player.characterAttributes.DEX, $gameState.player.characterAttributes.APP, $gameState.player.characterAttributes.INT, $gameState.player.statuses
-            .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
+            .map((d) => `${d.id}:${d.count ?? 0}`)
             .join(',')].join('|')}
           <CharacterPanel character={$gameState.player} side="player" panelKey="player" />
         {/key}
         {#each $gameState.allies as ally, i (i)}
           {#key [ally.characterAttributes.STR, ally.characterAttributes.CON, ally.characterAttributes.POW, ally.characterAttributes.DEX, ally.characterAttributes.APP, ally.characterAttributes.INT, ally.statuses
-              .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
+              .map((d) => `${d.id}:${d.count ?? 0}`)
               .join(',')].join('|')}
             <CharacterPanel character={ally} side="player" panelKey={`ally-${i}`} />
           {/key}
@@ -52,7 +52,7 @@
       <div class="flex-1 flex flex-row gap-2 flex-wrap justify-start">
         {#each $gameState.enemies as enemy, i (i)}
           {#key [enemy.characterAttributes, enemy.statuses
-              .map((d) => d.id + ':' + (d.remainingTurns ?? 'inf'))
+              .map((d) => `${d.id}:${d.count ?? 0}`)
               .join(',')].join('|')}
             <CharacterPanel character={enemy} side="enemy" panelKey={`enemy-${i}`} />
           {/key}

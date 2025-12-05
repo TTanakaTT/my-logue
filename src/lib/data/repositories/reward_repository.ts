@@ -4,7 +4,6 @@ import type { GameState, RewardOption } from '$lib/domain/entities/battle_state'
 import type { Action } from '$lib/domain/entities/action';
 import { calcMaxHP } from '$lib/domain/services/attribute_service';
 import { pushLog } from '$lib/presentation/utils/log_util';
-import { addStatus, findStatus, removeStatus } from '$lib/data/consts/statuses';
 import { shuffle } from '$lib/utils/array_util';
 import {
   awardMineral,
@@ -24,12 +23,12 @@ import { m } from '$lib/paraglide/messages';
 // enemy_{actorKind} / node_reward を許容
 type RawKind = `enemy_${string}` | 'node_reward';
 interface RewardRow {
-  id: number; // 数値連番
-  name: string; // 論理名
+  id: number;
+  name: string;
   kind: RawKind;
   label: string;
-  floorMin?: number; // 出現下限
-  floorMax?: number; // 出現上限
+  floorMin?: number;
+  floorMax?: number;
 }
 
 interface RewardDetailRow {
@@ -84,7 +83,7 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
         const ok = awardMineral(s.player, d.target);
         if (ok) pushLog(`${d.target}を獲得`, 'system');
       }
-      // 即時反映: 参照更新でSvelteの再計算を促す
+
       s.player = { ...s.player };
       break;
     }
@@ -103,34 +102,11 @@ function applyDetail(s: GameState, d: RewardDetailRow) {
       break;
     }
     case 'action': {
-      // 追加アクション (現在仕様未使用) value=add/ensure
-      const mode = d.value || 'add';
       const act = d.target as Action;
       if (!s.player.actions.includes(act)) {
         s.player.actions.push(act);
         pushLog(`新アクション取得: ${act}`, 'system');
-      } else if (mode === 'ensure') {
-        // 既にある場合は何もしない
       }
-      break;
-    }
-    case 'dots': {
-      // 現在 poison のみ想定。value=0 で解除
-      if (d.target !== 'poison') {
-        pushLog(`未知の継続効果: ${d.target} (未対応)`, 'system');
-        break;
-      }
-      if (d.value === '0') {
-        const ex = findStatus(s.player, 'Poison');
-        if (ex) {
-          removeStatus(s.player, 'Poison');
-          pushLog('poison 解除', 'system');
-        }
-        break;
-      }
-      // value のダメージ/ターン数は現状固定実装のため無視 (将来 poison 強化用に利用可)
-      addStatus(s.player, 'Poison');
-      pushLog('poison 付与', 'system');
       break;
     }
   }
@@ -179,21 +155,20 @@ function pickMineralForDetail(state: GameState, d: RewardDetailRow): Mineral | u
     const picked = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : undefined;
     return picked;
   }
-  // target が特定IDの場合
   const byId = getMineral(d.target);
   return byId;
 }
 
 /**
- * 指定の敵種別に対する報酬候補を生成する。
- * 1. rewards.csv から kind (= enemy_*) に一致し、floor 範囲 (floorMin/floorMax) を満たす行を抽出
- * 2. action 報酬で既に所持しているものを除外
- * 3. ボス戦で 1F 限定の行動回数+1 報酬 (act_slot_up1) を強制的に含め、残りをランダムで補完
- * 4. 最大3件 (限定含む) を返す
+ * Generate reward candidates for a specific enemy kind.
+ * 1. Select rows from rewards.csv where kind matches `enemy_*` and the floor is within floorMin/floorMax.
+ * 2. Exclude action-type rewards the player already owns.
+ * 3. For boss fights, force-include the 'act_slot_up1' reward (1F-only) and fill the remaining slots randomly.
+ * 4. Return up to 3 entries (including any forced entries).
  */
 export function getRewardsForEnemy(state: GameState, enemyKind: string): RewardOption[] {
   const rawKind = `enemy_${enemyKind}` as RawKind;
-  const floor = state.floorIndex; // 0-index
+  const floor = state.floorIndex;
   const candidates = rewardRows.filter((r) => {
     if (r.kind !== rawKind) return false;
     if (r.floorMin !== undefined && floor < r.floorMin) return false;
@@ -201,7 +176,6 @@ export function getRewardsForEnemy(state: GameState, enemyKind: string): RewardO
     return true;
   });
 
-  // アクション報酬のうち既所持のものは除外
   const filtered = candidates.filter((row) => {
     const details = detailRows.filter((d) => d.rewardName === row.name);
     const actionDetail = details.find((d) => d.type === 'action');
@@ -212,7 +186,6 @@ export function getRewardsForEnemy(state: GameState, enemyKind: string): RewardO
     return true;
   });
 
-  // ボス戦かつ限定報酬(行動回数+1) が候補内にある場合は必ず含める
   const limited: RewardRow[] = [];
   if (enemyKind === 'boss') {
     const actSlot = filtered.find((r) => r.name === 'act_slot_up1');
@@ -241,7 +214,6 @@ export function getRewardsForEnemy(state: GameState, enemyKind: string): RewardO
         } satisfies RewardOption;
       }
     }
-    // フォールバック: 既存の仕組み
     return {
       id: String(row.id),
       label: row.label,
@@ -254,8 +226,10 @@ export function getRewardsForEnemy(state: GameState, enemyKind: string): RewardO
 }
 
 /**
- * 報酬ノード用の報酬候補を生成する。
- * rewards.csv の kind='node_reward' に一致し、floor範囲を満たす行から最大3件を返す。
+ * Generate reward candidates for a reward node.
+ * Returns up to 3 entries from rewards.csv
+ * where kind === 'node_reward'
+ * and the floor is within the specified floorMin/floorMax range.
  */
 export function getRewardsForRewardNode(state: GameState): RewardOption[] {
   const floor = state.floorIndex; // 0-index

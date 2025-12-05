@@ -15,7 +15,7 @@ export function isActorSide(value: unknown): value is ActorSide {
   return typeof value === 'string' && (ACTOR_SIDES as readonly string[]).includes(value);
 }
 
-// キャラクターの能力値キー一覧（表示/加算処理で使用）
+// List of character attribute keys (used for display / addition operations)
 export const CHARACTER_ATTRIBUTES = [
   'STR',
   'CON',
@@ -34,7 +34,7 @@ export interface CharacterAttribute {
   DEX: number;
   APP: number;
   INT: number;
-  /** 1ターンに使用できる最大アクション数 */
+  /** Maximum number of actions usable per turn */
   maxActionsPerTurn: number;
 }
 export interface Character {
@@ -45,26 +45,26 @@ export interface Character {
 }
 
 /**
- * アクター (プレイヤー/敵) の共通型。
- * すべての一時効果は statuses に集約。
+ * Common actor type (player / enemy).
+ * All effects are gathered in `statuses`.
  */
 export interface Actor extends Character {
   kind: ActorKind;
   side: ActorSide;
   hp: number;
   statuses: StatusInstance[];
-  /** 補正前能力値 */
+  /** Base (unmodified) attributes */
   baseAttributes: Character;
-  /** 所持している鉱石のID一覧 */
+  /** IDs of held minerals */
   heldMineralIds: string[];
-  /** 物理ダメージカット率 (0~1) */
-  physDamageCutRate: number;
-  /** 精神ダメージカット率 (0~1) */
-  psyDamageCutRate: number;
-  /** 物理与ダメアップ率 (加算) */
+  /** Physical damage increase rate (additive) */
   physDamageUpRate: number;
-  /** 精神与ダメアップ率 (加算) */
+  /** Physical defense buff rate (additive) */
+  physDefenseUpRate: number;
+  /** Psychic damage increase rate (additive) */
   psyDamageUpRate: number;
+  /** Psychic defense buff rate (additive) */
+  psyDefenseUpRate: number;
 }
 
 export function isActor(value: Character): value is Enemy {
@@ -75,8 +75,8 @@ export function isActor(value: Character): value is Enemy {
     side,
     hp,
     statuses,
-    physDamageCutRate,
-    psyDamageCutRate,
+    physDefenseUpRate,
+    psyDefenseUpRate,
     physDamageUpRate,
     psyDamageUpRate
   } = value as Record<keyof Actor, unknown>;
@@ -87,15 +87,15 @@ export function isActor(value: Character): value is Enemy {
     typeof hp === 'number' &&
     Array.isArray(statuses) &&
     statuses.every((s) => isStatusInstance(s)) &&
-    typeof physDamageCutRate === 'number' &&
-    typeof psyDamageCutRate === 'number' &&
+    typeof physDefenseUpRate === 'number' &&
+    typeof psyDefenseUpRate === 'number' &&
     typeof physDamageUpRate === 'number' &&
     typeof psyDamageUpRate === 'number'
   );
 }
 
 export interface Player extends Actor {
-  /** 戦闘開始時に提示されるアクション選択肢数 */
+  /** Number of action choices presented at combat start */
   maxActionChoices: number;
 }
 
@@ -108,11 +108,11 @@ export function isPlayer(value: Actor): value is Player {
 }
 
 export interface Enemy extends Actor {
-  /** 情報開示済み */
+  /** Whether the enemy's information has been revealed */
   isExposed: boolean;
-  /** 公開済み能力値 */
+  /** Attributes that have been revealed */
   revealedAttributes?: Attribute[];
-  /** 使用により観測されたアクションID */
+  /** Action IDs observed through use */
   observedActions?: Action[];
 }
 

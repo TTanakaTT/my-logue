@@ -104,10 +104,10 @@ export function buildPlayerFromCsv(): Player {
       actions: [...row.actions]
     },
     heldMineralIds: [],
-    physDamageCutRate: 0,
-    psyDamageCutRate: 0,
     physDamageUpRate: 0,
+    physDefenseUpRate: 0,
     psyDamageUpRate: 0,
+    psyDefenseUpRate: 0,
     // row.actions は再起動間で共有されるためコピーして破壊的変更の伝播を防ぐ
     actions: [...row.actions],
     maxActionChoices: row.maxActionChoices
@@ -163,10 +163,10 @@ export function buildEnemyFromCsv(kind: 'normal' | 'elite' | 'boss', floorIndex:
       actions: [...row.actions]
     },
     heldMineralIds: [],
-    physDamageCutRate: 0,
-    psyDamageCutRate: 0,
     physDamageUpRate: 0,
+    physDefenseUpRate: 0,
     psyDamageUpRate: 0,
+    psyDefenseUpRate: 0,
     actions: [...row.actions],
     revealedAttributes: row.revealed.map((k) => k as Attribute) as Attribute[],
     isExposed: false
