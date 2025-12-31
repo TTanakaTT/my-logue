@@ -34,7 +34,12 @@
       "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
     "eslint.format.enable": true,
-    "svelte.enable-ts-plugin": true
+    "svelte.enable-ts-plugin": true,
+    "github.copilot.chat.commitMessageGeneration.instructions": [
+      {
+        "text": "Create an English commit message in a single line, following the Semantic Commit Message and Commit Message Guideline."
+      }
+    ]
   },
   "extensions": {
     "recommendations": [
