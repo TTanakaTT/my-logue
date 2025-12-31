@@ -1,10 +1,10 @@
-import { emitActionLog } from '$lib/presentation/utils/log_util';
-import { getAction } from '$lib/data/repositories/action_repository';
-import type { Action } from '$lib/domain/entities/action';
-import { isEnemy, type Actor } from '$lib/domain/entities/character';
-import type { GameState } from '$lib/domain/entities/battle_state';
-import { addObservedActions } from '$lib/domain/services/state_service';
-import { triggerActionEffects } from '$lib/presentation/utils/effect_bus';
+import { emitActionLog } from "$lib/presentation/utils/log_util";
+import { getAction } from "$lib/data/repositories/action_repository";
+import type { Action } from "$lib/domain/entities/action";
+import { isEnemy, type Actor } from "$lib/domain/entities/character";
+import type { GameState } from "$lib/domain/entities/battle_state";
+import { addObservedActions } from "$lib/domain/services/state_service";
+import { triggerActionEffects } from "$lib/presentation/utils/effect_bus";
 
 export interface PerformResult {
   actorDied?: Actor;
@@ -19,7 +19,7 @@ export function performAction(
   actor: Actor,
   target: Actor | undefined,
   id: Action,
-  opts?: { isCritical?: boolean }
+  opts?: { isCritical?: boolean },
 ): PerformResult | undefined {
   const def = getAction(id);
   if (!def) return;
@@ -39,14 +39,14 @@ export function performAction(
     if (!actor.observedActions.includes(id)) {
       actor.observedActions.push(id);
       observedAdded = true;
-      if (actor.kind !== 'player') {
+      if (actor.kind !== "player") {
         addObservedActions(actor.id, actor.observedActions);
       }
     }
   }
   const result: PerformResult = { observedAdded };
   if (target && target.hp <= 0) {
-    if (target.side === 'enemy') result.enemyDefeated = true;
+    if (target.side === "enemy") result.enemyDefeated = true;
     else result.playerDefeated = true;
     result.targetDied = target;
     result.actorDied = target;

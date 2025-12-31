@@ -1,12 +1,12 @@
 export const NODE_TYPES = [
-  'normal',
-  'elite',
-  'reward',
-  'rest',
-  'progress',
-  'boss',
-  'event',
-  'start'
+  "normal",
+  "elite",
+  "reward",
+  "rest",
+  "progress",
+  "boss",
+  "event",
+  "start",
 ] as const;
 export type NodeType = (typeof NODE_TYPES)[number];
 
@@ -14,7 +14,7 @@ export interface FloorNode {
   id: number;
   kind: NodeType;
   // normal / elite の戦闘区別 (kind===normal|elite の時のみ有効)
-  encounterKind?: 'normal' | 'elite' | 'boss';
+  encounterKind?: "normal" | "elite" | "boss";
 }
 
 /** Undirected edge between two nodes (no self-loop, no multi-edge) */

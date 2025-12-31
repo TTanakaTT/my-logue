@@ -1,9 +1,9 @@
-import mineralsCsvRaw from '$lib/data/consts/minerals.csv?raw';
-import mineralsDetailCsvRaw from '$lib/data/consts/mineral_detail.csv?raw';
-import type { Mineral, MineralRarity } from '$lib/domain/entities/mineral';
-import { parseCsv } from '$lib/data/repositories/utils/csv_util';
-import { isActionId } from '$lib/domain/entities/action';
-import { getLocale } from '$lib/paraglide/runtime';
+import mineralsCsvRaw from "$lib/data/consts/minerals.csv?raw";
+import mineralsDetailCsvRaw from "$lib/data/consts/mineral_detail.csv?raw";
+import type { Mineral, MineralRarity } from "$lib/domain/entities/mineral";
+import { parseCsv } from "$lib/data/repositories/utils/csv_util";
+import { isActionId } from "$lib/domain/entities/action";
+import { getLocale } from "$lib/paraglide/runtime";
 
 interface RawRowMineral {
   nameEn: string;
@@ -25,7 +25,7 @@ const mineralRows: RawRowMineral[] = parseCsv(mineralsCsvRaw)
   .map((cols) => {
     const [nameEn, nameJa, nameKana, category, rarityStr, disabledStr] = cols;
     const rarity = Number(rarityStr);
-    const disabled = disabledStr.toLowerCase() === 'true' || disabledStr === '1';
+    const disabled = disabledStr.toLowerCase() === "true" || disabledStr === "1";
     return { nameEn, nameJa, nameKana, category, rarity, disabled } as RawRowMineral;
   })
   .filter((r) => !r.disabled);
@@ -34,14 +34,14 @@ const detailRows: RawRowDetail[] = (() => {
   const parsed = parseCsv(mineralsDetailCsvRaw);
   const header = parsed[0];
   const body = parsed.slice(1);
-  const idxName = header.indexOf('mineralName');
-  const idxAttr = header.indexOf('attribute');
-  const idxVal = header.indexOf('value');
+  const idxName = header.indexOf("mineralName");
+  const idxAttr = header.indexOf("attribute");
+  const idxVal = header.indexOf("value");
   return body
     .map((cols) => ({
-      mineralNameEn: cols[idxName] || '',
-      attribute: cols[idxAttr] || '',
-      value: cols[idxVal] || ''
+      mineralNameEn: cols[idxName] || "",
+      attribute: cols[idxAttr] || "",
+      value: cols[idxVal] || "",
     }))
     .filter((r) => r.mineralNameEn);
 })();
@@ -52,14 +52,14 @@ function clampRarity(value: number): MineralRarity {
 }
 
 const ATTRIBUTES_KEYS = [
-  'STR',
-  'CON',
-  'POW',
-  'DEX',
-  'APP',
-  'INT',
-  'maxActionsPerTurn',
-  'maxActionChoices'
+  "STR",
+  "CON",
+  "POW",
+  "DEX",
+  "APP",
+  "INT",
+  "maxActionsPerTurn",
+  "maxActionChoices",
 ] as const;
 
 type MineralAttributeKey = (typeof ATTRIBUTES_KEYS)[number];
@@ -75,14 +75,14 @@ const detailsByEnName: Record<string, RawRowDetail[]> = detailRows.reduce(
     acc[key].push(row);
     return acc;
   },
-  {} as Record<string, RawRowDetail[]>
+  {} as Record<string, RawRowDetail[]>,
 );
 
 const all: Mineral[] = mineralRows.map((r) => {
   const id = r.nameEn;
   const mineral: Mineral = {
     id,
-    name: getLocale() === 'ja' ? r.nameJa : r.nameEn,
+    name: getLocale() === "ja" ? r.nameJa : r.nameEn,
     rarity: clampRarity(r.rarity),
     STR: 0,
     CON: 0,
@@ -92,12 +92,12 @@ const all: Mineral[] = mineralRows.map((r) => {
     INT: 0,
     maxActionsPerTurn: 0,
     maxActionChoices: 0,
-    grantedActions: []
+    grantedActions: [],
   };
 
-  const details = detailsByEnName[r.nameEn || ''] || [];
+  const details = detailsByEnName[r.nameEn || ""] || [];
   for (const d of details) {
-    if (d.attribute === 'action') {
+    if (d.attribute === "action") {
       const key = d.value?.trim();
       if (isActionId(key)) {
         mineral.grantedActions.push(key);

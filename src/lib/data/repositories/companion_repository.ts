@@ -1,5 +1,5 @@
-import { APP_VERSION } from '$lib/config/version';
-import type { Character } from '$lib/domain/entities/character';
+import { APP_VERSION } from "$lib/config/version";
+import type { Character } from "$lib/domain/entities/character";
 
 const STORAGE_VERSION_PREFIX = `version_${APP_VERSION}`;
 const STORAGE_KEY = `${STORAGE_VERSION_PREFIX}:companions`;
@@ -25,11 +25,11 @@ export interface CompanionRepository {
 
 export function createCompanionRepository(): CompanionRepository {
   function read(): Character[] {
-    if (typeof localStorage === 'undefined') return [];
+    if (typeof localStorage === "undefined") return [];
     return safeParse(localStorage.getItem(STORAGE_KEY));
   }
   function write(arr: Character[]) {
-    if (typeof localStorage === 'undefined') return;
+    if (typeof localStorage === "undefined") return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
   }
   return {
@@ -52,6 +52,6 @@ export function createCompanionRepository(): CompanionRepository {
     },
     clear() {
       write([]);
-    }
+    },
   };
 }

@@ -1,29 +1,29 @@
-import type { Action } from '$lib/domain/entities/action';
-import { isStatusInstance, type StatusInstance } from '$lib/domain/entities/status';
+import type { Action } from "$lib/domain/entities/action";
+import { isStatusInstance, type StatusInstance } from "$lib/domain/entities/status";
 
-export const ACTOR_KINDS = ['normal', 'elite', 'boss', 'player'];
+export const ACTOR_KINDS = ["normal", "elite", "boss", "player"];
 export type ActorKind = (typeof ACTOR_KINDS)[number];
 
 export function isActorKind(value: unknown): value is ActorKind {
-  return typeof value === 'string' && (ACTOR_KINDS as readonly string[]).includes(value);
+  return typeof value === "string" && (ACTOR_KINDS as readonly string[]).includes(value);
 }
 
-export const ACTOR_SIDES = ['player', 'enemy'];
+export const ACTOR_SIDES = ["player", "enemy"];
 export type ActorSide = (typeof ACTOR_SIDES)[number];
 
 export function isActorSide(value: unknown): value is ActorSide {
-  return typeof value === 'string' && (ACTOR_SIDES as readonly string[]).includes(value);
+  return typeof value === "string" && (ACTOR_SIDES as readonly string[]).includes(value);
 }
 
 // List of character attribute keys (used for display / addition operations)
 export const CHARACTER_ATTRIBUTES = [
-  'STR',
-  'CON',
-  'POW',
-  'DEX',
-  'APP',
-  'INT',
-  'maxActionsPerTurn'
+  "STR",
+  "CON",
+  "POW",
+  "DEX",
+  "APP",
+  "INT",
+  "maxActionsPerTurn",
 ] as const;
 export type CharacterAttributeKey = (typeof CHARACTER_ATTRIBUTES)[number];
 
@@ -68,7 +68,7 @@ export interface Actor extends Character {
 }
 
 export function isActor(value: Character): value is Enemy {
-  if (typeof value !== 'object' || !value) return false;
+  if (typeof value !== "object" || !value) return false;
 
   const {
     kind,
@@ -78,19 +78,19 @@ export function isActor(value: Character): value is Enemy {
     physDefenseUpRate,
     psyDefenseUpRate,
     physDamageUpRate,
-    psyDamageUpRate
+    psyDamageUpRate,
   } = value as Record<keyof Actor, unknown>;
 
   return (
     isActorKind(kind) &&
     isActorSide(side) &&
-    typeof hp === 'number' &&
+    typeof hp === "number" &&
     Array.isArray(statuses) &&
     statuses.every((s) => isStatusInstance(s)) &&
-    typeof physDefenseUpRate === 'number' &&
-    typeof psyDefenseUpRate === 'number' &&
-    typeof physDamageUpRate === 'number' &&
-    typeof psyDamageUpRate === 'number'
+    typeof physDefenseUpRate === "number" &&
+    typeof psyDefenseUpRate === "number" &&
+    typeof physDamageUpRate === "number" &&
+    typeof psyDamageUpRate === "number"
   );
 }
 
@@ -100,11 +100,11 @@ export interface Player extends Actor {
 }
 
 export function isPlayer(value: Actor): value is Player {
-  if (typeof value !== 'object' || !value) {
+  if (typeof value !== "object" || !value) {
     return false;
   }
   const { maxActionChoices } = value as Record<keyof Player, unknown>;
-  return typeof maxActionChoices === 'number';
+  return typeof maxActionChoices === "number";
 }
 
 export interface Enemy extends Actor {
@@ -117,13 +117,13 @@ export interface Enemy extends Actor {
 }
 
 export function isEnemy(value: Actor): value is Enemy {
-  if (typeof value !== 'object' || !value) {
+  if (typeof value !== "object" || !value) {
     return false;
   }
   const { isExposed } = value as Record<keyof Enemy, unknown>;
 
-  return typeof isExposed === 'boolean';
+  return typeof isExposed === "boolean";
 }
 
-export type ActorAttribute = 'hp';
+export type ActorAttribute = "hp";
 export type Attribute = CharacterAttributeKey | ActorAttribute;

@@ -1,8 +1,8 @@
-import { pushCombatLog } from '$lib/presentation/utils/log_util';
-import { showDamage } from '$lib/presentation/utils/effect_bus';
-import type { Actor } from '$lib/domain/entities/character';
-import type { DamageKind } from '$lib/domain/entities/status';
-import { onIncomingDamage } from '$lib/data/consts/statuses';
+import { pushCombatLog } from "$lib/presentation/utils/log_util";
+import { showDamage } from "$lib/presentation/utils/effect_bus";
+import type { Actor } from "$lib/domain/entities/character";
+import type { DamageKind } from "$lib/domain/entities/status";
+import { onIncomingDamage } from "$lib/data/consts/statuses";
 
 export function applyPhysicalDamage(source: Actor, target: Actor, amount: number) {
   const up = source.physDamageUpRate || 0;
@@ -10,7 +10,7 @@ export function applyPhysicalDamage(source: Actor, target: Actor, amount: number
   const incoming = amount * (1 + up);
   const raw = incoming / (1 + def);
   const damage = Math.max(1, raw);
-  applyDamage(source, target, damage, incoming, 'physical');
+  applyDamage(source, target, damage, incoming, "physical");
 }
 export function applyPsychicDamage(source: Actor, target: Actor, amount: number) {
   const up = source.psyDamageUpRate || 0;
@@ -18,7 +18,7 @@ export function applyPsychicDamage(source: Actor, target: Actor, amount: number)
   const incoming = amount * (1 + up);
   const raw = incoming / (1 + def);
   const damage = Math.max(1, raw);
-  applyDamage(source, target, damage, incoming, 'psychic');
+  applyDamage(source, target, damage, incoming, "psychic");
 }
 
 function applyDamage(
@@ -26,7 +26,7 @@ function applyDamage(
   target: Actor,
   amount: number,
   rawAmount: number,
-  kind: DamageKind
+  kind: DamageKind,
 ) {
   const damage = Math.ceil(amount);
   onIncomingDamage(target, damage, rawAmount, kind, source);

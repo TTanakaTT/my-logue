@@ -1,107 +1,107 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   webServer: {
-    command: 'pnpm run build && pnpm run preview',
-    port: 4173
+    command: "pnpm run build && pnpm run preview",
+    port: 4173,
   },
-  testDir: 'tests/e2e',
-  reporter: process.env.CI ? 'github' : 'html',
+  testDir: "tests/e2e",
+  reporter: process.env.CI ? "github" : "html",
   // Run tests for both ja/en locales across desktop and mobile profiles.
   // Locale is selected via PARAGLIDE_LOCALE cookie to match app's strategy.
   projects: [
     // Desktop Chrome
     {
-      name: 'chromium-hd-ja',
+      name: "chromium-hd-ja",
       use: {
-        ...devices['Desktop Chrome'],
+        ...devices["Desktop Chrome"],
         viewport: { width: 1440, height: 1080 },
-        locale: 'ja-JP',
+        locale: "ja-JP",
         storageState: {
           cookies: [
             {
-              name: 'PARAGLIDE_LOCALE',
-              value: 'ja',
-              domain: 'localhost',
-              path: '/',
+              name: "PARAGLIDE_LOCALE",
+              value: "ja",
+              domain: "localhost",
+              path: "/",
               expires: 2147483647,
               httpOnly: false,
               secure: false,
-              sameSite: 'Lax'
-            }
+              sameSite: "Lax",
+            },
           ],
-          origins: []
-        }
-      }
+          origins: [],
+        },
+      },
     },
     {
-      name: 'chromium-hd-en',
+      name: "chromium-hd-en",
       use: {
-        ...devices['Desktop Chrome'],
+        ...devices["Desktop Chrome"],
         viewport: { width: 1440, height: 1080 },
-        locale: 'en-US',
+        locale: "en-US",
         storageState: {
           cookies: [
             {
-              name: 'PARAGLIDE_LOCALE',
-              value: 'en',
-              domain: 'localhost',
-              path: '/',
+              name: "PARAGLIDE_LOCALE",
+              value: "en",
+              domain: "localhost",
+              path: "/",
               expires: 2147483647,
               httpOnly: false,
               secure: false,
-              sameSite: 'Lax'
-            }
+              sameSite: "Lax",
+            },
           ],
-          origins: []
-        }
-      }
+          origins: [],
+        },
+      },
     },
     // Mobile Safari (iPhone 13)
     {
-      name: 'mobile-safari-ja',
+      name: "mobile-safari-ja",
       use: {
-        ...devices['iPhone 13'],
-        locale: 'ja-JP',
+        ...devices["iPhone 13"],
+        locale: "ja-JP",
         storageState: {
           cookies: [
             {
-              name: 'PARAGLIDE_LOCALE',
-              value: 'ja',
-              domain: 'localhost',
-              path: '/',
+              name: "PARAGLIDE_LOCALE",
+              value: "ja",
+              domain: "localhost",
+              path: "/",
               expires: 2147483647,
               httpOnly: false,
               secure: false,
-              sameSite: 'Lax'
-            }
+              sameSite: "Lax",
+            },
           ],
-          origins: []
-        }
-      }
+          origins: [],
+        },
+      },
     },
     {
-      name: 'mobile-safari-en',
+      name: "mobile-safari-en",
       use: {
-        ...devices['iPhone 13'],
-        locale: 'en-US',
+        ...devices["iPhone 13"],
+        locale: "en-US",
         storageState: {
           cookies: [
             {
-              name: 'PARAGLIDE_LOCALE',
-              value: 'en',
-              domain: 'localhost',
-              path: '/',
+              name: "PARAGLIDE_LOCALE",
+              value: "en",
+              domain: "localhost",
+              path: "/",
               expires: 2147483647,
               httpOnly: false,
               secure: false,
-              sameSite: 'Lax'
-            }
+              sameSite: "Lax",
+            },
           ],
-          origins: []
-        }
-      }
-    }
+          origins: [],
+        },
+      },
+    },
   ],
-  outputDir: 'test-results/'
+  outputDir: "test-results/",
 });

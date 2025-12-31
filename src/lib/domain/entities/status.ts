@@ -1,12 +1,12 @@
-import type { Actor } from '$lib/domain/entities/character';
-import type { status } from '$lib/data/consts/statuses';
+import type { Actor } from "$lib/domain/entities/character";
+import type { status } from "$lib/data/consts/statuses";
 
 export interface StatusLifecycleContext {
   actor: Actor;
   instance: StatusInstance;
 }
 
-export type DamageKind = 'physical' | 'psychic';
+export type DamageKind = "physical" | "psychic";
 
 export interface StatusIncomingDamageContext extends StatusLifecycleContext {
   source: Actor;
@@ -38,10 +38,10 @@ export interface StatusInstance {
   count: number;
 }
 export function isStatusInstance(value: unknown): value is StatusInstance {
-  if (typeof value !== 'object' || value === null) return false;
+  if (typeof value !== "object" || value === null) return false;
   const record = value as Record<string, unknown>;
-  if (typeof record.id !== 'string') return false;
-  if (typeof record.count === 'number') return true;
+  if (typeof record.id !== "string") return false;
+  if (typeof record.count === "number") return true;
   return false;
 }
 

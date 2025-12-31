@@ -1,15 +1,15 @@
-import floorStructureCsvRaw from '$lib/data/consts/floor_structure.csv?raw';
+import floorStructureCsvRaw from "$lib/data/consts/floor_structure.csv?raw";
 import {
   NODE_TYPES,
   type FloorLayout,
   type FloorNode,
   type NodeType,
   MIN_EDGES_PER_NODE,
-  MAX_EDGES_PER_NODE
-} from '$lib/domain/entities/floor';
-import floorNodeRulesCsvRaw from '$lib/data/consts/floor_node_rules.csv?raw';
-import { shuffle } from '$lib/utils/array_util';
-import { parseCsv } from '$lib/data/repositories/utils/csv_util';
+  MAX_EDGES_PER_NODE,
+} from "$lib/domain/entities/floor";
+import floorNodeRulesCsvRaw from "$lib/data/consts/floor_node_rules.csv?raw";
+import { shuffle } from "$lib/utils/array_util";
+import { parseCsv } from "$lib/data/repositories/utils/csv_util";
 
 interface StructureRow {
   floorIndex: number;
@@ -33,10 +33,10 @@ const structureRows: StructureRow[] = parseCsv(floorStructureCsvRaw)
     const totalNodes = Number(totalNodesStr);
     const progressMinPath = Number(progressMinPathStr);
     if ([floorIndex, totalNodes, progressMinPath].some((n) => Number.isNaN(n))) {
-      throw new Error(`floor_structure.csv invalid numeric value: ${cols.join(',')}`);
+      throw new Error(`floor_structure.csv invalid numeric value: ${cols.join(",")}`);
     }
     if (progressMinPath < 0) {
-      throw new Error(`floor_structure.csv invalid progressMinPath: ${cols.join(',')}`);
+      throw new Error(`floor_structure.csv invalid progressMinPath: ${cols.join(",")}`);
     }
     return { floorIndex, totalNodes, progressMinPath };
   });
@@ -51,23 +51,23 @@ const nodeRuleRows: NodeRuleRow[] = parseCsv(floorNodeRulesCsvRaw)
     const [floorIndexStr, nodeTypeStr, weightStr, minCountStr, maxCountStr] = cols;
     const floorIndex = Number(floorIndexStr);
     const nodeType = nodeTypeStr as NodeType;
-    const weight = Number(weightStr || '0');
-    const minCount = Number(minCountStr || '0');
+    const weight = Number(weightStr || "0");
+    const minCount = Number(minCountStr || "0");
     const maxCount = maxCountStr ? Number(maxCountStr) : undefined;
     if (Number.isNaN(floorIndex) || !NODE_TYPES.includes(nodeType)) {
-      throw new Error(`floor_node_rules.csv invalid row: ${cols.join(',')}`);
+      throw new Error(`floor_node_rules.csv invalid row: ${cols.join(",")}`);
     }
     if ([weight, minCount].some((n) => Number.isNaN(n))) {
-      throw new Error(`floor_node_rules.csv invalid numeric: ${cols.join(',')}`);
+      throw new Error(`floor_node_rules.csv invalid numeric: ${cols.join(",")}`);
     }
     if (maxCountStr && Number.isNaN(maxCount)) {
-      throw new Error(`floor_node_rules.csv invalid maxCount: ${cols.join(',')}`);
+      throw new Error(`floor_node_rules.csv invalid maxCount: ${cols.join(",")}`);
     }
     return { floorIndex, nodeType, weight, minCount, maxCount } as NodeRuleRow;
   });
 
 function getNodeRules(floorIndex: number): NodeRuleRow[] {
-  return nodeRuleRows.filter((r) => r.floorIndex === floorIndex && r.nodeType !== 'start');
+  return nodeRuleRows.filter((r) => r.floorIndex === floorIndex && r.nodeType !== "start");
 }
 
 export function generateFloorLayout(floorIndex: number): FloorLayout {
@@ -79,7 +79,7 @@ export function generateFloorLayout(floorIndex: number): FloorLayout {
   const nodes: FloorNode[] = pickedKinds.map((k, i) => makeFloorNode(i + 1, k));
 
   const startNodeId = nodes.length + 1;
-  nodes.push(makeFloorNode(startNodeId, 'start'));
+  nodes.push(makeFloorNode(startNodeId, "start"));
 
   const startId = startNodeId;
   let edges = generateEdges(nodes.length, floorIndex);
@@ -99,13 +99,13 @@ function makeFloorNode(id: number, node: NodeType): FloorNode {
     id,
     kind: node,
     encounterKind:
-      node === 'elite'
-        ? 'elite'
-        : node === 'normal'
-          ? 'normal'
-          : node === 'boss'
-            ? 'boss'
-            : undefined
+      node === "elite"
+        ? "elite"
+        : node === "normal"
+          ? "normal"
+          : node === "boss"
+            ? "boss"
+            : undefined,
   };
 }
 
@@ -113,10 +113,10 @@ function buildPickedKindsByRules(floorIndex: number, totalNodes: number): NodeTy
   const rules = getNodeRules(floorIndex);
   if (rules.length === 0) {
     const fallbackBase = NODE_TYPES.slice();
-    const out: NodeType[] = ['progress', 'boss'];
+    const out: NodeType[] = ["progress", "boss"];
     while (out.length < totalNodes) {
       const k = fallbackBase[Math.floor(Math.random() * fallbackBase.length)] as NodeType;
-      if ((k === 'progress' && out.includes('progress')) || (k === 'boss' && out.includes('boss')))
+      if ((k === "progress" && out.includes("progress")) || (k === "boss" && out.includes("boss")))
         continue;
       out.push(k);
     }
@@ -132,7 +132,7 @@ function buildPickedKindsByRules(floorIndex: number, totalNodes: number): NodeTy
     progress: 0,
     boss: 0,
     event: 0,
-    start: 0
+    start: 0,
   };
   for (const r of rules) {
     for (let i = 0; i < r.minCount && picked.length < totalNodes; i++) {
@@ -263,7 +263,7 @@ function generateEdges(nodeCount: number, floorIndex: number) {
     for (let id = 1; id <= nodeCount; id++) {
       while (adj.get(id)!.size < MIN_EDGES_PER_NODE) {
         const pool = shuffle(
-          Array.from({ length: nodeCount }, (_, i) => i + 1).filter((x) => x !== id)
+          Array.from({ length: nodeCount }, (_, i) => i + 1).filter((x) => x !== id),
         );
         let done = false;
         for (const p of pool) {
@@ -304,9 +304,9 @@ function satisfiesMinDistance(
   nodes: FloorNode[],
   edges: { source: number; target: number }[],
   startId: number,
-  minRequiredEdges: number
+  minRequiredEdges: number,
 ): boolean {
-  const progressIds = nodes.filter((n) => n.kind === 'progress').map((n) => n.id);
+  const progressIds = nodes.filter((n) => n.kind === "progress").map((n) => n.id);
   if (progressIds.length === 0) return true;
   const minReq = minRequiredEdges;
   const adj: Map<number, number[]> = new Map();

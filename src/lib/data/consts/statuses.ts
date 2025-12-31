@@ -1,4 +1,4 @@
-import type { Actor } from '$lib/domain/entities/character';
+import type { Actor } from "$lib/domain/entities/character";
 import type {
   DamageKind,
   Status,
@@ -6,8 +6,8 @@ import type {
   StatusDef,
   StatusInstance,
   StatusIncomingDamageContext,
-  StatusLifecycleContext
-} from '$lib/domain/entities/status';
+  StatusLifecycleContext,
+} from "$lib/domain/entities/status";
 
 function decrementCount(instance: StatusInstance, amount = 1) {
   instance.count = Math.max(0, instance.count - amount);
@@ -15,12 +15,12 @@ function decrementCount(instance: StatusInstance, amount = 1) {
 
 export const status = {
   Guard: {
-    name: 'ガード',
-    icon: 'shield',
-    description: '物理ダメージを軽減する。被弾時にカウントが減少する',
-    badgeClass: 'bg-green-700/70 border-green-300',
+    name: "ガード",
+    icon: "shield",
+    description: "物理ダメージを軽減する。被弾時にカウントが減少する",
+    badgeClass: "bg-green-700/70 border-green-300",
     onApply: ({ instance, count }: StatusApplyContext) => {
-      if (typeof count === 'number') {
+      if (typeof count === "number") {
         instance.count += count;
       }
     },
@@ -32,21 +32,21 @@ export const status = {
       const { instance, rawAmount, kind } = context;
       if (instance.count <= 0 || rawAmount <= 0) return;
 
-      if (kind === 'physical') {
+      if (kind === "physical") {
         instance.count = Math.max(0, instance.count - rawAmount);
       }
     },
     onBattleEnd: ({ instance }: StatusLifecycleContext) => {
       instance.count = 0;
-    }
+    },
   },
   MindBarrier: {
-    name: '精神障壁',
-    icon: 'psychology',
-    description: '精神ダメージを軽減する。被弾時にカウントが減少する',
-    badgeClass: 'bg-purple-700/70 border-purple-300',
+    name: "精神障壁",
+    icon: "psychology",
+    description: "精神ダメージを軽減する。被弾時にカウントが減少する",
+    badgeClass: "bg-purple-700/70 border-purple-300",
     onApply: ({ instance, count }: StatusApplyContext) => {
-      if (typeof count === 'number') {
+      if (typeof count === "number") {
         instance.count += count;
       }
     },
@@ -58,21 +58,21 @@ export const status = {
       const { instance, rawAmount, kind } = context;
       if (instance.count <= 0 || rawAmount <= 0) return;
 
-      if (kind === 'psychic') {
+      if (kind === "psychic") {
         instance.count = Math.max(0, instance.count - rawAmount);
       }
     },
     onBattleEnd: ({ instance }: StatusLifecycleContext) => {
       instance.count = 0;
-    }
+    },
   },
   IronWill: {
-    name: '鉄の意志',
-    icon: 'security',
-    description: '物理・精神ダメージを軽減する。被弾時にカウントが減少する',
-    badgeClass: 'bg-gray-700/70 border-gray-300',
+    name: "鉄の意志",
+    icon: "security",
+    description: "物理・精神ダメージを軽減する。被弾時にカウントが減少する",
+    badgeClass: "bg-gray-700/70 border-gray-300",
     onApply: ({ instance, count }: StatusApplyContext) => {
-      if (typeof count === 'number') {
+      if (typeof count === "number") {
         instance.count += count;
       }
     },
@@ -88,15 +88,15 @@ export const status = {
     },
     onBattleEnd: ({ instance }: StatusLifecycleContext) => {
       instance.count = 0;
-    }
+    },
   },
   MuscleUp: {
-    name: '筋力増強',
-    icon: 'fitness_center',
-    description: '物理与ダメージが上昇する。ターン終了時にカウントが減少する',
-    badgeClass: 'bg-red-700/70 border-red-300',
+    name: "筋力増強",
+    icon: "fitness_center",
+    description: "物理与ダメージが上昇する。ターン終了時にカウントが減少する",
+    badgeClass: "bg-red-700/70 border-red-300",
     onApply: ({ instance, count }: StatusApplyContext) => {
-      if (typeof count === 'number') {
+      if (typeof count === "number") {
         instance.count += count;
       }
     },
@@ -109,15 +109,15 @@ export const status = {
     },
     onBattleEnd: ({ instance }: StatusLifecycleContext) => {
       instance.count = 0;
-    }
+    },
   },
   MindUp: {
-    name: '精神統一',
-    icon: 'self_improvement',
-    description: '精神与ダメージが上昇する。ターン終了時にカウントが減少する',
-    badgeClass: 'bg-indigo-700/70 border-indigo-300',
+    name: "精神統一",
+    icon: "self_improvement",
+    description: "精神与ダメージが上昇する。ターン終了時にカウントが減少する",
+    badgeClass: "bg-indigo-700/70 border-indigo-300",
     onApply: ({ instance, count }: StatusApplyContext) => {
-      if (typeof count === 'number') {
+      if (typeof count === "number") {
         instance.count += count;
       }
     },
@@ -130,15 +130,15 @@ export const status = {
     },
     onBattleEnd: ({ instance }: StatusLifecycleContext) => {
       instance.count = 0;
-    }
+    },
   },
   OverDrive: {
-    name: 'オーバードライブ',
-    icon: 'bolt',
-    description: '物理・精神与ダメージが上昇する。ターン終了時にカウントが減少する',
-    badgeClass: 'bg-orange-700/70 border-orange-300',
+    name: "オーバードライブ",
+    icon: "bolt",
+    description: "物理・精神与ダメージが上昇する。ターン終了時にカウントが減少する",
+    badgeClass: "bg-orange-700/70 border-orange-300",
     onApply: ({ instance, count }: StatusApplyContext) => {
-      if (typeof count === 'number') {
+      if (typeof count === "number") {
         instance.count += count;
       }
     },
@@ -152,8 +152,8 @@ export const status = {
     },
     onBattleEnd: ({ instance }: StatusLifecycleContext) => {
       instance.count = 0;
-    }
-  }
+    },
+  },
 } satisfies Record<string, StatusDef>;
 
 export function createStatus(id: Status): StatusInstance {
@@ -226,12 +226,12 @@ export function onIncomingDamage(
   amount: number,
   rawAmount: number,
   kind: DamageKind,
-  source: Actor
+  source: Actor,
 ) {
   normalizeStatuses(actor);
   for (const inst of [...actor.statuses]) {
     const def = status[inst.id] as StatusDef | undefined;
-    if (!def || typeof def.onIncomingDamage !== 'function') continue;
+    if (!def || typeof def.onIncomingDamage !== "function") continue;
     def.onIncomingDamage({ actor, instance: inst, source, amount, rawAmount, kind });
   }
   cleanupStatuses(actor);
@@ -262,7 +262,7 @@ function normalizeStatuses(actor: Actor) {
     if (!id || !status[id]) continue;
     const count = raw.count;
 
-    if (typeof count !== 'number' || !Number.isFinite(count)) continue;
+    if (typeof count !== "number" || !Number.isFinite(count)) continue;
     const normalized = Math.max(0, Math.floor(count));
     if (normalized <= 0) continue;
     merged.set(id, (merged.get(id) || 0) + normalized);

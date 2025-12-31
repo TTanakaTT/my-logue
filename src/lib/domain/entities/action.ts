@@ -1,6 +1,6 @@
-import type { GameState } from '$lib/domain/entities/battle_state';
-import type { Actor } from '$lib/domain/entities/character';
-import { action } from '$lib/data/consts/actions';
+import type { GameState } from "$lib/domain/entities/battle_state";
+import type { Actor } from "$lib/domain/entities/character";
+import { action } from "$lib/data/consts/actions";
 
 /**
  * Action definition.
@@ -38,5 +38,5 @@ export type Action = keyof typeof action;
  *          when true, TypeScript will narrow the type of `value` to `Action`.
  */
 export function isActionId(value: unknown): value is Action {
-  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(action, value.trim());
+  return typeof value === "string" && Object.prototype.hasOwnProperty.call(action, value.trim());
 }

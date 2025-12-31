@@ -1,7 +1,7 @@
-import type { GameState, LogEntry } from '$lib/domain/entities/battle_state';
-import type { Actor, ActorKind, ActorSide } from '$lib/domain/entities/character';
-import type { ActionDef } from '$lib/domain/entities/action';
-import { get, writable, type Writable } from 'svelte/store';
+import type { GameState, LogEntry } from "$lib/domain/entities/battle_state";
+import type { Actor, ActorKind, ActorSide } from "$lib/domain/entities/character";
+import type { ActionDef } from "$lib/domain/entities/action";
+import { get, writable, type Writable } from "svelte/store";
 
 // ログ関連のユーティリティを集約
 // 既存の pushLog / pushCombatLog / emitActionLog API は互換維持しつつ
@@ -59,14 +59,14 @@ let _idSeq = 1;
 // 1件のログをタイプライタ表示する。完了まで次は開始しない。
 async function runOne(entry: LogEntry) {
   const id = _idSeq++;
-  const node: DisplayLogEntry = { ...entry, id, shown: '', done: false };
+  const node: DisplayLogEntry = { ...entry, id, shown: "", done: false };
   // 最新を上に表示するため先頭に追加
   _displayLogs.update((arr) => {
     const next = [node, ...arr];
     return next.slice(0, MAX_LOG_ENTRIES);
   });
 
-  const msg = entry.message ?? '';
+  const msg = entry.message ?? "";
   // 総表示時間: 文字数に応じて 0.3s〜1.0s に収める（40文字で上限付近）
   const MIN_TOTAL = 300; // ms
   const MAX_TOTAL = 1000; // ms
@@ -137,19 +137,19 @@ function append(entry: LogEntry) {
   enqueueForDisplay(entry);
 }
 
-export function pushLog(message: string, kind: LogEntry['kind'] = 'system') {
+export function pushLog(message: string, kind: LogEntry["kind"] = "system") {
   append({ message, kind });
 }
 
 export function pushCombatLog(message: string, side: ActorSide, actorKind?: ActorKind) {
-  append({ message, kind: 'combat', side, actorKind });
+  append({ message, kind: "combat", side, actorKind });
 }
 
 export function emitActionLog(
   actor: Actor,
   target: Actor | undefined,
   def: ActionDef,
-  opts?: { critical?: boolean }
+  opts?: { critical?: boolean },
 ) {
   const state = getState();
   if (!state) return;
@@ -170,18 +170,18 @@ export function emitActionLog(
 }
 
 export const logUtil = {
-  system: (message: string) => pushLog(message, 'system'),
+  system: (message: string) => pushLog(message, "system"),
   combat: (message: string, side?: ActorSide, actorKind?: ActorKind) =>
-    side ? pushCombatLog(message, side, actorKind) : pushLog(message, 'combat'),
-  event: (message: string) => pushLog(message, 'event'),
-  rest: (message: string) => pushLog(message, 'rest'),
+    side ? pushCombatLog(message, side, actorKind) : pushLog(message, "combat"),
+  event: (message: string) => pushLog(message, "event"),
+  rest: (message: string) => pushLog(message, "rest"),
   action: emitActionLog,
   register: registerLogStateProvider,
   setState: setLogState,
   getCurrentState,
   displayLogs,
   resetDisplayLogs,
-  seedInitialLogs
+  seedInitialLogs,
 };
 
 export type LogUtil = typeof logUtil;

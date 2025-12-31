@@ -1,31 +1,31 @@
-import type { Actor } from '$lib/domain/entities/character';
-import type { GameState } from '$lib/domain/entities/battle_state';
-import { writable, derived, get } from 'svelte/store';
-import { setLogState as _setLogState, getCurrentState } from '$lib/presentation/utils/log_util';
+import type { Actor } from "$lib/domain/entities/character";
+import type { GameState } from "$lib/domain/entities/battle_state";
+import { writable, derived, get } from "svelte/store";
+import { setLogState as _setLogState, getCurrentState } from "$lib/presentation/utils/log_util";
 
-export type FloatKind = 'damage' | 'heal';
+export type FloatKind = "damage" | "heal";
 
 export const effect = {
   Guard: {
-    icon: 'shield',
-    effectClass: 'text-guard-icon animate-pop'
+    icon: "shield",
+    effectClass: "text-guard-icon animate-pop",
   },
   StrikeAttacker: {
-    icon: 'front_hand',
-    effectClass: 'text-strike-attacker-icon  animate-punch'
+    icon: "front_hand",
+    effectClass: "text-strike-attacker-icon  animate-punch",
   },
   StrikeHit: {
-    icon: 'explosion',
-    effectClass: 'text-strike-hit-icon  animate-burst'
+    icon: "explosion",
+    effectClass: "text-strike-hit-icon  animate-burst",
   },
   CurseCast: {
-    icon: 'auto_fix_high',
-    effectClass: 'text-curse-cast-icon  animate-fadeup'
+    icon: "auto_fix_high",
+    effectClass: "text-curse-cast-icon  animate-fadeup",
   },
   PoisonTick: {
-    icon: 'skull',
-    effectClass: 'text-poison-tick-icon  animate-wiggle'
-  }
+    icon: "skull",
+    effectClass: "text-poison-tick-icon  animate-wiggle",
+  },
 } satisfies Record<string, EffectDef>;
 
 export type Effect = keyof typeof effect;
@@ -62,7 +62,7 @@ export const uiAnimating = derived(_animCounter, (n) => n > 0);
 let _seq = 1;
 
 function now() {
-  return typeof performance !== 'undefined' ? performance.now() : Date.now();
+  return typeof performance !== "undefined" ? performance.now() : Date.now();
 }
 
 export function beginAnimation(durationMs: number) {
@@ -72,7 +72,7 @@ export function beginAnimation(durationMs: number) {
     () => {
       _animCounter.update((c) => Math.max(0, c - 1));
     },
-    Math.max(1, durationMs)
+    Math.max(1, durationMs),
   );
 }
 
@@ -86,7 +86,7 @@ export function playEffectOnKey(panelKey: string, kind: Effect, durationMs = 600
       _effects.update((arr) => arr.filter((x) => x.id !== e.id));
       _animCounter.update((c) => Math.max(0, c - 1));
     },
-    Math.max(1, durationMs)
+    Math.max(1, durationMs),
   );
 }
 
@@ -94,7 +94,7 @@ export function showFloatingOnKey(
   panelKey: string,
   kind: FloatKind,
   value: number,
-  durationMs = 900
+  durationMs = 900,
 ) {
   const f: FloatingEvent = { id: _seq++, panelKey, kind, value, until: now() + durationMs };
   _floatings.update((arr) => [...arr, f]);
@@ -104,7 +104,7 @@ export function showFloatingOnKey(
       _floatings.update((arr) => arr.filter((x) => x.id !== f.id));
       _animCounter.update((c) => Math.max(0, c - 1));
     },
-    Math.max(1, durationMs)
+    Math.max(1, durationMs),
   );
 }
 
@@ -112,7 +112,7 @@ export function showFloatingOnKey(
 export function panelKeyForActor(actor: Actor): string | undefined {
   const state: GameState | undefined = getCurrentState();
   if (!state) return undefined;
-  if (actor === state.player) return 'player';
+  if (actor === state.player) return "player";
   const ai = state.allies.findIndex((a) => a === actor);
   if (ai >= 0) return `ally-${ai}`;
   const ei = state.enemies.findIndex((e) => e === actor);
@@ -129,32 +129,32 @@ export function playEffectOnActor(actor: Actor, kind: Effect, durationMs = 600) 
 export function showDamage(actor: Actor, value: number, durationMs = 900) {
   const key = panelKeyForActor(actor);
   if (!key) return;
-  showFloatingOnKey(key, 'damage', value, durationMs);
+  showFloatingOnKey(key, "damage", value, durationMs);
 }
 
 export function showHeal(actor: Actor, value: number, durationMs = 900) {
   const key = panelKeyForActor(actor);
   if (!key) return;
-  showFloatingOnKey(key, 'heal', value, durationMs);
+  showFloatingOnKey(key, "heal", value, durationMs);
 }
 
 // アクションIDに応じた簡易エフェクト
 export function triggerActionEffects(actor: Actor, target: Actor | undefined, actionId: string) {
   switch (actionId) {
-    case 'Strike': {
-      playEffectOnActor(actor, 'StrikeAttacker', 350);
-      if (target) playEffectOnActor(target, 'StrikeHit', 500);
+    case "Strike": {
+      playEffectOnActor(actor, "StrikeAttacker", 350);
+      if (target) playEffectOnActor(target, "StrikeHit", 500);
       beginAnimation(500);
       break;
     }
-    case 'Curse': {
-      playEffectOnActor(actor, 'CurseCast', 350);
-      if (target) playEffectOnActor(target, 'StrikeHit', 450);
+    case "Curse": {
+      playEffectOnActor(actor, "CurseCast", 350);
+      if (target) playEffectOnActor(target, "StrikeHit", 450);
       beginAnimation(450);
       break;
     }
-    case 'Guard': {
-      playEffectOnActor(actor, 'Guard', 600);
+    case "Guard": {
+      playEffectOnActor(actor, "Guard", 600);
       beginAnimation(600);
       break;
     }

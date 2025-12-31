@@ -18,6 +18,6 @@ export function parseCsv(csvRaw: string): string[][] {
   return csvRaw
     .split(/\r?\n/)
     .map((l) => l.trim())
-    .filter((l) => l && !l.startsWith('#'))
-    .map((line) => line.split(',').map((s) => s.trim()));
+    .filter((l) => l && !l.startsWith("#"))
+    .map((line) => line.split(",").map((s) => s.trim()));
 }
