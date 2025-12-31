@@ -1,10 +1,10 @@
-import { pushCombatLog } from '$lib/presentation/utils/log_util';
-import { showHeal } from '$lib/presentation/utils/effect_bus';
+import { pushCombatLog } from "$lib/presentation/utils/log_util";
+import { showHeal } from "$lib/presentation/utils/effect_bus";
 import {
   type Actor,
   CHARACTER_ATTRIBUTES,
-  type CharacterAttributeKey
-} from '$lib/domain/entities/character';
+  type CharacterAttributeKey,
+} from "$lib/domain/entities/character";
 
 export function calcMaxHP(actor: Actor): number {
   return 10 + actor.characterAttributes.CON * 5;
@@ -12,7 +12,7 @@ export function calcMaxHP(actor: Actor): number {
 
 export function applyMineralBonus(
   actor: Actor,
-  bonus: Partial<Record<CharacterAttributeKey, number>>
+  bonus: Partial<Record<CharacterAttributeKey, number>>,
 ) {
   // ボーナスは公開フィールドに直接加算し、baseAttributesは据え置き
   (CHARACTER_ATTRIBUTES as readonly CharacterAttributeKey[]).forEach((k) => {

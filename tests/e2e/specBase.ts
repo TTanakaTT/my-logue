@@ -6,8 +6,8 @@ import {
   type PlaywrightWorkerArgs,
   type PlaywrightWorkerOptions,
   type TestInfo,
-  type Page
-} from '@playwright/test';
+  type Page,
+} from "@playwright/test";
 
 export class SpecBase {
   title!: string;
@@ -23,18 +23,18 @@ export class SpecBase {
         PlaywrightTestOptions &
         PlaywrightWorkerArgs &
         PlaywrightWorkerOptions,
-      testInfo: TestInfo
-    ) => void
+      testInfo: TestInfo,
+    ) => void,
   ): void {
     test.beforeEach(async ({ page }: { page: Page }) => {
-      await page.goto('http://localhost:4173/');
+      await page.goto("http://localhost:4173/");
     });
 
     test(this.title, testFunction);
   }
   async compareScreenshot(page: Page, screenshotName: string): Promise<void> {
     await expect(page).toHaveScreenshot(
-      this.title ? this.title + '-' + screenshotName : screenshotName
+      this.title ? this.title + "-" + screenshotName : screenshotName,
     );
   }
 }

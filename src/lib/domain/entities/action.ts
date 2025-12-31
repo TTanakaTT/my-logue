@@ -1,6 +1,6 @@
-import type { GameState } from '$lib/domain/entities/battle_state';
-import type { Actor } from '$lib/domain/entities/character';
-import { action } from '$lib/data/consts/actions';
+import type { GameState } from "$lib/domain/entities/battle_state";
+import type { Actor } from "$lib/domain/entities/character";
+import { action } from "$lib/data/consts/actions";
 
 /**
  * Action definition.
@@ -11,6 +11,8 @@ export interface ActionDef {
   name: string;
   /** Description */
   description: string;
+  /** Material Symbols icon name for UI (outlined set). */
+  icon?: string;
   /** Behavior when normal */
   normalAction: (ctx: { actor: Actor; target?: Actor }) => void;
   /** Behavior when critical (defaults to normalAction if not specified) */
@@ -36,5 +38,5 @@ export type Action = keyof typeof action;
  *          when true, TypeScript will narrow the type of `value` to `Action`.
  */
 export function isActionId(value: unknown): value is Action {
-  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(action, value.trim());
+  return typeof value === "string" && Object.prototype.hasOwnProperty.call(action, value.trim());
 }

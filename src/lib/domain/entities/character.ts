@@ -1,29 +1,29 @@
-import type { Action } from '$lib/domain/entities/action';
-import { isStatusInstance, type StatusInstance } from '$lib/domain/entities/status';
+import type { Action } from "$lib/domain/entities/action";
+import { isStatusInstance, type StatusInstance } from "$lib/domain/entities/status";
 
-export const ACTOR_KINDS = ['normal', 'elite', 'boss', 'player'];
+export const ACTOR_KINDS = ["normal", "elite", "boss", "player"];
 export type ActorKind = (typeof ACTOR_KINDS)[number];
 
 export function isActorKind(value: unknown): value is ActorKind {
-  return typeof value === 'string' && (ACTOR_KINDS as readonly string[]).includes(value);
+  return typeof value === "string" && (ACTOR_KINDS as readonly string[]).includes(value);
 }
 
-export const ACTOR_SIDES = ['player', 'enemy'];
+export const ACTOR_SIDES = ["player", "enemy"];
 export type ActorSide = (typeof ACTOR_SIDES)[number];
 
 export function isActorSide(value: unknown): value is ActorSide {
-  return typeof value === 'string' && (ACTOR_SIDES as readonly string[]).includes(value);
+  return typeof value === "string" && (ACTOR_SIDES as readonly string[]).includes(value);
 }
 
-// キャラクターの能力値キー一覧（表示/加算処理で使用）
+// List of character attribute keys (used for display / addition operations)
 export const CHARACTER_ATTRIBUTES = [
-  'STR',
-  'CON',
-  'POW',
-  'DEX',
-  'APP',
-  'INT',
-  'maxActionsPerTurn'
+  "STR",
+  "CON",
+  "POW",
+  "DEX",
+  "APP",
+  "INT",
+  "maxActionsPerTurn",
 ] as const;
 export type CharacterAttributeKey = (typeof CHARACTER_ATTRIBUTES)[number];
 
@@ -34,7 +34,7 @@ export interface CharacterAttribute {
   DEX: number;
   APP: number;
   INT: number;
-  /** 1ターンに使用できる最大アクション数 */
+  /** Maximum number of actions usable per turn */
   maxActionsPerTurn: number;
 }
 export interface Character {
@@ -45,85 +45,85 @@ export interface Character {
 }
 
 /**
- * アクター (プレイヤー/敵) の共通型。
- * すべての一時効果は statuses に集約。
+ * Common actor type (player / enemy).
+ * All effects are gathered in `statuses`.
  */
 export interface Actor extends Character {
   kind: ActorKind;
   side: ActorSide;
   hp: number;
   statuses: StatusInstance[];
-  /** 補正前能力値 */
+  /** Base (unmodified) attributes */
   baseAttributes: Character;
-  /** 所持している鉱石のID一覧 */
+  /** IDs of held minerals */
   heldMineralIds: string[];
-  /** 物理ダメージカット率 (0~1) */
-  physDamageCutRate: number;
-  /** 精神ダメージカット率 (0~1) */
-  psyDamageCutRate: number;
-  /** 物理与ダメアップ率 (加算) */
+  /** Physical damage increase rate (additive) */
   physDamageUpRate: number;
-  /** 精神与ダメアップ率 (加算) */
+  /** Physical defense buff rate (additive) */
+  physDefenseUpRate: number;
+  /** Psychic damage increase rate (additive) */
   psyDamageUpRate: number;
+  /** Psychic defense buff rate (additive) */
+  psyDefenseUpRate: number;
 }
 
 export function isActor(value: Character): value is Enemy {
-  if (typeof value !== 'object' || !value) return false;
+  if (typeof value !== "object" || !value) return false;
 
   const {
     kind,
     side,
     hp,
     statuses,
-    physDamageCutRate,
-    psyDamageCutRate,
+    physDefenseUpRate,
+    psyDefenseUpRate,
     physDamageUpRate,
-    psyDamageUpRate
+    psyDamageUpRate,
   } = value as Record<keyof Actor, unknown>;
 
   return (
     isActorKind(kind) &&
     isActorSide(side) &&
-    typeof hp === 'number' &&
+    typeof hp === "number" &&
     Array.isArray(statuses) &&
     statuses.every((s) => isStatusInstance(s)) &&
-    typeof physDamageCutRate === 'number' &&
-    typeof psyDamageCutRate === 'number' &&
-    typeof physDamageUpRate === 'number' &&
-    typeof psyDamageUpRate === 'number'
+    typeof physDefenseUpRate === "number" &&
+    typeof psyDefenseUpRate === "number" &&
+    typeof physDamageUpRate === "number" &&
+    typeof psyDamageUpRate === "number"
   );
 }
 
 export interface Player extends Actor {
-  /** 戦闘開始時に提示されるアクション選択肢数 */
+  /** Number of action choices presented at combat start */
   maxActionChoices: number;
 }
 
 export function isPlayer(value: Actor): value is Player {
-  if (typeof value !== 'object' || !value) {
+  if (typeof value !== "object" || !value) {
     return false;
   }
   const { maxActionChoices } = value as Record<keyof Player, unknown>;
-  return typeof maxActionChoices === 'number';
+  return typeof maxActionChoices === "number";
 }
 
 export interface Enemy extends Actor {
-  /** 情報開示済み */
+  /** Whether the enemy's information has been revealed */
   isExposed: boolean;
-  /** 公開済み能力値 */
+  /** Attributes that have been revealed */
   revealedAttributes?: Attribute[];
-  /** 使用により観測されたアクションID */
+  /** Action IDs observed through use */
   observedActions?: Action[];
 }
 
 export function isEnemy(value: Actor): value is Enemy {
-  if (typeof value !== 'object' || !value) {
+  if (typeof value !== "object" || !value) {
     return false;
   }
   const { isExposed } = value as Record<keyof Enemy, unknown>;
 
-  return typeof isExposed === 'boolean';
+  return typeof isExposed === "boolean";
 }
 
-export type ActorAttribute = 'hp';
+export type ActorAttribute = "hp";
 export type Attribute = CharacterAttributeKey | ActorAttribute;

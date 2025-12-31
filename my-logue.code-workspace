@@ -1,39 +1,53 @@
 {
   "folders": [
     {
-      "path": "."
-    }
+      "path": ".",
+    },
   ],
   "settings": {
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "explicit"
+      "source.fixAll.eslint": "explicit",
     },
     "editor.formatOnSave": true,
     "files.associations": {
-      "**/src/**/*.css": "tailwindcss"
+      "**/src/**/*.css": "tailwindcss",
     },
     "[svelte]": {
-      "editor.defaultFormatter": "svelte.svelte-vscode"
+      "editor.defaultFormatter": "svelte.svelte-vscode",
     },
     "[javascript]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[typescript]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[json]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[jsonc]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[yaml]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[github-actions-workflow]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "eslint.format.enable": true,
-    "svelte.enable-ts-plugin": true
-  }
+    "svelte.enable-ts-plugin": true,
+    "github.copilot.chat.commitMessageGeneration.instructions": [
+      {
+        "text": "Create an English commit message in a single line, following the Semantic Commit Message and Commit Message Guideline.",
+      },
+    ],
+  },
+  "extensions": {
+    "recommendations": [
+      "esbenp.prettier-vscode",
+      "svelte.svelte-vscode",
+      "dbaeumer.vscode-eslint",
+      "bradlc.vscode-tailwindcss",
+      "github.vscode-github-actions",
+    ],
+  },
 }

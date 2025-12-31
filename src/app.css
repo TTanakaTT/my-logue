@@ -1,5 +1,5 @@
-@import 'material-symbols/index.css';
-@import 'tailwindcss';
+@import "material-symbols/index.css";
+@import "tailwindcss";
 
 @theme {
   --color-panel: #1d1d1d;

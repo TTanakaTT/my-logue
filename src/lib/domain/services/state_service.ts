@@ -1,23 +1,23 @@
-import { writable, get } from 'svelte/store';
-import { APP_VERSION } from '$lib/config/version';
-import type { GameState, RewardOption } from '$lib/domain/entities/battle_state';
-import type { Actor, Character, Enemy, Player } from '$lib/domain/entities/character';
-import type { Action } from '$lib/domain/entities/action';
-import { calcMaxHP } from '$lib/domain/services/attribute_service';
-import { buildPlayerFromCsv, buildEnemyFromCsv } from '$lib/data/repositories/character_repository';
-import { randomName } from '$lib/data/repositories/random_name_repository';
-import { performAction } from '$lib/domain/services/action_executor';
-import { waitForAnimationsComplete } from '$lib/presentation/utils/effect_bus';
-import { randomEvent } from '$lib/domain/services/event_service';
-import { pushLog, setLogState, resetDisplayLogs } from '$lib/presentation/utils/log_util';
+import { writable, get } from "svelte/store";
+import { APP_VERSION } from "$lib/config/version";
+import type { GameState, RewardOption } from "$lib/domain/entities/battle_state";
+import type { Actor, Character, Enemy, Player } from "$lib/domain/entities/character";
+import type { Action } from "$lib/domain/entities/action";
+import { calcMaxHP } from "$lib/domain/services/attribute_service";
+import { buildPlayerFromCsv, buildEnemyFromCsv } from "$lib/data/repositories/character_repository";
+import { randomName } from "$lib/data/repositories/random_name_repository";
+import { performAction } from "$lib/domain/services/action_executor";
+import { waitForAnimationsComplete } from "$lib/presentation/utils/effect_bus";
+import { randomEvent } from "$lib/domain/services/event_service";
+import { pushLog, setLogState, resetDisplayLogs } from "$lib/presentation/utils/log_util";
 import {
   getRewardsForEnemy,
-  getRewardsForRewardNode
-} from '$lib/data/repositories/reward_repository';
-import { tickStatusesTurnStart } from '$lib/data/consts/statuses';
-import { createCompanionRepository } from '$lib/data/repositories/companion_repository';
-import { getOrCreateFloorLayout } from '$lib/domain/services/floor_generation_service';
-import type { FloorLayout, FloorNode } from '$lib/domain/entities/floor';
+  getRewardsForRewardNode,
+} from "$lib/data/repositories/reward_repository";
+import { tickStatusesTurnEnd, tickStatusesTurnStart, onBattleEnd } from "$lib/data/consts/statuses";
+import { createCompanionRepository } from "$lib/data/repositories/companion_repository";
+import { getOrCreateFloorLayout } from "$lib/domain/services/floor_generation_service";
+import type { FloorLayout, FloorNode } from "$lib/domain/entities/floor";
 
 const STORAGE_VERSION_PREFIX = `version_${APP_VERSION}`;
 const HIGH_KEY = `${STORAGE_VERSION_PREFIX}:highest_floor`;
@@ -31,15 +31,15 @@ function loadObservedActionsMap(): ObservedActionsMap {
     const raw = localStorage.getItem(OBSERVED_ACTIONS_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object') {
+    if (parsed && typeof parsed === "object") {
       const out: ObservedActionsMap = {};
       for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
-        if (Array.isArray(v)) out[k] = (v as Action[]).filter((x) => typeof x === 'string');
+        if (Array.isArray(v)) out[k] = (v as Action[]).filter((x) => typeof x === "string");
       }
       return out;
     }
   } catch (e) {
-    console.warn('Failed to load observed_charactor_actions', e);
+    console.warn("Failed to load observed_charactor_actions", e);
   }
   return {};
 }
@@ -48,12 +48,12 @@ function saveObservedActionsMap(map: ObservedActionsMap) {
   try {
     localStorage.setItem(OBSERVED_ACTIONS_KEY, JSON.stringify(map));
   } catch (e) {
-    console.warn('Failed to save observed_charactor_actions', e);
+    console.warn("Failed to save observed_charactor_actions", e);
   }
 }
 
 export function addObservedActions(characterId: string, acts: Action[]) {
-  if (typeof localStorage === 'undefined') return;
+  if (typeof localStorage === "undefined") return;
   const map = loadObservedActionsMap();
   const current = new Set(map[characterId] || []);
   for (const a of acts) current.add(a);
@@ -66,9 +66,9 @@ function loadExposedCharactors(): string[] {
     const raw = localStorage.getItem(EXPOSED_CHARACTORS_KEY);
     if (!raw) return [];
     const arr = JSON.parse(raw);
-    if (Array.isArray(arr)) return arr.filter((x) => typeof x === 'string');
+    if (Array.isArray(arr)) return arr.filter((x) => typeof x === "string");
   } catch (e) {
-    console.warn('Failed to load exposed_charactors', e);
+    console.warn("Failed to load exposed_charactors", e);
   }
   return [];
 }
@@ -77,12 +77,12 @@ function saveExposedCharactors(list: string[]) {
   try {
     localStorage.setItem(EXPOSED_CHARACTORS_KEY, JSON.stringify(Array.from(new Set(list))));
   } catch (e) {
-    console.warn('Failed to save exposed_charactors', e);
+    console.warn("Failed to save exposed_charactors", e);
   }
 }
 
 export function markCharactorExposed(name: string) {
-  if (typeof localStorage === 'undefined') return;
+  if (typeof localStorage === "undefined") return;
   const list = loadExposedCharactors();
   if (!list.includes(name)) {
     list.push(name);
@@ -102,17 +102,21 @@ function basePlayer(): Player {
   return p;
 }
 
-export function createEnemy(kind: 'normal' | 'elite' | 'boss', floorIndex: number): Enemy {
+export function createEnemy(kind: "normal" | "elite" | "boss", floorIndex: number): Enemy {
   const e = buildEnemyFromCsv(kind, floorIndex);
   e.hp = calcMaxHP(e);
   /**
    * Scenario (documentation):
-   * 1. 初回遭遇: observed_charactor_actions に該当名が無ければ actions は全て不明扱い (exposedActions 空)。
-   * 2. 敵が行動 → action_executor で個別に addObservedActions し観測済みアクションが徐々に増える。
-   * 3. プレイヤーが "Observed" 実行 → markCharactorExposed + 全アクション addObservedActions → 次回以降
-   *    createEnemy 時点で全能力値 & 全アクション公開。
-   * 4. バージョンが上がると別バージョン用キーになるため、旧バージョン情報は新バージョンでは参照されない
-   *    (ゲームバランス変更に伴う再収集を許容)。必要ならマイグレーションを将来実装可能。
+   * 1. First encounter: if the character name is not present in observed_charactor_actions,
+   *    all actions are considered unknown (exposedActions is empty).
+   * 2. When an enemy performs an action, action_executor calls addObservedActions for that
+   *    enemy, gradually increasing the set of observed actions.
+   * 3. When the player uses "Insight" (Observed), markCharactorExposed is called and all
+   *    actions are added via addObservedActions, so subsequent createEnemy calls will
+   *    reveal all stats and actions for that enemy.
+   * 4. When the application version increases, storage keys include the version prefix,
+   *    so data from older versions will not be read by the new version. This permits
+   *    re-collection after game-balance changes. Implement migration later if needed.
    */
   const exposedIds = loadExposedCharactors();
   const observedMap = loadObservedActionsMap();
@@ -141,7 +145,7 @@ function ensureFloorLayout(floorIndex: number, state?: GameState): FloorLayout {
 }
 
 function initState(): GameState {
-  const highest = Number(localStorage.getItem(HIGH_KEY) || '0');
+  const highest = Number(localStorage.getItem(HIGH_KEY) || "0");
   const compRepo = createCompanionRepository();
   const companions = compRepo.list();
   const floorIndex = 1;
@@ -149,21 +153,21 @@ function initState(): GameState {
   return {
     floorIndex,
     currentNodeId: layout.startNodeId,
-    phase: companions.length > 0 ? 'companion_select' : 'progress',
+    phase: companions.length > 0 ? "companion_select" : "progress",
     player: basePlayer(),
     playerNameCommitted: false,
     companionCandidates: companions,
     allies: [],
     enemies: [],
     selectedEnemyIndex: undefined,
-    log: [{ message: 'ゲーム開始', kind: 'system' }],
+    log: [{ message: "ゲーム開始", kind: "system" }],
     highestFloor: highest,
     actionOffer: [],
     actionUseCount: 0,
     playerUsedActions: [],
     insightRewardActions: [],
     floorLayout: layout,
-    consumedNodeIds: []
+    consumedNodeIds: [],
   };
 }
 
@@ -177,14 +181,14 @@ export function restart() {
 }
 
 export function selectCompanion(state: GameState, id: string) {
-  if (state.phase !== 'companion_select') return;
+  if (state.phase !== "companion_select") return;
   const target = state.companionCandidates?.find((c) => c.id === id);
   if (!target) return;
   // スナップショットを Actor 化 (ally)
   const ally: Actor = {
     id: target.id,
-    side: 'player',
-    kind: 'player',
+    side: "player",
+    kind: "player",
     name: target.name,
     characterAttributes: target.characterAttributes,
     hp: 0,
@@ -194,36 +198,36 @@ export function selectCompanion(state: GameState, id: string) {
       id: target.id,
       name: target.name,
       characterAttributes: target.characterAttributes,
-      actions: [...target.actions]
+      actions: [...target.actions],
     },
-    physDamageCutRate: 0,
-    psyDamageCutRate: 0,
     physDamageUpRate: 0,
+    physDefenseUpRate: 0,
     psyDamageUpRate: 0,
-    actions: [...target.actions]
+    psyDefenseUpRate: 0,
+    actions: [...target.actions],
   };
   ally.hp = calcMaxHP(ally);
   state.allies.push(ally);
-  state.phase = 'progress';
-  pushLog(`仲間 ${ally.name} を迎え入れた`, 'system');
+  state.phase = "progress";
+  pushLog(`仲間 ${ally.name} を迎え入れた`, "system");
   commit(state);
 }
 
 export function skipCompanionSelection(state: GameState) {
-  if (state.phase !== 'companion_select') return;
-  state.phase = 'progress';
-  pushLog('仲間選択をスキップ', 'system');
+  if (state.phase !== "companion_select") return;
+  state.phase = "progress";
+  pushLog("仲間選択をスキップ", "system");
   commit(state);
 }
 
 export function commitPlayerName(newName: string) {
-  const trimmed = (newName || '').trim();
+  const trimmed = (newName || "").trim();
   if (!trimmed) return;
   gameState.update((s) => {
     s.player.name = trimmed;
     s.player = { ...s.player };
     s.playerNameCommitted = true;
-    pushLog(`プレイヤー名を「${trimmed}」に設定`, 'system');
+    pushLog(`プレイヤー名を「${trimmed}」に設定`, "system");
     return { ...s };
   });
 }
@@ -234,7 +238,7 @@ function commit(state: GameState) {
     player: { ...state.player },
     allies: state.allies.map((a) => ({ ...a })),
     enemies: state.enemies.map((e) => ({ ...e })),
-    log: [...state.log]
+    log: [...state.log],
   });
 }
 
@@ -243,9 +247,9 @@ function resyncFromStore(state: GameState) {
 }
 
 /**
- * プレイヤー現在値を CompanionRepository へ保存する共通処理。
- * ゲームオーバー/勝利双方で呼び出し。
- * 失敗してもゲーム進行へ影響しない。
+ * Common routine to save the player's current snapshot to the CompanionRepository.
+ * Invoked on both game over and victory.
+ * Failure is non-fatal and does not affect game progression.
  */
 function savePlayerAsCompanion(state: GameState) {
   try {
@@ -254,12 +258,12 @@ function savePlayerAsCompanion(state: GameState) {
       id: String(Date.now()),
       name: state.player.name,
       characterAttributes: state.player.characterAttributes,
-      actions: [...state.player.actions]
+      actions: [...state.player.actions],
     };
     repo.add(snap);
-    pushLog(` ${state.player.name} を仲間にした`, 'system');
+    pushLog(` ${state.player.name} を仲間にした`, "system");
   } catch (e) {
-    console.warn('companion save failed', e);
+    console.warn("companion save failed", e);
   }
 }
 
@@ -273,7 +277,7 @@ export function rollActions(state: GameState) {
 }
 
 function logProgress(state: GameState) {
-  pushLog(`進行: 階層${state.floorIndex} - node:${state.currentNodeId}`, 'system');
+  pushLog(`進行: 階層${state.floorIndex} - node:${state.currentNodeId}`, "system");
 }
 
 function visitedSet(state: GameState): Set<number> {
@@ -282,7 +286,7 @@ function visitedSet(state: GameState): Set<number> {
   set.add(state.currentNodeId);
   // Start node is considered explored by default
   const layout = ensureFloorLayout(state.floorIndex, state);
-  if (typeof layout.startNodeId === 'number') set.add(layout.startNodeId);
+  if (typeof layout.startNodeId === "number") set.add(layout.startNodeId);
   return set;
 }
 
@@ -306,7 +310,7 @@ function advanceToNextAvailableStep(state: GameState) {
     handleFloorTransition(state);
     return;
   }
-  state.phase = 'progress';
+  state.phase = "progress";
   logProgress(state);
   commit(state);
 }
@@ -318,8 +322,8 @@ export function nextProgress(state: GameState) {
 function handleFloorTransition(state: GameState) {
   // Victory 条件 (仮上限 11 以降で勝利)
   if (state.floorIndex >= 11) {
-    state.phase = 'victory';
-    pushLog('全階層を踏破! 勝利!', 'system');
+    state.phase = "victory";
+    pushLog("全階層を踏破! 勝利!", "system");
     savePlayerAsCompanion(state);
     if (state.highestFloor < state.floorIndex) {
       state.highestFloor = state.floorIndex;
@@ -331,14 +335,14 @@ function handleFloorTransition(state: GameState) {
   ensureFloorLayout(state.floorIndex, state);
   state.currentNodeId = state.floorLayout!.startNodeId;
   state.consumedNodeIds = [];
-  state.phase = 'progress';
+  state.phase = "progress";
   logProgress(state);
   commit(state);
 }
 
 export function chooseNode(state: GameState, node: FloorNode) {
   const layout = ensureFloorLayout(state.floorIndex, state);
-  if (node.kind === 'start' || node.id === layout.startNodeId) return;
+  if (node.kind === "start" || node.id === layout.startNodeId) return;
   const visited = visitedSet(state);
   const frontier = new Set(frontierOfVisited(layout, visited));
   if (!frontier.has(node.id)) return;
@@ -346,32 +350,32 @@ export function chooseNode(state: GameState, node: FloorNode) {
   state.consumedNodeIds = Array.from(new Set([...(state.consumedNodeIds || []), node.id]));
   state.currentNodeId = node.id;
   const kind = node.kind;
-  if (kind === 'normal' || kind === 'elite' || kind === 'boss') {
-    const enemyKind: 'normal' | 'elite' | 'boss' =
-      kind === 'elite' ? 'elite' : kind === 'boss' ? 'boss' : 'normal';
+  if (kind === "normal" || kind === "elite" || kind === "boss") {
+    const enemyKind: "normal" | "elite" | "boss" =
+      kind === "elite" ? "elite" : kind === "boss" ? "boss" : "normal";
     state.enemies = [createEnemy(enemyKind, state.floorIndex)];
     state.selectedEnemyIndex = 0;
     state.currentEncounterKind = enemyKind;
-    state.phase = 'combat';
+    state.phase = "combat";
     startTurn(state);
     pushLog(
-      kind === 'boss' ? 'ボス戦開始!' : enemyKind === 'elite' ? '精鋭戦開始!' : '戦闘開始',
-      'combat'
+      kind === "boss" ? "ボス戦開始!" : enemyKind === "elite" ? "精鋭戦開始!" : "戦闘開始",
+      "combat",
     );
-  } else if (kind === 'event') {
-    state.phase = 'event';
+  } else if (kind === "event") {
+    state.phase = "event";
     const ev = randomEvent();
     ev.apply(state);
-    pushLog(`イベント: ${ev.name}`, 'event');
-  } else if (kind === 'rest') {
-    state.phase = 'rest';
-  } else if (kind === 'reward') {
+    pushLog(`イベント: ${ev.name}`, "event");
+  } else if (kind === "rest") {
+    state.phase = "rest";
+  } else if (kind === "reward") {
     const opts = getRewardsForRewardNode(state);
     state.rewardOptions = opts;
     state.rewardIsBoss = false;
-    state.phase = 'reward';
-    pushLog('報酬ノード: 報酬を選択', 'system');
-  } else if (kind === 'progress') {
+    state.phase = "reward";
+    pushLog("報酬ノード: 報酬を選択", "system");
+  } else if (kind === "progress") {
     // 階層進行
     state.floorIndex += 1;
     handleFloorTransition(state);
@@ -381,12 +385,12 @@ export function chooseNode(state: GameState, node: FloorNode) {
 }
 
 export async function combatAction(state: GameState, id: Action) {
-  if (state.phase !== 'combat') return;
+  if (state.phase !== "combat") return;
   if (!state.actionOffer.includes(id)) return;
   if (state.playerUsedActions && state.playerUsedActions.includes(id)) return;
   let target = state.enemies.find((e) => e.hp > 0);
   if (
-    typeof state.selectedEnemyIndex === 'number' &&
+    typeof state.selectedEnemyIndex === "number" &&
     Number.isInteger(state.selectedEnemyIndex) &&
     state.enemies[state.selectedEnemyIndex] &&
     state.enemies[state.selectedEnemyIndex].hp > 0
@@ -403,32 +407,24 @@ export async function combatAction(state: GameState, id: Action) {
   await waitForAnimationsComplete();
   resyncFromStore(state);
   removeDeadActors(state);
-  if (state.enemies.length === 0 && state.phase !== 'combat') {
+  if (state.enemies.length === 0 && state.phase !== "combat") {
     commit(state);
     return;
   }
-  if (id === 'Insight') {
-    const enemy0 = state.enemies[0];
-    if (enemy0) {
-      const allActs = enemy0.actions.slice();
-      enemy0.observedActions = allActs.slice();
-      enemy0.isExposed = true;
-      markCharactorExposed(enemy0.id);
-      addObservedActions(enemy0.id, allActs);
-      state.insightRewardActions = Array.from(
-        new Set([...(state.insightRewardActions || []), ...allActs])
-      );
-    }
-    commit(state);
-  }
+
   if (state.actionUseCount >= state.player.characterAttributes.maxActionsPerTurn) {
     await alliesTurn(state);
-    if (state.phase !== 'combat') {
+    if (state.phase !== "combat") {
       commit(state);
       return;
     }
+    const playerSideAlive = handlePlayerSideTurnEnd(state);
+    commit(state);
+    if (!playerSideAlive) {
+      return;
+    }
     await enemiesTurn(state);
-    if (state.phase === 'combat') {
+    if (state.phase === "combat") {
       resyncFromStore(state);
       const ok = startTurn(state);
       if (!ok) {
@@ -463,19 +459,42 @@ async function alliesTurn(state: GameState) {
   }
 }
 
-async function enemiesTurn(state: GameState) {
-  for (const enemy of state.enemies.filter((e: Actor) => e.hp > 0)) {
-    tickStatusesTurnStart(enemy);
-    if (enemy.hp <= 0) {
-      pushLog('敵を継続ダメージで倒した!', 'combat');
-      removeDeadActors(state);
-      if (state.phase !== 'combat') {
-        commit(state);
-        return;
+function handlePlayerSideTurnEnd(state: GameState): boolean {
+  const actors: Actor[] = [state.player, ...state.allies];
+  let playerDead = false;
+  for (const actor of actors) {
+    if (actor.hp <= 0) continue;
+    tickStatusesTurnEnd(actor);
+    if (actor.hp <= 0) {
+      if (actor === state.player) {
+        playerDead = true;
+        state.phase = "gameover";
+        pushLog("状態異常で倒れた...", "system");
+        savePlayerAsCompanion(state);
+      } else {
+        pushLog("味方が状態異常で倒れた...", "combat");
       }
     }
   }
-  for (const enemy of state.enemies.filter((e: Actor) => e.hp > 0)) {
+  state.allies = state.allies.filter((a: Actor) => a.hp > 0).map((a) => ({ ...a }));
+  state.player = { ...state.player };
+  return !playerDead;
+}
+
+async function enemiesTurn(state: GameState) {
+  for (const enemy of [...state.enemies]) {
+    if (enemy.hp <= 0) continue;
+    tickStatusesTurnStart(enemy);
+    if (enemy.hp <= 0) {
+      pushLog("敵を継続ダメージで倒した!", "combat");
+      removeDeadActors(state);
+      if (state.phase !== "combat") {
+        commit(state);
+        return;
+      }
+      continue;
+    }
+
     const acted: Action[] = [];
     const maxActs = enemy.characterAttributes.maxActionsPerTurn;
     for (let i = 0; i < maxActs; i++) {
@@ -484,24 +503,37 @@ async function enemiesTurn(state: GameState) {
       const act = candidates[Math.floor(Math.random() * candidates.length)];
       acted.push(act);
       const livingAllies: Actor[] = [state.player, ...state.allies].filter((a) => a.hp > 0);
+      if (livingAllies.length === 0) break;
       const target = livingAllies[Math.floor(Math.random() * livingAllies.length)];
       performAction(state, enemy, target, act);
       commit(state);
       await waitForAnimationsComplete();
       resyncFromStore(state);
-      if (state.player.hp <= 0) break;
+      if (state.phase !== "combat" || state.player.hp <= 0) break;
     }
-    if (state.player.hp <= 0) break;
+
+    if (enemy.hp > 0) {
+      tickStatusesTurnEnd(enemy);
+      if (enemy.hp <= 0) {
+        pushLog("敵が状態異常で倒れた!", "combat");
+        removeDeadActors(state);
+        if (state.phase !== "combat") {
+          commit(state);
+          return;
+        }
+      }
+    }
+    if (state.phase !== "combat" || state.player.hp <= 0) break;
   }
+
   state.player = { ...state.player };
   if (state.player.hp <= 0) {
-    state.phase = 'gameover';
-    pushLog('倒れた...', 'system');
+    state.phase = "gameover";
+    pushLog("倒れた...", "system");
     if (state.highestFloor < state.floorIndex + 1) {
       state.highestFloor = state.floorIndex + 1;
       localStorage.setItem(HIGH_KEY, String(state.highestFloor));
     }
-    // プレイヤーを仲間候補として保存
     savePlayerAsCompanion(state);
   }
 }
@@ -510,17 +542,19 @@ function removeDeadActors(state: GameState) {
   const before = state.enemies.length;
   state.enemies = state.enemies.filter((e: Actor) => e.hp > 0);
   if (before > 0 && state.enemies.length === 0) {
+    onBattleEnd(state.player);
+    state.allies.forEach((ally) => onBattleEnd(ally));
     state.selectedEnemyIndex = undefined;
-    const kind = state.currentEncounterKind ?? 'normal';
-    state.phase = 'progress';
+    const kind = state.currentEncounterKind ?? "normal";
+    state.phase = "progress";
     prepareReward(state, kind);
   }
   state.allies = state.allies.filter((a: Actor) => a.hp > 0);
 }
 
 /**
- * プレイヤーターン開始処理。
- * @returns boolean プレイヤーが行動可能なら true / ゲームオーバーなら false
+ * Start processing for the player's turn.
+ * @returns boolean true if the player can act; false if the game is over.
  */
 function startTurn(state: GameState) {
   const actors: Actor[] = [state.player, ...state.allies];
@@ -530,19 +564,16 @@ function startTurn(state: GameState) {
     if (actor.hp <= 0) {
       if (actor === state.player) {
         playerDead = true;
-        state.phase = 'gameover';
-        pushLog('毒で倒れた...', 'system');
-        // ゲームオーバー時プレイヤーを仲間候補として保存
+        state.phase = "gameover";
+        pushLog("毒で倒れた...", "system");
         savePlayerAsCompanion(state);
-        break; // 以降の味方 tick は不要
+        break;
       } else {
-        // 味方死亡: ログのみ。ループは続行し他の味方やプレイヤーを処理。
-        pushLog('味方が継続ダメージで倒れた...', 'combat');
+        pushLog("味方が継続ダメージで倒れた...", "combat");
       }
     }
   }
 
-  // 死亡味方の除去 (ループ後にまとめて反映)
   state.allies = state.allies.filter((a: Actor) => a.hp > 0);
 
   if (playerDead) {
@@ -550,7 +581,7 @@ function startTurn(state: GameState) {
     return false;
   }
 
-  if (state.phase === 'combat') rollActions(state);
+  if (state.phase === "combat") rollActions(state);
   state.actionUseCount = 0;
   state.playerUsedActions = [];
   state.player = { ...state.player };
@@ -560,7 +591,7 @@ function startTurn(state: GameState) {
   return true;
 }
 
-function prepareReward(state: GameState, defeatedKind: 'normal' | 'elite' | 'boss') {
+function prepareReward(state: GameState, defeatedKind: "normal" | "elite" | "boss") {
   const opts = getRewardsForEnemy(state, defeatedKind);
   const insightActs: Action[] = (state.insightRewardActions || []).slice();
   const candidate = insightActs.find((a) => !state.player.actions.includes(a));
@@ -570,38 +601,37 @@ function prepareReward(state: GameState, defeatedKind: 'normal' | 'elite' | 'bos
       label: `洞察: ${candidate} を会得`,
       apply: (s: GameState) => {
         if (!s.player.actions.includes(candidate)) s.player.actions.push(candidate);
-        pushLog(`洞察報酬: 新アクション ${candidate} を会得`, 'system');
-      }
+        pushLog(`洞察報酬: 新アクション ${candidate} を会得`, "system");
+      },
     };
     opts.push(extra);
   }
   state.rewardOptions = opts;
-  state.rewardIsBoss = defeatedKind === 'boss';
-  state.phase = 'reward';
-  pushLog('報酬を選択', 'system');
+  state.rewardIsBoss = defeatedKind === "boss";
+  state.phase = "reward";
+  pushLog("報酬を選択", "system");
 }
 
 export function pickReward(state: GameState, id: string) {
-  if (state.phase !== 'reward' || !state.rewardOptions) return;
+  if (state.phase !== "reward" || !state.rewardOptions) return;
   const opt = state.rewardOptions.find((o) => o.id === id);
   if (!opt) return;
   opt.apply(state);
   state.insightRewardActions = [];
-  state.phase = 'progress';
+  state.phase = "progress";
   state.rewardOptions = undefined;
   state.rewardIsBoss = false;
-  // 次の利用可能ステップへ (循環 + 空ステップスキップ)
+
   advanceToNextAvailableStep(state);
 }
 
 export function restChoice(state: GameState) {
-  if (state.phase !== 'rest') return;
+  if (state.phase !== "rest") return;
   const max = calcMaxHP(state.player);
   const amount = Math.max(1, Math.floor(max * 0.3));
   const before = state.player.hp;
   state.player.hp = Math.min(max, state.player.hp + amount);
-  pushLog(`休憩で${state.player.hp - before}回復`, 'rest');
+  pushLog(`休憩で${state.player.hp - before}回復`, "rest");
 
-  // rest ノードも消費済みなので次へ
   advanceToNextAvailableStep(state);
 }

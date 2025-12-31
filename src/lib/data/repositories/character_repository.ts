@@ -1,8 +1,8 @@
-import charactersCsvRaw from '$lib/data/consts/characters.csv?raw';
-import { ACTOR_KINDS } from '$lib/domain/entities/character';
-import type { ActorKind, Attribute, Player, Enemy } from '$lib/domain/entities/character';
-import type { Action } from '$lib/domain/entities/action';
-import { parseCsv } from '$lib/data/repositories/utils/csv_util';
+import charactersCsvRaw from "$lib/data/consts/characters.csv?raw";
+import { ACTOR_KINDS } from "$lib/domain/entities/character";
+import type { ActorKind, Attribute, Player, Enemy } from "$lib/domain/entities/character";
+import type { Action } from "$lib/domain/entities/action";
+import { parseCsv } from "$lib/data/repositories/utils/csv_util";
 
 interface RowCommon {
   id: string;
@@ -40,7 +40,7 @@ const allRows: RowCommon[] = parseCsv(charactersCsvRaw)
       acts,
       maxActionsPerTurn,
       maxActionChoices,
-      revealed
+      revealed,
     ] = cols;
     if (!ACTOR_KINDS.includes(rawKind as ActorKind)) {
       throw new Error(`Invalid kind value in characters.csv: ${rawKind}`);
@@ -58,24 +58,24 @@ const allRows: RowCommon[] = parseCsv(charactersCsvRaw)
       DEX: Number(DEX),
       APP: Number(APP),
       INT: Number(INT),
-      actions: acts.split('|') as Action[],
+      actions: acts.split("|") as Action[],
       maxActionsPerTurn: Number(maxActionsPerTurn),
       maxActionChoices: Number(maxActionChoices),
-      revealed: revealed.split('|')
+      revealed: revealed.split("|"),
     };
   });
 
-const playerRow = allRows.find((r) => r.kind === 'player');
+const playerRow = allRows.find((r) => r.kind === "player");
 const enemyRows = allRows.filter(
-  (r) => r.kind === 'normal' || r.kind === 'elite' || r.kind === 'boss'
+  (r) => r.kind === "normal" || r.kind === "elite" || r.kind === "boss",
 );
 
 export function buildPlayerFromCsv(): Player {
-  if (!playerRow) throw new Error('player row not found in characters.csv');
+  if (!playerRow) throw new Error("player row not found in characters.csv");
   const row = playerRow;
   const base: Player = {
     id: row.id,
-    side: 'player',
+    side: "player",
     kind: row.kind,
     name: row.name,
     characterAttributes: {
@@ -85,7 +85,7 @@ export function buildPlayerFromCsv(): Player {
       DEX: row.DEX,
       APP: row.APP,
       INT: row.INT,
-      maxActionsPerTurn: row.maxActionsPerTurn
+      maxActionsPerTurn: row.maxActionsPerTurn,
     },
     hp: 0,
     statuses: [],
@@ -99,23 +99,23 @@ export function buildPlayerFromCsv(): Player {
         DEX: row.DEX,
         APP: row.APP,
         INT: row.INT,
-        maxActionsPerTurn: row.maxActionsPerTurn
+        maxActionsPerTurn: row.maxActionsPerTurn,
       },
-      actions: [...row.actions]
+      actions: [...row.actions],
     },
     heldMineralIds: [],
-    physDamageCutRate: 0,
-    psyDamageCutRate: 0,
     physDamageUpRate: 0,
+    physDefenseUpRate: 0,
     psyDamageUpRate: 0,
+    psyDefenseUpRate: 0,
     // row.actions は再起動間で共有されるためコピーして破壊的変更の伝播を防ぐ
     actions: [...row.actions],
-    maxActionChoices: row.maxActionChoices
+    maxActionChoices: row.maxActionChoices,
   };
   return base;
 }
 
-export function pickEnemyRow(kind: 'normal' | 'elite' | 'boss', floorIndex: number) {
+export function pickEnemyRow(kind: "normal" | "elite" | "boss", floorIndex: number) {
   /**
    * 指定階層に出現可能かを判定する。CSV で floorMin / floorMax が空の場合は無制限扱い。
    *
@@ -130,11 +130,11 @@ export function pickEnemyRow(kind: 'normal' | 'elite' | 'boss', floorIndex: numb
   return enemyRows.find((r) => r.kind === kind && inFloor(r));
 }
 
-export function buildEnemyFromCsv(kind: 'normal' | 'elite' | 'boss', floorIndex: number): Enemy {
+export function buildEnemyFromCsv(kind: "normal" | "elite" | "boss", floorIndex: number): Enemy {
   const row = pickEnemyRow(kind, floorIndex) || enemyRows.find((r) => r.kind === kind)!;
   const enemy: Enemy = {
     id: row.id,
-    side: 'enemy',
+    side: "enemy",
     kind: row.kind,
     name: row.name,
     characterAttributes: {
@@ -144,7 +144,7 @@ export function buildEnemyFromCsv(kind: 'normal' | 'elite' | 'boss', floorIndex:
       DEX: row.DEX,
       APP: row.APP,
       INT: row.INT,
-      maxActionsPerTurn: row.maxActionsPerTurn
+      maxActionsPerTurn: row.maxActionsPerTurn,
     },
     hp: 0,
     statuses: [],
@@ -158,18 +158,18 @@ export function buildEnemyFromCsv(kind: 'normal' | 'elite' | 'boss', floorIndex:
         DEX: row.DEX,
         APP: row.APP,
         INT: row.INT,
-        maxActionsPerTurn: row.maxActionsPerTurn
+        maxActionsPerTurn: row.maxActionsPerTurn,
       },
-      actions: [...row.actions]
+      actions: [...row.actions],
     },
     heldMineralIds: [],
-    physDamageCutRate: 0,
-    psyDamageCutRate: 0,
     physDamageUpRate: 0,
+    physDefenseUpRate: 0,
     psyDamageUpRate: 0,
+    psyDefenseUpRate: 0,
     actions: [...row.actions],
     revealedAttributes: row.revealed.map((k) => k as Attribute) as Attribute[],
-    isExposed: false
+    isExposed: false,
   };
   return enemy;
 }
